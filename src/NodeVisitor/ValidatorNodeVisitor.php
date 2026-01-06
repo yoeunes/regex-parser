@@ -17,7 +17,6 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\GroupNumbering;
 use RegexParser\GroupNumberingCollector;
-use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;

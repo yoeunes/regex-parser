@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -423,238 +422,84 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return $max;
     }
 
-    /**
-     * Visits a LiteralNode. Literal characters are inherently safe from ReDoS.
-     *
-     * Purpose: Literal characters (e.g., 'a', 'hello') match themselves directly
-     * and do not involve any backtracking or repetition that could lead to ReDoS.
-     * Therefore, this method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitLiteral(LiteralNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a CharTypeNode. Character types are inherently safe from ReDoS.
-     *
-     * Purpose: Predefined character types (e.g., `\d`, `\s`, `\w`) match a single
-     * character from a defined set and do not introduce backtracking issues on their own.
-     * Therefore, this method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitCharType(CharTypeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a DotNode. The wildcard dot is inherently safe from ReDoS.
-     *
-     * Purpose: The dot (`.`) matches any single character (except newline by default)
-     * and does not introduce backtracking issues on its own. Therefore, this method
-     * always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitDot(DotNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits an AnchorNode. Anchors are inherently safe from ReDoS.
-     *
-     * Purpose: Positional anchors (e.g., `^`, `$`, `\b`) assert a position in the string
-     * but do not consume characters or involve repetition. They are therefore safe from ReDoS.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitAnchor(AnchorNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits an AssertionNode. Assertions are inherently safe from ReDoS.
-     *
-     * Purpose: Zero-width assertions (e.g., `\b`, `\A`) check for conditions without
-     * consuming characters or involving repetition. They are therefore safe from ReDoS.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitAssertion(AssertionNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a KeepNode. The `\K` assertion is inherently safe from ReDoS.
-     *
-     * Purpose: The `\K` assertion resets the starting point of the match but does not
-     * consume characters or involve repetition in a way that leads to ReDoS.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitKeep(KeepNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a CharClassNode. Character classes are inherently safe from ReDoS.
-     *
-     * Purpose: Character classes (e.g., `[a-z]`, `[^0-9]`) match a single character
-     * from a defined set and do not introduce backtracking issues on their own.
-     * Therefore, this method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitCharClass(CharClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a RangeNode. Character ranges are inherently safe from ReDoS.
-     *
-     * Purpose: Character ranges (e.g., `a-z` within a character class) match a single
-     * character from a defined range and do not introduce backtracking issues on their own.
-     * Therefore, this method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\RangeNode $node the `RangeNode` representing a character range
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitRange(RangeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a BackrefNode. Backreferences are generally safe from ReDoS on their own.
-     *
-     * Purpose: Backreferences (e.g., `\1`, `\k<name>`) match previously captured text.
-     * While they can be part of complex patterns that lead to ReDoS, the backreference
-     * itself does not introduce the vulnerability. This method returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitBackref(BackrefNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a UnicodeNode. Unicode character escapes are inherently safe from ReDoS.
-     *
-     * Purpose: Unicode character escapes (e.g., `\x{2603}`) represent a single, specific
-     * character and do not introduce backtracking or repetition issues.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitUnicode(UnicodeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a UnicodePropNode. Unicode properties are inherently safe from ReDoS.
-     *
-     * Purpose: Unicode character properties (e.g., `\p{L}`) match a single character
-     * based on its property and do not introduce backtracking or repetition issues on their own.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a PosixClassNode. POSIX character classes are inherently safe from ReDoS.
-     *
-     * Purpose: POSIX character classes (e.g., `[:alpha:]`) match a single character
-     * from a defined set and do not introduce backtracking or repetition issues on their own.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a CommentNode. Comments are ignored by the regex engine and are safe from ReDoS.
-     *
-     * Purpose: Comments within a regex (e.g., `(?#comment)`) do not affect the matching
-     * behavior and thus cannot introduce ReDoS vulnerabilities.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitComment(CommentNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
-    /**
-     * Visits a PcreVerbNode. PCRE verbs are generally safe from ReDoS on their own.
-     *
-     * Purpose: PCRE control verbs (e.g., `(*FAIL)`, `(*COMMIT)`) influence the regex
-     * engine's behavior but do not typically introduce ReDoS vulnerabilities directly.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): ReDoSSeverity
     {
@@ -700,9 +545,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Visits a CalloutNode and treats it as neutral for ReDoS purposes.
-     *
-     * Callouts delegate to user code without changing the regex's matching language,
-     * so they are considered safe in this static analysis.
      */
     #[\Override]
     public function visitCallout(CalloutNode $node): ReDoSSeverity
@@ -712,14 +554,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Checks if a given quantifier is unbounded (e.g., `*`, `+`, `{n,}`).
-     *
-     * Purpose: This helper method determines if a quantifier allows for an infinite
-     * number of repetitions. This is a key factor in identifying potential ReDoS
-     * vulnerabilities, as unbounded quantifiers are often involved in catastrophic backtracking.
-     *
-     * @param string $quantifier The quantifier string (e.g., `*`, `+`, `{1,5}`).
-     *
-     * @return bool true if the quantifier is unbounded, false otherwise
      */
     private function isUnbounded(string $quantifier): bool
     {
@@ -736,16 +570,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Checks if a given quantifier is bounded but allows for a very large number of
-     * repetitions.
-     *
-     * Purpose: While not as dangerous as unbounded quantifiers, very large bounded quantifiers
-     * (e.g., `{1,10000}`) can still lead to performance issues and potential denial of service
-     * if the regex engine has to backtrack extensively. This method helps flag such cases.
-     *
-     * @param string $quantifier The quantifier string (e.g., `{1,5}`, `{1000}`).
-     *
-     * @return bool true if the quantifier is bounded and large, false otherwise
+     * Checks if a given quantifier is bounded but allows for a very large number of repetitions.
      */
     private function isLargeBounded(string $quantifier): bool
     {
@@ -760,15 +585,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Determines if an AlternationNode contains overlapping alternatives.
-     *
-     * Purpose: This complex helper method detects a common ReDoS pattern where different
-     * branches of an alternation can match the same prefix (e.g., `(ab|a)`). When such
-     * an alternation is quantified, it can lead to exponential backtracking. It analyzes
-     * the initial characters of each alternative using `CharSetAnalyzer` to find overlaps.
-     *
-     * @param Node\AlternationNode $node the `AlternationNode` to check for overlaps
-     *
-     * @return bool true if overlapping alternatives are found, false otherwise
      */
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
@@ -809,15 +625,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Generates a "signature" for the starting element of a node, used for overlap detection.
-     *
-     * Purpose: This helper method is used by `hasOverlappingAlternatives` to quickly
-     * determine if two different regex branches start with a potentially overlapping pattern.
-     * It currently distinguishes only the "match anything" prefix (dot) and delegates detailed character overlap
-     * checks to `CharSetAnalyzer`.
-     *
-     * @param Node\NodeInterface $node the AST node to get the prefix signature for
-     *
-     * @return string A string representing the prefix signature (e.g., 'DOT' or empty if not applicable).
      */
     private function getPrefixSignature(NodeInterface $node): string
     {
@@ -966,17 +773,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Compares two ReDoSSeverity values to check if the first is greater than
-     * the second.
-     *
-     * Purpose: This helper method provides a consistent way to compare severity levels,
-     * which are represented by an enum. It's used to determine the highest severity
-     * encountered during the AST traversal.
-     *
-     * @param ReDoSSeverity $a the first severity level to compare
-     * @param ReDoSSeverity $b the second severity level to compare
-     *
-     * @return bool true if severity `$a` is greater than severity `$b`, false otherwise
+     * Compares two ReDoSSeverity values.
      */
     private function severityGreaterThan(ReDoSSeverity $a, ReDoSSeverity $b): bool
     {
@@ -994,14 +791,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Returns the higher of two ReDoSSeverity values.
-     *
-     * Purpose: This helper method simplifies finding the maximum severity level
-     * when combining results from different parts of the AST.
-     *
-     * @param ReDoSSeverity $a the first severity level
-     * @param ReDoSSeverity $b the second severity level
-     *
-     * @return ReDoSSeverity the higher of the two severity levels
      */
     private function maxSeverity(ReDoSSeverity $a, ReDoSSeverity $b): ReDoSSeverity
     {
