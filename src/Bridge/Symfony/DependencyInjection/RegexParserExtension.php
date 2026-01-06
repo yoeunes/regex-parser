@@ -34,14 +34,6 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 final class RegexParserExtension extends Extension
 {
-    // Service IDs
-    private const SERVICE_CACHE = 'regex_parser.cache';
-    private const SERVICE_EXTRACTOR_INSTANCE = 'regex_parser.extractor.instance';
-
-    // Service config paths
-    private const SERVICE_RESOURCES_CONFIG_PATH = __DIR__.'/../Resources/config';
-    private const SERVICE_FILE = 'services.php';
-
     /**
      * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
      * @param ContainerBuilder            $container the DI container builder instance
@@ -116,25 +108,24 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.exclude_paths', $config['exclude_paths']);
         $container->setParameter('regex_parser.editor_format', $editorFormat);
 
-        $container->setDefinition(self::SERVICE_CACHE, $this->buildCacheDefinition($config));
+        $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
 
         // Configure extractor service or default implementation.
         $extractorService = $config['extractor_service'];
         if ($this->isNotNullOrEmpty($extractorService)) {
             if (\is_string($extractorService)) {
                 $container->setAlias(ExtractorInterface::class, $extractorService);
-                $container->setAlias(self::SERVICE_EXTRACTOR_INSTANCE, $extractorService);
+                $container->setAlias('regex_parser.extractor.instance', $extractorService);
             }
         } else {
             // Determine and register appropriate extractor.
             $extractorDefinition = $this->createExtractorDefinition();
-            $container->setDefinition(self::SERVICE_EXTRACTOR_INSTANCE, $extractorDefinition);
-            $container->setAlias(ExtractorInterface::class, self::SERVICE_EXTRACTOR_INSTANCE);
+            $container->setDefinition('regex_parser.extractor.instance', $extractorDefinition);
+            $container->setAlias(ExtractorInterface::class, 'regex_parser.extractor.instance');
         }
 
-        $loader = new PhpFileLoader($container, new FileLocator(self::SERVICE_RESOURCES_CONFIG_PATH));
-
-        $loader->load(self::SERVICE_FILE);
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader->load('services.php');
     }
 
     /**
