@@ -271,7 +271,7 @@ Configuration : regex.dist.json
   [PASS] No issues found, 0 optimizations available.
   Time: 0.08s | Memory: 10 MB | Cache: 0 hits, 0 misses | Processes: 10
 
-  Star the repo: https://github.com/yoeunes/regex-parser
+  Found it useful? Consider starring: https://github.com/yoeunes/regex-parser
 ```
 
 **With Issues:**

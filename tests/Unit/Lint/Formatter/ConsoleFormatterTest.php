@@ -130,7 +130,7 @@ final class ConsoleFormatterTest extends TestCase
     {
         $output = $this->formatter->formatFooter();
 
-        $this->assertStringContainsString('Star the repo', $output);
+        $this->assertStringContainsString('Found it useful? Consider starring:', $output);
         $this->assertStringContainsString('github.com/yoeunes/regex-parser', $output);
     }
 
