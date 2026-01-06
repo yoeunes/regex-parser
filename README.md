@@ -143,7 +143,6 @@ RegexParser integrates with common PHP tooling:
 
 - **Symfony bundle**: [docs/guides/cli.md](docs/guides/cli.md)
 - **PHPStan**: `vendor/yoeunes/regex-parser/extension.neon`
-- **Rector**: Custom refactoring rules
 - **GitHub Actions**: `vendor/bin/regex lint` in your CI pipeline
 
 ## Performance
