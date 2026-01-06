@@ -24,6 +24,7 @@ use RegexParser\Lint\RegexLintService;
 use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -361,11 +362,11 @@ final class RegexLintCommand extends Command
     private function showFooter(SymfonyStyle $io): void
     {
         $io->newLine();
-        $io->writeln('  <fg=gray>Star repo:'.self::STAR_REPO_URL.'</>');
+        $io->writeln('  <fg=gray>Star the repo: '.self::STAR_REPO_URL.'</>');
         $io->newLine();
     }
 
-    private function createProgressBar(SymfonyStyle $io, int $total): object
+    private function createProgressBar(SymfonyStyle $io, int $total): ProgressBar
     {
         $bar = $io->createProgressBar($total);
         $bar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
