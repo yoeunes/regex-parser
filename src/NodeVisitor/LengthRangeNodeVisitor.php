@@ -109,6 +109,9 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return $node->child->accept($this);
     }
 
+    /**
+     * @return array{0: int, 1: int|null}
+     */
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): array
     {
@@ -258,6 +261,9 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [0, 0];
     }
 
+    /**
+     * @return array{0: int, 1: int|null}
+     */
     private function parseQuantifierRange(string $q): array
     {
         return match ($q) {

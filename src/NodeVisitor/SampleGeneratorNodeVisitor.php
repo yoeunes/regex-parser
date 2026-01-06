@@ -490,6 +490,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return '';
     }
 
+    /**
+     * @return array{0: int, 1: int}
+     */
     private function parseQuantifierRange(string $q): array
     {
         $range = match ($q) {
@@ -604,6 +607,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
+    /**
+     * @param array<string> $chars
+     */
     private function getRandomChar(array $chars): string
     {
         if (empty($chars)) {

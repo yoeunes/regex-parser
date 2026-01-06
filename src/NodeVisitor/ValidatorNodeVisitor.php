@@ -127,7 +127,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private ?NodeInterface $nextNode = null;
 
-    // Intelligent caching for expensive validations
     /**
      * @var array<string, bool>
      */
@@ -156,7 +155,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitRegex(RegexNode $node): void
     {
-        // Fast state reset with minimal allocations
         $this->inLookbehind = false;
         $this->groupNumbering = (new GroupNumberingCollector())->collect($node);
         $this->captureSequence = $this->groupNumbering->captureSequence;
@@ -171,9 +169,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(AlternationNode $node): void
     {
-        // Note: variable-length lookbehinds are supported in PHP 7.3+ (PCRE2).
-        // Fixed-length enforcement is handled in validateLookbehindLength based on target PHP version.
-
         $previous = $this->previousNode;
         $next = $this->nextNode;
 
@@ -255,36 +250,24 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $node->node->accept($this);
     }
 
-    /**
-     * Validates a `LiteralNode`.
-     */
     #[\Override]
     public function visitLiteral(LiteralNode $node): void
     {
         // No semantic validation needed for literals
     }
 
-    /**
-     * Validates a `CharTypeNode`.
-     */
     #[\Override]
     public function visitCharType(CharTypeNode $node): void
     {
         // No semantic validation needed for char types
     }
 
-    /**
-     * Validates a `DotNode`.
-     */
     #[\Override]
     public function visitDot(DotNode $node): void
     {
         // No semantic validation needed for dot
     }
 
-    /**
-     * Validates an `AnchorNode`.
-     */
     #[\Override]
     public function visitAnchor(AnchorNode $node): void
     {
@@ -305,8 +288,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Validates a `KeepNode`.
-     *
      * @throws SemanticErrorException if `\K` is found within a lookbehind
      */
     #[\Override]
@@ -1050,6 +1031,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return $bounds;
     }
 
+    /**
+     * @return array{0: int, 1: int}
+     */
     private function parseQuantifierBounds(string $q): array
     {
         return match ($q) {
