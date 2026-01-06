@@ -23,6 +23,8 @@ interface NodeInterface
     /**
      * @template-covariant  T
      *
+     * @phpstan-template  T
+     *
      * @param NodeVisitorInterface<T> $visitor
      *
      * @return T
