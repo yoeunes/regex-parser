@@ -46,7 +46,7 @@ use RegexParser\Node\VersionConditionNode;
 /**
  * Defines the contract for a visitor that traverses the regex Abstract Syntax Tree (AST).
  *
- * @template-covariant TReturn The return type of the visitor's methods (e.g., `string`
+ * @template TReturn The return type of the visitor's methods (e.g., `string`
  *                             for `CompilerNodeVisitor`, `void` for `ValidatorNodeVisitor`).
  */
 interface NodeVisitorInterface
