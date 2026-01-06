@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -48,13 +47,7 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
 /**
- * Generates a human-readable, step-by-step explanation of what a regex does.
- *
- * Purpose: This visitor traverses the AST and translates each node into a natural
- * language description. It's the engine behind the `Regex::explain()` method.
- * For contributors, this class demonstrates how to consume the AST to produce
- * meaningful, user-facing output. Each `visit` method is responsible for
- * generating the English explanation for a specific regex component.
+ * Generates a human-readable explanation of the regex.
  *
  * @extends AbstractNodeVisitor<string>
  */
@@ -115,18 +108,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
 
     private int $indentLevel = 0;
 
-    /**
-     * Explains the root `RegexNode`.
-     *
-     * Purpose: This is the entry point for the explanation. It sets up the initial
-     * context, mentioning the regex flags, and then recursively calls the visitor
-     * on the main pattern. This method provides a high-level summary of the entire
-     * regular expression.
-     *
-     * @param Node\RegexNode $node the root node of the AST
-     *
-     * @return string the complete, human-readable explanation of the regex
-     */
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {
@@ -140,18 +121,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $header."\n".$body;
     }
 
-    /**
-     * Explains an `AlternationNode`.
-     *
-     * Purpose: This method describes an alternation (`|`), making it clear that the
-     * regex engine will try to match one of several possibilities. It formats the
-     * output with "EITHER...OR..." to be intuitive, helping to understand the
-     * branching logic within the pattern.
-     *
-     * @param Node\AlternationNode $node the alternation node to explain
-     *
-     * @return string a description of the alternative branches
-     */
     #[\Override]
     public function visitAlternation(AlternationNode $node): string
     {
@@ -169,18 +138,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return implode("\n", $lines);
     }
 
-    /**
-     * Explains a `SequenceNode`.
-     *
-     * Purpose: This method describes a sequence of regex components that must be
-     * matched in order. It recursively explains each child and joins the
-     * descriptions with newlines to represent the sequence, making the step-by-step
-     * matching process clear.
-     *
-     * @param Node\SequenceNode $node the sequence node to explain
-     *
-     * @return string a description of the sequential components
-     */
     #[\Override]
     public function visitSequence(SequenceNode $node): string
     {
@@ -190,18 +147,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return implode("\n", $parts);
     }
 
-    /**
-     * Explains a `GroupNode`.
-     *
-     * Purpose: This method provides a description for any type of group, clearly
-     * stating its function (e.g., capturing, non-capturing, lookahead) and any
-     * associated metadata like a name or inline flags. This helps in understanding
-     * the structural and behavioral aspects of grouped patterns.
-     *
-     * @param Node\GroupNode $node the group node to explain
-     *
-     * @return string a description of the group and its contents
-     */
     #[\Override]
     public function visitGroup(GroupNode $node): string
     {
@@ -229,18 +174,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         ]);
     }
 
-    /**
-     * Explains a `QuantifierNode`.
-     *
-     * Purpose: This method describes how many times a preceding element can be
-     * matched, translating tokens like `*`, `+`, and `{n,m}` into clear English
-     * phrases like "zero or more times" or "between 2 and 5 times". It also
-     * clarifies the quantifier's greediness (greedy, lazy, or possessive).
-     *
-     * @param Node\QuantifierNode $node the quantifier node to explain
-     *
-     * @return string a description of the quantified element
-     */
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -264,120 +197,42 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         ]);
     }
 
-    /**
-     * Explains a `LiteralNode`.
-     *
-     * Purpose: This method describes a literal character or string, handling
-     * special whitespace characters to make them readable. It represents the
-     * most basic form of matching: an exact character sequence.
-     *
-     * @param Node\LiteralNode $node the literal node to explain
-     *
-     * @return string a description of the literal value
-     */
     #[\Override]
     public function visitLiteral(LiteralNode $node): string
     {
         return $this->line($this->explainLiteral($node->value));
     }
 
-    /**
-     * Explains a `CharTypeNode`.
-     *
-     * Purpose: This method translates a character type escape sequence (e.g., `\d`, `\s`)
-     * into its well-known meaning (e.g., "any digit", "any whitespace character"). This
-     * helps in understanding these common shorthand character classes.
-     *
-     * @param Node\CharTypeNode $node the character type node to explain
-     *
-     * @return string a description of the character type
-     */
     #[\Override]
     public function visitCharType(CharTypeNode $node): string
     {
         return $this->line('Character Type: '.(self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')'));
     }
 
-    /**
-     * Explains a `DotNode`.
-     *
-     * Purpose: This method describes the wildcard (`.`) character, noting its
-     * behavior with respect to newlines and the `/s` flag. It clarifies that it
-     * matches almost any single character.
-     *
-     * @param Node\DotNode $node the dot node to explain
-     *
-     * @return string a description of the wildcard
-     */
     #[\Override]
     public function visitDot(DotNode $node): string
     {
         return $this->line('Wildcard: any character (may or may not match line terminators)');
     }
 
-    /**
-     * Explains an `AnchorNode`.
-     *
-     * Purpose: This method describes an anchor like `^` or `$`, explaining that it
-     * asserts a position (start or end of string/line) without consuming any characters.
-     * This is crucial for understanding positional constraints.
-     *
-     * @param Node\AnchorNode $node the anchor node to explain
-     *
-     * @return string a description of the anchor
-     */
     #[\Override]
     public function visitAnchor(AnchorNode $node): string
     {
         return $this->line('Anchor: '.(self::ANCHOR_MAP[$node->value] ?? $node->value));
     }
 
-    /**
-     * Explains an `AssertionNode`.
-     *
-     * Purpose: This method describes a zero-width assertion like `\b` (word boundary)
-     * or `\A` (start of subject). These assertions check for conditions at the current
-     * position without consuming characters, providing precise matching control.
-     *
-     * @param Node\AssertionNode $node the assertion node to explain
-     *
-     * @return string a description of the assertion
-     */
     #[\Override]
     public function visitAssertion(AssertionNode $node): string
     {
         return $this->line('Assertion: '.(self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value));
     }
 
-    /**
-     * Explains a `KeepNode`.
-     *
-     * Purpose: This method describes the `\K` sequence, explaining its function of
-     * resetting the start of the overall match. This is important for understanding how
-     * the final matched string is determined, especially when parts of the match should
-     * be excluded from the result.
-     *
-     * @param Node\KeepNode $node the keep node to explain
-     *
-     * @return string a description of the `\K` assertion
-     */
     #[\Override]
     public function visitKeep(KeepNode $node): string
     {
         return $this->line('Assertion: \K (reset match start)');
     }
 
-    /**
-     * Explains a `CharClassNode`.
-     *
-     * Purpose: This method describes a character class `[...]`, indicating whether it's
-     * negated and listing the characters or ranges it contains. This helps in understanding
-     * the specific set of characters that are allowed or disallowed at a given position.
-     *
-     * @param Node\CharClassNode $node the character class node to explain
-     *
-     * @return string a description of the character class
-     */
     #[\Override]
     public function visitCharClass(CharClassNode $node): string
     {
@@ -391,17 +246,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Character Class: any character in [ %s ]', implode(', ', $explainedParts)));
     }
 
-    /**
-     * Explains a `RangeNode`.
-     *
-     * Purpose: This method describes a range within a character class (e.g., `a-z`),
-     * making it clear what the start and end of the range are. This simplifies the
-     * understanding of character sets defined by ranges.
-     *
-     * @param Node\RangeNode $node the range node to explain
-     *
-     * @return string a description of the character range
-     */
     #[\Override]
     public function visitRange(RangeNode $node): string
     {
@@ -416,17 +260,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Range: from %s to %s', $start, $end));
     }
 
-    /**
-     * Explains a `BackrefNode`.
-     *
-     * Purpose: This method describes a backreference (e.g., `\1`), explaining that
-     * it matches the text previously captured by a specific group. This is crucial for
-     * understanding patterns that enforce repetition or symmetry based on earlier matches.
-     *
-     * @param Node\BackrefNode $node the backreference node to explain
-     *
-     * @return string a description of the backreference
-     */
     #[\Override]
     public function visitBackref(BackrefNode $node): string
     {
@@ -459,17 +292,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Version condition: %s %s', $node->operator, $node->version));
     }
 
-    /**
-     * Explains a `UnicodePropNode`.
-     *
-     * Purpose: This method describes a Unicode property escape (e.g., `\p{L}`),
-     * explaining that it matches any character with a specific Unicode property. This
-     * is vital for patterns dealing with diverse character sets and their classifications.
-     *
-     * @param Node\UnicodePropNode $node the Unicode property node to explain
-     *
-     * @return string a description of the Unicode property match
-     */
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
@@ -510,52 +332,18 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Explains a `PosixClassNode`.
-     *
-     * Purpose: This method describes a POSIX character class (e.g., `[:alpha:]`).
-     * It clarifies that a predefined set of characters (like letters or digits) is
-     * being matched, which is useful for common character group definitions.
-     *
-     * @param Node\PosixClassNode $node the POSIX class node to explain
-     *
-     * @return string a description of the POSIX class
-     */
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): string
     {
         return $this->line('POSIX Class: '.$node->class);
     }
 
-    /**
-     * Explains a `CommentNode`.
-     *
-     * Purpose: This method describes an inline regex comment `(?#...)`.
-     * It clarifies that the content is a comment, ignored by the regex engine,
-     * but present for human readability and documentation within the pattern.
-     *
-     * @param Node\CommentNode $node the comment node to explain
-     *
-     * @return string the content of the comment
-     */
     #[\Override]
     public function visitComment(CommentNode $node): string
     {
         return $this->line(\sprintf("Comment: '%s'", $node->comment));
     }
 
-    /**
-     * Explains a `ConditionalNode`.
-     *
-     * Purpose: This method describes a conditional subpattern `(?(cond)yes|no)`,
-     * clearly laying out the condition, the "yes" pattern, and the optional "no" pattern.
-     * This helps in understanding the complex branching logic and context-dependent
-     * matching within the regex.
-     *
-     * @param Node\ConditionalNode $node the conditional node to explain
-     *
-     * @return string a description of the conditional logic
-     */
     #[\Override]
     public function visitConditional(ConditionalNode $node): string
     {
@@ -584,17 +372,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         ]);
     }
 
-    /**
-     * Explains a `SubroutineNode`.
-     *
-     * Purpose: This method describes a subroutine call (e.g., `(?R)`), explaining
-     * that it recursively calls another part of the pattern. This is important for
-     * understanding patterns that reuse or refer to other parts of themselves.
-     *
-     * @param Node\SubroutineNode $node the subroutine node to explain
-     *
-     * @return string a description of the subroutine call
-     */
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -606,34 +383,12 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Subroutine Call: recurses to %s', $ref));
     }
 
-    /**
-     * Explains a `PcreVerbNode`.
-     *
-     * Purpose: This method describes a PCRE verb like `(*FAIL)`, which controls
-     * the backtracking process of the regex engine. It clarifies the specific
-     * directive being used to influence matching behavior.
-     *
-     * @param Node\PcreVerbNode $node the PCRE verb node to explain
-     *
-     * @return string a description of the PCRE verb
-     */
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return $this->line('PCRE Verb: (*'.$node->verb.')');
     }
 
-    /**
-     * Explains a `DefineNode`.
-     *
-     * Purpose: This method describes a `(?(DEFINE)...)` block, explaining that it
-     * defines subpatterns for later use in subroutines without matching anything itself.
-     * This helps in understanding how reusable components are structured within a complex regex.
-     *
-     * @param Node\DefineNode $node the define node to explain
-     *
-     * @return string a description of the DEFINE block
-     */
     #[\Override]
     public function visitDefine(DefineNode $node): string
     {
@@ -712,9 +467,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Format character literal for explanation, handling non-printable and extended ASCII characters.
-     */
     private function formatCharLiteral(string $value): string
     {
         $ord = \ord($value);

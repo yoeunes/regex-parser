@@ -433,105 +433,42 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Visits a `CharTypeNode`.
-     *
-     * Purpose: Character types like `\d` are already in their most optimal form.
-     *
-     * @param Node\CharTypeNode $node the character type node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitCharType(CharTypeNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `DotNode`.
-     *
-     * Purpose: The `.` wildcard is atomic and cannot be optimized.
-     *
-     * @param Node\DotNode $node the dot node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitDot(DotNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits an `AnchorNode`.
-     *
-     * Purpose: Anchors like `^` and `$` are atomic and cannot be optimized.
-     *
-     * @param Node\AnchorNode $node the anchor node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitAnchor(AnchorNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits an `AssertionNode`.
-     *
-     * Purpose: Assertions like `\b` are atomic and cannot be optimized.
-     *
-     * @param Node\AssertionNode $node the assertion node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitAssertion(AssertionNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `KeepNode`.
-     *
-     * Purpose: The `\K` assertion is atomic and cannot be optimized.
-     *
-     * @param Node\KeepNode $node the keep node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitKeep(KeepNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `BackrefNode`.
-     *
-     * Purpose: Backreferences are dynamic and cannot be optimized.
-     *
-     * @param Node\BackrefNode $node the backreference node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitBackref(BackrefNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `UnicodePropNode`.
-     *
-     * Purpose: Unicode property escapes are atomic and cannot be optimized.
-     *
-     * @param Node\UnicodePropNode $node the Unicode property node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
@@ -544,75 +481,30 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Visits a `PosixClassNode`.
-     *
-     * Purpose: POSIX classes are atomic and cannot be optimized further.
-     *
-     * @param Node\PosixClassNode $node the POSIX class node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `CommentNode`.
-     *
-     * Purpose: Comments do not affect matching and are preserved as is.
-     *
-     * @param Node\CommentNode $node the comment node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitComment(CommentNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `SubroutineNode`.
-     *
-     * Purpose: Subroutine calls are dynamic and cannot be optimized.
-     *
-     * @param Node\SubroutineNode $node the subroutine node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Visits a `PcreVerbNode`.
-     *
-     * Purpose: PCRE verbs control the matching engine and are not optimized.
-     *
-     * @param Node\PcreVerbNode $node the PCRE verb node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Optimizes a `DefineNode`.
-     *
-     * Purpose: This method recursively optimizes the content within a `(?(DEFINE)...)` block.
-     *
-     * @param Node\DefineNode $node the define node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized define node
-     */
     #[\Override]
     public function visitDefine(DefineNode $node): NodeInterface
     {

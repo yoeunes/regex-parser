@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -42,37 +41,18 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
- * A visitor that calculates the minimum and maximum possible lengths of strings that match the AST.
- *
- * Purpose: This visitor traverses the Abstract Syntax Tree (AST) of a regular expression
- * and computes the range of string lengths that could potentially match the pattern.
- * This is invaluable for input validation, performance optimization, and understanding
- * the constraints of a regex pattern.
+ * Calculates min/max string lengths that match the regex.
  *
  * @extends AbstractNodeVisitor<array{0: int, 1: int|null}>
  */
 final class LengthRangeNodeVisitor extends AbstractNodeVisitor
 {
-    /**
-     * Visits a RegexNode and returns the length range of its pattern.
-     *
-     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
-     *
-     * @return array{0: int, 1: int|null} the minimum and maximum lengths (null for infinite)
-     */
     #[\Override]
     public function visitRegex(RegexNode $node): array
     {
         return $node->pattern->accept($this);
     }
 
-    /**
-     * Visits an AlternationNode and returns the combined length range of its alternatives.
-     *
-     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
-     *
-     * @return array{0: int, 1: int|null} the minimum and maximum lengths across all alternatives
-     */
     #[\Override]
     public function visitAlternation(AlternationNode $node): array
     {
@@ -93,13 +73,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [$min, $hasInfinite ? null : $max];
     }
 
-    /**
-     * Visits a SequenceNode and returns the sum of length ranges of its children.
-     *
-     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
-     *
-     * @return array{0: int, 1: int|null} the total minimum and maximum lengths
-     */
     #[\Override]
     public function visitSequence(SequenceNode $node): array
     {
@@ -120,13 +93,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [$totalMin, $hasInfinite ? null : $totalMax];
     }
 
-    /**
-     * Visits a GroupNode and returns the length range of its child.
-     *
-     * @param Node\GroupNode $node the `GroupNode` representing a grouping construct
-     *
-     * @return array{0: int, 1: int|null} the length range of the grouped content
-     */
     #[\Override]
     public function visitGroup(GroupNode $node): array
     {
@@ -143,13 +109,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return $node->child->accept($this);
     }
 
-    /**
-     * Visits a QuantifierNode and calculates the length range based on repetition.
-     *
-     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
-     *
-     * @return array{0: int, 1: int|null} the minimum and maximum lengths for the quantified element
-     */
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): array
     {
@@ -169,182 +128,84 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [$min, $max];
     }
 
-    /**
-     * Visits a LiteralNode and returns [1, 1].
-     *
-     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitLiteral(LiteralNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a CharLiteralNode and returns [1, 1].
-     *
-     * @param Node\CharLiteralNode $node the `CharLiteralNode` representing a character literal (e.g., Unicode escape)
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a CharTypeNode and returns [1, 1].
-     *
-     * @param Node\CharTypeNode $node the `CharTypeNode` representing a character type
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitCharType(CharTypeNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a DotNode and returns [1, 1].
-     *
-     * @param Node\DotNode $node the `DotNode` representing the wildcard dot
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitDot(DotNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits an AnchorNode and returns [0, 0].
-     *
-     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
-     *
-     * @return array{0: int, 1: int|null} always [0, 0]
-     */
     #[\Override]
     public function visitAnchor(AnchorNode $node): array
     {
         return [0, 0];
     }
 
-    /**
-     * Visits an AssertionNode and returns [0, 0].
-     *
-     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
-     *
-     * @return array{0: int, 1: int|null} always [0, 0]
-     */
     #[\Override]
     public function visitAssertion(AssertionNode $node): array
     {
         return [0, 0];
     }
 
-    /**
-     * Visits a CharClassNode and returns [1, 1].
-     *
-     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitCharClass(CharClassNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a RangeNode and returns [1, 1].
-     *
-     * @param Node\RangeNode $node the `RangeNode` representing a character range
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitRange(RangeNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a BackrefNode and returns [0, null] (can be any length).
-     *
-     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
-     *
-     * @return array{0: int, 1: int|null} [0, null]
-     */
     #[\Override]
     public function visitBackref(BackrefNode $node): array
     {
         return [0, null]; // Backrefs can match variable lengths
     }
 
-    /**
-     * Visits a UnicodeNode and returns [1, 1].
-     *
-     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode escape
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitUnicode(UnicodeNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a UnicodePropNode and returns [1, 1].
-     *
-     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a PosixClassNode and returns [1, 1].
-     *
-     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): array
     {
         return [1, 1];
     }
 
-    /**
-     * Visits a CommentNode and returns [0, 0].
-     *
-     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
-     *
-     * @return array{0: int, 1: int|null} always [0, 0]
-     */
     #[\Override]
     public function visitComment(CommentNode $node): array
     {
         return [0, 0];
     }
 
-    /**
-     * Visits a ConditionalNode and returns the length range of the chosen branch.
-     *
-     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
-     *
-     * @return array{0: int, 1: int|null} the length range of the conditional
-     */
     #[\Override]
     public function visitConditional(ConditionalNode $node): array
     {
@@ -361,39 +222,18 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [$min, $max];
     }
 
-    /**
-     * Visits a SubroutineNode and returns [0, null] (complex recursion).
-     *
-     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
-     *
-     * @return array{0: int, 1: int|null} [0, null]
-     */
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): array
     {
         return [0, null]; // Subroutines can be complex
     }
 
-    /**
-     * Visits a PcreVerbNode and returns [0, 0].
-     *
-     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
-     *
-     * @return array{0: int, 1: int|null} always [0, 0]
-     */
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): array
     {
         return [0, 0];
     }
 
-    /**
-     * Visits a DefineNode and returns [0, 0].
-     *
-     * @param Node\DefineNode $node the `DefineNode` representing a define block
-     *
-     * @return array{0: int, 1: int|null} always [0, 0]
-     */
     #[\Override]
     public function visitDefine(DefineNode $node): array
     {
@@ -418,13 +258,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [0, 0];
     }
 
-    /**
-     * Parses a quantifier string into min and max.
-     *
-     * @param string $q the quantifier
-     *
-     * @return array{0: int, 1: int|null} min and max
-     */
     private function parseQuantifierRange(string $q): array
     {
         return match ($q) {

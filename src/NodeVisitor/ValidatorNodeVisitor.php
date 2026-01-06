@@ -258,12 +258,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Validates a `LiteralNode`.
-     *
-     * Purpose: Literal nodes generally do not require semantic validation beyond what
-     * the Lexer and Parser already handle (e.g., valid characters). This method serves
-     * as a placeholder for future, more complex literal-specific validations if needed.
-     *
-     * @param Node\LiteralNode $node the literal node to validate
      */
     #[\Override]
     public function visitLiteral(LiteralNode $node): void
@@ -273,12 +267,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Validates a `CharTypeNode`.
-     *
-     * Purpose: Character type nodes (e.g., `\d`, `\s`) are typically validated at the
-     * Lexer/Parser level for syntactic correctness. This method serves as a placeholder
-     * for any future semantic checks specific to character types.
-     *
-     * @param Node\CharTypeNode $node the character type node to validate
      */
     #[\Override]
     public function visitCharType(CharTypeNode $node): void
@@ -288,12 +276,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Validates a `DotNode`.
-     *
-     * Purpose: The dot wildcard (`.`) is a fundamental regex element and typically
-     * does not require semantic validation beyond its basic existence. This method
-     * serves as a placeholder.
-     *
-     * @param Node\DotNode $node the dot node to validate
      */
     #[\Override]
     public function visitDot(DotNode $node): void
@@ -303,11 +285,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Validates an `AnchorNode`.
-     *
-     * Purpose: Anchor nodes (e.g., `^`, `$`) define positions and are generally
-     * semantically valid if syntactically correct. This method serves as a placeholder.
-     *
-     * @param Node\AnchorNode $node the anchor node to validate
      */
     #[\Override]
     public function visitAnchor(AnchorNode $node): void
@@ -315,17 +292,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // No semantic validation needed for anchors
     }
 
-    /**
-     * Validates an `AssertionNode`.
-     *
-     * Purpose: This method checks if the assertion (e.g., `\b`, `\A`) is a known
-     * and valid PCRE assertion. While the Lexer/Parser handles basic syntax, this
-     * provides an additional layer of semantic correctness.
-     *
-     * @param Node\AssertionNode $node the assertion node to validate
-     *
-     * @throws SemanticErrorException if an invalid or unknown assertion is encountered
-     */
     #[\Override]
     public function visitAssertion(AssertionNode $node): void
     {
@@ -342,11 +308,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     /**
      * Validates a `KeepNode`.
      *
-     * Purpose: This method enforces the rule that the `\K` (keep) assertion is not
-     * allowed inside lookbehind groups. This is a PCRE-specific semantic restriction.
-     *
-     * @param Node\KeepNode $node the keep node to validate
-     *
      * @throws SemanticErrorException if `\K` is found within a lookbehind
      */
     #[\Override]
@@ -361,17 +322,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    /**
-     * Validates a `CharClassNode`.
-     *
-     * Purpose: This method recursively validates each part within a character class.
-     * This ensures that all components (literals, ranges, POSIX classes, etc.)
-     * inside the `[...]` are individually valid.
-     *
-     * @param Node\CharClassNode $node the character class node to validate
-     *
-     * @throws SemanticErrorException if any semantic validation rule is violated within a part of the character class
-     */
     #[\Override]
     public function visitCharClass(CharClassNode $node): void
     {
@@ -1119,17 +1069,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return $bounds;
     }
 
-    /**
-     * Parses a quantifier string (e.g., "{2,5}") into min/max bounds.
-     *
-     * Purpose: This private helper method extracts the minimum and maximum repetition
-     * counts from a quantifier string. It's used by `visitQuantifier` to validate
-     * the range and identify unbounded quantifiers for ReDoS detection.
-     *
-     * @param string $q The quantifier string (e.g., "*", "+", "?", "{n,m}").
-     *
-     * @return array{0: int, 1: int} a tuple containing `[min, max]`, where `max = -1` means unbounded
-     */
     private function parseQuantifierBounds(string $q): array
     {
         return match ($q) {
@@ -1148,18 +1087,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Calculates the fixed length of a node.
-     *
-     * Purpose: This private helper method attempts to determine the fixed length
-     * (in characters) that a given node will match. This is particularly useful
-     * for validating lookbehinds, which traditionally require fixed-length patterns.
-     * If a node can match a variable number of characters, it returns `null`.
-     *
-     * @param Node\NodeInterface $node the node for which to calculate the length
-     *
-     * @return int|null the fixed length of the node, or `null` if its length is variable
-     */
     private function calculateFixedLength(NodeInterface $node): ?int
     {
         return match (true) {
@@ -1175,17 +1102,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Calculates the fixed length of a sequence node.
-     *
-     * Purpose: This private helper method is used by `calculateFixedLength` to
-     * sum the fixed lengths of all children within a `SequenceNode`. If any child
-     * has a variable length, the entire sequence is considered variable length.
-     *
-     * @param Node\SequenceNode $node the sequence node for which to calculate the length
-     *
-     * @return int|null the fixed length of the sequence, or `null` if its length is variable
-     */
     private function calculateSequenceLength(SequenceNode $node): ?int
     {
         $total = 0;
@@ -1200,18 +1116,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return $total;
     }
 
-    /**
-     * Calculates the fixed length of a quantifier node.
-     *
-     * Purpose: This private helper method is used by `calculateFixedLength` to
-     * determine the length of a quantified node. A quantified node only has a
-     * fixed length if its quantifier specifies an exact number of repetitions
-     * (e.g., `{3}`) and its child also has a fixed length.
-     *
-     * @param Node\QuantifierNode $node the quantifier node for which to calculate the length
-     *
-     * @return int|null the fixed length of the quantified node, or `null` if its length is variable
-     */
     private function calculateQuantifierLength(QuantifierNode $node): ?int
     {
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
