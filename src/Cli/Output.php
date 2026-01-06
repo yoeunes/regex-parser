@@ -50,24 +50,24 @@ final class Output
         private readonly string $progressBarEmpty = '-'
     ) {}
 
-    public function setAnsi(bool $ansi): void
-    {
-        $this->ansi = $ansi;
-    }
-
     public function isAnsi(): bool
     {
         return $this->ansi;
     }
 
-    public function setQuiet(bool $quiet): void
+    public function setAnsi(bool $ansi): void
     {
-        $this->quiet = $quiet;
+        $this->ansi = $ansi;
     }
 
     public function isQuiet(): bool
     {
         return $this->quiet;
+    }
+
+    public function setQuiet(bool $quiet): void
+    {
+        $this->quiet = $quiet;
     }
 
     public function write(string $text): void
@@ -123,22 +123,11 @@ final class Output
 
     public function progressStart(int $total): void
     {
-        if ($total <= 0 || $this->quiet) {
-            $this->progressActive = false;
-
+        if ($this->shouldSkipProgress($total)) {
             return;
         }
 
-        $this->progressTotal = $total;
-        $this->progressCurrent = 0;
-        $this->progressActive = $this->ansi;
-        $this->progressStartedAt = (int) time();
-
-        if (!$this->progressActive) {
-            return;
-        }
-
-        $this->renderProgress();
+        $this->initializeProgress($total);
     }
 
     public function progressAdvance(int $step = 1): void
@@ -162,17 +151,30 @@ final class Output
         $this->progressActive = false;
     }
 
+    private function shouldSkipProgress(int $total): bool
+    {
+        return $total <= 0 || $this->quiet;
+    }
+
+    private function initializeProgress(int $total): void
+    {
+        $this->progressTotal = $total;
+        $this->progressCurrent = 0;
+        $this->progressActive = $this->ansi;
+        $this->progressStartedAt = (int) time();
+
+        if ($this->progressActive) {
+            $this->renderProgress();
+        }
+    }
+
     private function renderProgress(bool $finish = false): void
     {
-        $total = max(1, $this->progressTotal);
-        $current = min($this->progressCurrent, $total);
-        $ratio = $current / $total;
-        $filled = (int) floor($ratio * self::PROGRESS_BAR_WIDTH);
-
-        $bar = str_repeat($this->progressBarFull, $filled).str_repeat($this->progressBarEmpty, self::PROGRESS_BAR_WIDTH - $filled);
-        $percent = (int) round($ratio * 100);
+        $bar = $this->buildProgressBar();
+        $percent = $this->calculateProgressPercent();
         $elapsed = $this->formatElapsed((int) (time() - $this->progressStartedAt));
-        $status = str_pad($current.'/'.$total, 15, ' ', \STR_PAD_LEFT);
+        $status = $this->formatProgressStatus();
+
         $line = \sprintf(' %s [%s] %3d%% %8s', $status, $bar, $percent, $elapsed);
 
         $this->write("\r".$line);
@@ -181,6 +183,37 @@ final class Output
             $this->write("\n\n");
         }
 
+        $this->flushOutput();
+    }
+
+    private function buildProgressBar(): string
+    {
+        $total = max(1, $this->progressTotal);
+        $current = min($this->progressCurrent, $total);
+        $filled = (int) floor(($current / $total) * self::PROGRESS_BAR_WIDTH);
+
+        return str_repeat($this->progressBarFull, $filled)
+            .str_repeat($this->progressBarEmpty, self::PROGRESS_BAR_WIDTH - $filled);
+    }
+
+    private function calculateProgressPercent(): int
+    {
+        $total = max(1, $this->progressTotal);
+        $current = min($this->progressCurrent, $total);
+
+        return (int) round(($current / $total) * 100);
+    }
+
+    private function formatProgressStatus(): string
+    {
+        $total = max(1, $this->progressTotal);
+        $current = min($this->progressCurrent, $total);
+
+        return str_pad($current.'/'.$total, 15, ' ', \STR_PAD_LEFT);
+    }
+
+    private function flushOutput(): void
+    {
         if (\function_exists('fflush')) {
             fflush(\STDOUT);
         }
