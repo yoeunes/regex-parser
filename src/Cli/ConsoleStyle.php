@@ -26,6 +26,11 @@ final readonly class ConsoleStyle
         private bool $visuals = true,
     ) {}
 
+    public function visualsEnabled(): bool
+    {
+        return $this->visuals;
+    }
+
     /**
      * @param array<string, string> $meta
      */
@@ -35,29 +40,8 @@ final readonly class ConsoleStyle
             return;
         }
 
-        $version = Regex::VERSION;
-        $this->output->write($this->output->color('RegexParser', Output::CYAN.Output::BOLD).' '.$this->output->warning($version)." by Younes ENNAJI\n");
-
-        if (null !== $tagline && '' !== $tagline) {
-            $this->output->write($this->output->dim($tagline)."\n");
-        }
-
-        $this->output->write("\n");
-
-        $lines = [
-            'Runtime' => 'PHP '.$this->output->warning(\PHP_VERSION),
-            'Command' => $this->output->warning($command),
-        ];
-
-        foreach ($meta as $label => $value) {
-            $lines[$label] = $value;
-        }
-
-        $maxLabelLength = max(array_map(strlen(...), array_keys($lines)));
-        foreach ($lines as $label => $value) {
-            $this->output->write($this->output->bold(str_pad($label, $maxLabelLength)).' : '.$value."\n");
-        }
-
+        $this->writeTitleBlock($command, $tagline);
+        $this->writeRuntimeInfo($command, $meta);
         $this->output->write("\n");
     }
 
@@ -67,10 +51,7 @@ final readonly class ConsoleStyle
             return;
         }
 
-        $prefix = '';
-        if (null !== $step && null !== $total) {
-            $prefix = '['.$step.'/'.$total.'] ';
-        }
+        $prefix = $this->formatStepPrefix($step, $total);
 
         $this->output->write(self::INDENT.$this->output->dim($prefix.$title)."\n");
     }
@@ -84,7 +65,12 @@ final readonly class ConsoleStyle
         }
 
         $this->output->write(self::INDENT.$this->output->color($label, Output::CYAN.Output::BOLD)."\n");
-        $this->output->write(self::PATTERN_INDENT.$this->output->color(self::ARROW.' ', Output::CYAN.Output::BOLD).$pattern."\n");
+        $this->output->write(
+            self::PATTERN_INDENT
+            .$this->output->color(self::ARROW.' ', Output::CYAN.Output::BOLD)
+            .$pattern
+            ."\n",
+        );
     }
 
     /**
@@ -100,18 +86,71 @@ final readonly class ConsoleStyle
         $prefix = str_repeat(' ', max(0, $indent));
 
         foreach ($rows as $label => $value) {
-            if ($this->visuals) {
-                $this->output->write($prefix.$this->output->dim(str_pad($label, $maxLabelLength)).' : '.$value."\n");
-
-                continue;
-            }
-
-            $this->output->write($prefix.$label.': '.$value."\n");
+            $this->output->write($this->formatKeyValueLine($prefix, $maxLabelLength, $label, $value)."\n");
         }
     }
 
-    public function visualsEnabled(): bool
+    private function writeTitleBlock(string $command, ?string $tagline): void
     {
-        return $this->visuals;
+        $version = Regex::VERSION;
+        $this->output->write(
+            $this->output->color('RegexParser', Output::CYAN.Output::BOLD)
+            .' '
+            .$this->output->warning($version)
+            ." by Younes ENNAJI\n",
+        );
+
+        if (null !== $tagline && '' !== $tagline) {
+            $this->output->write($this->output->dim($tagline)."\n");
+        }
+
+        $this->output->write("\n");
+    }
+
+    /**
+     * @param array<string, string> $meta
+     */
+    private function writeRuntimeInfo(string $command, array $meta): void
+    {
+        $lines = [
+            'Runtime' => 'PHP '.$this->output->warning(\PHP_VERSION),
+            'Command' => $this->output->warning($command),
+        ];
+
+        foreach ($meta as $label => $value) {
+            $lines[$label] = $value;
+        }
+
+        $maxLabelLength = max(array_map(strlen(...), array_keys($lines)));
+
+        foreach ($lines as $label => $value) {
+            $this->output->write(
+                $this->output->bold(str_pad($label, $maxLabelLength))
+                .' : '
+                .$value
+                ."\n",
+            );
+        }
+    }
+
+    private function formatStepPrefix(?int $step, ?int $total): string
+    {
+        if (null === $step || null === $total) {
+            return '';
+        }
+
+        return '['.$step.'/'.$total.'] ';
+    }
+
+    private function formatKeyValueLine(string $prefix, int $maxLabelLength, string $label, string $value): string
+    {
+        if ($this->visuals) {
+            return $prefix
+                .$this->output->dim(str_pad($label, $maxLabelLength))
+                .' : '
+                .$value;
+        }
+
+        return $prefix.$label.': '.$value;
     }
 }
