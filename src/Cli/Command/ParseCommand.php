@@ -20,6 +20,7 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\Regex;
 
 final class ParseCommand extends AbstractCommand
 {
@@ -41,66 +42,110 @@ final class ParseCommand extends AbstractCommand
     public function run(Input $input, Output $output): int
     {
         $pattern = $input->args[0] ?? '';
-        if ('' === $pattern) {
-            $output->write($output->error("Error: Missing pattern\n"));
-            $output->write("Usage: regex parse <pattern> [--validate]\n");
 
-            return 1;
+        if ('' === $pattern) {
+            return $this->handleMissingPattern($output);
         }
 
-        $validate = \in_array('--validate', $input->args, true);
+        $validate = $this->shouldValidate($input);
         $regex = $this->createRegex($output, $input->regexOptions);
         if (null === $regex) {
             return 1;
         }
 
         $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = $this->buildRuntimeMeta($input, $output, $validate);
+        $style->renderBanner('parse', $meta);
+
+        try {
+            return $this->executeParsing($output, $regex, $style, $pattern, $validate);
+        } catch (LexerException|ParserException $e) {
+            return $this->handleParseError($output, $e->getMessage());
+        }
+    }
+
+    private function handleMissingPattern(Output $output): int
+    {
+        $output->write($output->error("Error: Missing pattern\n"));
+        $output->write("Usage: regex parse <pattern> [--validate]\n");
+
+        return 1;
+    }
+
+    private function shouldValidate(Input $input): bool
+    {
+        return \in_array('--validate', $input->args, true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildRuntimeMeta(Input $input, Output $output, bool $validate): array
+    {
         $meta = [];
+
         if (null !== $input->globalOptions->phpVersion) {
             $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
         }
+
         if ($validate) {
             $meta['Validation'] = $output->warning('on');
         }
 
-        $style->renderBanner('parse', $meta);
+        return $meta;
+    }
 
-        try {
-            $ast = $regex->parse($pattern);
-            $compiled = $ast->accept(new CompilerNodeVisitor());
-            $highlightedPattern = $output->isAnsi()
-                ? $ast->accept(new ConsoleHighlighterVisitor())
-                : $pattern;
+    private function executeParsing(Output $output, Regex $regex, ConsoleStyle $style, string $pattern, bool $validate): int
+    {
+        $ast = $regex->parse($pattern);
+        $compiled = $ast->accept(new CompilerNodeVisitor());
+        $highlightedPattern = $output->isAnsi()
+            ? $ast->accept(new ConsoleHighlighterVisitor())
+            : $pattern;
 
-            $steps = $validate ? 2 : 1;
-            $style->renderSection('Parsing pattern', 1, $steps);
-            $style->renderPattern($highlightedPattern);
-            $style->renderKeyValueBlock([
-                'Parse' => $output->success('OK'),
-                'Recompiled' => $compiled,
-            ]);
+        $steps = $validate ? 2 : 1;
 
-            if ($validate) {
-                if ($style->visualsEnabled()) {
-                    $output->write("\n");
-                }
+        $this->renderParsingSection($style, $highlightedPattern, $compiled);
 
-                $style->renderSection('Validation', 2, $steps);
-                $validation = $regex->validate($pattern);
-                $status = $validation->isValid ? $output->success('OK') : $output->error('INVALID');
-                $style->renderKeyValueBlock([
-                    'Status' => $status,
-                ]);
-                if (!$validation->isValid && $validation->error) {
-                    $output->write('  '.$output->error($validation->error)."\n");
-                }
-            }
-        } catch (LexerException|ParserException $e) {
-            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Parse failed: '.$e->getMessage())."\n");
-
-            return 1;
+        if ($validate) {
+            $this->renderValidationSection($output, $regex, $style, $pattern, $steps);
         }
 
         return 0;
+    }
+
+    private function renderParsingSection(ConsoleStyle $style, string $highlightedPattern, string $compiled): void
+    {
+        $style->renderSection('Parsing pattern', 1, 1);
+        $style->renderPattern($highlightedPattern);
+        $style->renderKeyValueBlock([
+            'Parse' => 'OK',
+            'Recompiled' => $compiled,
+        ]);
+    }
+
+    private function renderValidationSection(Output $output, Regex $regex, ConsoleStyle $style, string $pattern, int $steps): void
+    {
+        if ($style->visualsEnabled()) {
+            $output->write("\n");
+        }
+
+        $style->renderSection('Validation', 2, $steps);
+        $validation = $regex->validate($pattern);
+        $status = $validation->isValid ? $output->success('OK') : $output->error('INVALID');
+        $style->renderKeyValueBlock([
+            'Status' => $status,
+        ]);
+
+        if (!$validation->isValid && null !== $validation->error) {
+            $output->write('  '.$output->error($validation->error)."\n");
+        }
+    }
+
+    private function handleParseError(Output $output, string $errorMessage): int
+    {
+        $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Parse failed: '.$errorMessage)."\n");
+
+        return 1;
     }
 }
