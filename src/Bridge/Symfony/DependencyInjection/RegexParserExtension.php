@@ -34,6 +34,14 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 final class RegexParserExtension extends Extension
 {
+    // Service IDs
+    private const SERVICE_CACHE = 'regex_parser.cache';
+    private const SERVICE_EXTRACTOR_INSTANCE = 'regex_parser.extractor.instance';
+
+    // Service config paths
+    private const SERVICE_RESOURCES_CONFIG_PATH = __DIR__.'/../Resources/config';
+    private const SERVICE_FILE = 'services.php';
+
     /**
      * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
      * @param ContainerBuilder            $container the DI container builder instance
@@ -81,11 +89,7 @@ final class RegexParserExtension extends Extension
          */
         $config = $this->processConfiguration($configuration, $configs);
 
-        $ignoredPatterns = array_values(array_unique([
-            ...$config['analysis']['ignore_patterns'],
-            ...$config['redos']['ignored_patterns'],
-        ]));
-
+        $ignoredPatterns = $this->mergeIgnoredPatterns($config);
         $editorFormat = $this->resolveEditorFormat($config, $container);
 
         // Set parameters
@@ -112,22 +116,25 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.exclude_paths', $config['exclude_paths']);
         $container->setParameter('regex_parser.editor_format', $editorFormat);
 
-        $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
+        $container->setDefinition(self::SERVICE_CACHE, $this->buildCacheDefinition($config));
 
         // Configure extractor service or default implementation.
-        if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
-            $container->setAlias(ExtractorInterface::class, $config['extractor_service']);
-            $container->setAlias('regex_parser.extractor.instance', $config['extractor_service']);
+        $extractorService = $config['extractor_service'];
+        if ($this->isNotNullOrEmpty($extractorService)) {
+            if (\is_string($extractorService)) {
+                $container->setAlias(ExtractorInterface::class, $extractorService);
+                $container->setAlias(self::SERVICE_EXTRACTOR_INSTANCE, $extractorService);
+            }
         } else {
-            // Determine and register the appropriate extractor.
+            // Determine and register appropriate extractor.
             $extractorDefinition = $this->createExtractorDefinition();
-            $container->setDefinition('regex_parser.extractor.instance', $extractorDefinition);
-            $container->setAlias(ExtractorInterface::class, 'regex_parser.extractor.instance');
+            $container->setDefinition(self::SERVICE_EXTRACTOR_INSTANCE, $extractorDefinition);
+            $container->setAlias(ExtractorInterface::class, self::SERVICE_EXTRACTOR_INSTANCE);
         }
 
-        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader = new PhpFileLoader($container, new FileLocator(self::SERVICE_RESOURCES_CONFIG_PATH));
 
-        $loader->load('services.php');
+        $loader->load(self::SERVICE_FILE);
     }
 
     /**
@@ -152,7 +159,7 @@ final class RegexParserExtension extends Extension
     {
         $cacheConfig = $config['cache'];
 
-        if (null !== $cacheConfig['pool'] && '' !== $cacheConfig['pool']) {
+        if ($this->isNotNullOrEmpty($cacheConfig['pool'])) {
             return (new Definition(PsrCacheAdapter::class))
                 ->setArguments([
                     new Reference((string) $cacheConfig['pool']),
@@ -160,7 +167,7 @@ final class RegexParserExtension extends Extension
                 ]);
         }
 
-        if (null !== $cacheConfig['directory'] && '' !== $cacheConfig['directory']) {
+        if ($this->isNotNullOrEmpty($cacheConfig['directory'])) {
             return (new Definition(FilesystemCache::class))
                 ->setArguments([(string) $cacheConfig['directory']]);
         }
@@ -183,6 +190,28 @@ final class RegexParserExtension extends Extension
     }
 
     /**
+     * Merge analysis and ReDoS ignored patterns.
+     *
+     * @param array{
+     *     analysis: array{
+     *         ignore_patterns: array<int, string>,
+     *     },
+     *     redos: array{
+     *         ignored_patterns: array<int, string>,
+     *     },
+     * } $config
+     *
+     * @return list<string>
+     */
+    private function mergeIgnoredPatterns(array $config): array
+    {
+        return array_values(array_unique([
+            ...$config['analysis']['ignore_patterns'],
+            ...$config['redos']['ignored_patterns'],
+        ]));
+    }
+
+    /**
      * Resolve the editor format from config and container parameters.
      *
      * @param array{
@@ -194,7 +223,7 @@ final class RegexParserExtension extends Extension
         $editorFormat = $config['ide'];
 
         // Fallback to framework.ide if regex_parser.ide is not set
-        if ((null === $editorFormat || '' === $editorFormat) && $container->hasParameter('framework.ide')) {
+        if (!$this->isNotNullOrEmpty($editorFormat) && $container->hasParameter('framework.ide')) {
             $frameworkIde = $container->getParameter('framework.ide');
             if (\is_string($frameworkIde) && '' !== $frameworkIde) {
                 $editorFormat = $frameworkIde;
@@ -210,5 +239,13 @@ final class RegexParserExtension extends Extension
     private function isPhpParserAvailable(): bool
     {
         return class_exists(ParserFactory::class);
+    }
+
+    /**
+     * Check if a value is not null and not an empty string.
+     */
+    private function isNotNullOrEmpty(?string $value): bool
+    {
+        return null !== $value && '' !== $value;
     }
 }
