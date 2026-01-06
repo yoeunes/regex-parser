@@ -422,11 +422,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             )];
         }
 
-        // @codeCoverageIgnoreStart
         if ('' === $patternInfo['pattern']) {
             return [];
         }
-        // @codeCoverageIgnoreEnd
 
         return [new RegexPatternOccurrence(
             $patternInfo['pattern'],

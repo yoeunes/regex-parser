@@ -599,7 +599,6 @@ final readonly class RegexAnalysisService
                 break;
             }
 
-            // @codeCoverageIgnoreStart
             if (0 === $pid) {
                 $payload = null;
 
@@ -618,7 +617,6 @@ final readonly class RegexAnalysisService
                 $this->writeWorkerPayload($tmpFile, $payload);
                 exit($payload['ok'] ? 0 : 1);
             }
-            // @codeCoverageIgnoreEnd
 
             $children[$pid] = [
                 'file' => $tmpFile,

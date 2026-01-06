@@ -96,11 +96,9 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
             $result = $result->concat($childSet);
 
             // Safety valve
-            // @codeCoverageIgnoreStart
             if (\count($result->prefixes) > self::MAX_LITERALS_COUNT) {
                 return LiteralSet::empty();
             }
-            // @codeCoverageIgnoreEnd
         }
 
         return $result;
@@ -145,11 +143,9 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
             $result = $childSet;
             for ($i = 1; $i < $count; $i++) {
                 $result = $result->concat($childSet);
-                // @codeCoverageIgnoreStart
                 if (\count($result->prefixes) > self::MAX_LITERALS_COUNT) {
                     return LiteralSet::empty();
                 }
-                // @codeCoverageIgnoreEnd
             }
 
             return $result;

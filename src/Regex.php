@@ -641,7 +641,7 @@ final readonly class Regex
             $displayEnd = min($lineEnd, $displayStart + $maxContextWidth);
 
             if (($displayEnd - $displayStart) > $maxContextWidth) {
-                $displayStart = $displayEnd - $maxContextWidth; // @codeCoverageIgnore
+                $displayStart = $displayEnd - $maxContextWidth;
             }
         }
 
@@ -654,7 +654,7 @@ final readonly class Regex
 
         $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
         if ($caretOffset < 0) {
-            $caretOffset = 0; // @codeCoverageIgnore
+            $caretOffset = 0;
         }
 
         $lineLabel = 'Line '.$lineNumber.': ';

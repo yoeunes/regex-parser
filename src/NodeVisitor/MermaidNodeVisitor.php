@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -285,15 +284,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
-    /**
-     * Generates the graph node for a `SubroutineNode`.
-     *
-     * Purpose: This method creates a node for a subroutine call like `(?R)`.
-     *
-     * @param Node\SubroutineNode $node the subroutine node to visualize
-     *
-     * @return string the unique ID of the generated graph node
-     */
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -303,15 +293,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
-    /**
-     * Generates the graph node for a `PcreVerbNode`.
-     *
-     * Purpose: This method creates a node for a PCRE verb like `(*FAIL)`.
-     *
-     * @param Node\PcreVerbNode $node the PCRE verb node to visualize
-     *
-     * @return string the unique ID of the generated graph node
-     */
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): string
     {
@@ -328,15 +309,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
-    /**
-     * Generates the graph node for a `DefineNode`.
-     *
-     * Purpose: This method creates a node for a `(?(DEFINE)...)` block.
-     *
-     * @param Node\DefineNode $node the define node to visualize
-     *
-     * @return string the unique ID of the generated graph node
-     */
     #[\Override]
     public function visitDefine(DefineNode $node): string
     {

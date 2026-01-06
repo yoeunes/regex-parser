@@ -313,6 +313,4 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     {
         return $node;
     }
-
-    // Add other visit methods as needed, default to parent
 }

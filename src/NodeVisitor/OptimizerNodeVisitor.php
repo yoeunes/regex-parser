@@ -151,7 +151,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Try to convert simple alternations to character classes
         $charClass = $this->tryConvertAlternationToCharClass($optimizedAlts, $node->startPosition, $node->endPosition);
         if (null !== $charClass) {
-            return $charClass; // @codeCoverageIgnore
+            return $charClass;
         }
 
         if (!$hasChanged) {
@@ -160,10 +160,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
         if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
-            // @codeCoverageIgnoreStart
             $hasChanged = true;
             $optimizedAlts = $deduplicatedAlts;
-            // @codeCoverageIgnoreEnd
         }
 
         if ($this->allowAlternationFactorization) {
@@ -1707,7 +1705,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 // Convert char type to equivalent char class parts
                 $charClass = $this->convertCharTypeToCharClass($node);
                 if ($charClass->expression instanceof AlternationNode) {
-                    $allParts = array_merge($allParts, $charClass->expression->alternatives); // @codeCoverageIgnore
+                    $allParts = array_merge($allParts, $charClass->expression->alternatives);
                 } else {
                     $allParts[] = $charClass->expression;
                 }

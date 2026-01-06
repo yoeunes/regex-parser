@@ -145,7 +145,6 @@ final readonly class RegexPatternExtractor
                 break;
             }
 
-            // @codeCoverageIgnoreStart
             if (0 === $pid) {
                 $payload = null;
 
@@ -164,7 +163,6 @@ final readonly class RegexPatternExtractor
                 $this->writeWorkerPayload($tmpFile, $payload);
                 exit($payload['ok'] ? 0 : 1);
             }
-            // @codeCoverageIgnoreEnd
 
             $children[$pid] = [
                 'file' => $tmpFile,

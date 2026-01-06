@@ -82,13 +82,11 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
 
         $arguments = $parsed->arguments;
-        // @codeCoverageIgnoreStart
         if (null === $arguments) {
             $output->write($output->error("Error: Invalid lint arguments\n"));
 
             return 1;
         }
-        // @codeCoverageIgnoreEnd
 
         $paths = $arguments->paths;
         $exclude = $arguments->exclude;

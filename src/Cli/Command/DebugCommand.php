@@ -220,18 +220,16 @@ final class DebugCommand extends AbstractCommand
             $hotspot = null;
             $hotspotRank = -1;
             foreach ($analysis->hotspots as $candidate) {
-                // @codeCoverageIgnoreStart
                 if (!$candidate instanceof ReDoSHotspot) {
                     continue;
                 }
-                // @codeCoverageIgnoreEnd
                 $rank = match ($candidate->severity) {
                     ReDoSSeverity::SAFE => 0,
                     ReDoSSeverity::LOW => 1,
                     ReDoSSeverity::MEDIUM => 2,
                     ReDoSSeverity::HIGH => 3,
                     ReDoSSeverity::CRITICAL => 4,
-                    ReDoSSeverity::UNKNOWN => 1, // @codeCoverageIgnore
+                    ReDoSSeverity::UNKNOWN => 1,
                 };
                 if ($rank > $hotspotRank) {
                     $hotspotRank = $rank;
@@ -248,7 +246,7 @@ final class DebugCommand extends AbstractCommand
                     ReDoSSeverity::SAFE, ReDoSSeverity::LOW => Output::GREEN,
                     ReDoSSeverity::MEDIUM => Output::YELLOW,
                     ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => Output::RED,
-                    ReDoSSeverity::UNKNOWN => Output::GRAY, // @codeCoverageIgnore
+                    ReDoSSeverity::UNKNOWN => Output::GRAY,
                 };
                 $output->write($output->color($caret, $caretColor)."\n");
             }
@@ -264,7 +262,7 @@ final class DebugCommand extends AbstractCommand
                         ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $analysis->isConfirmed()
                             ? $output->error($label)
                             : $output->warning($label),
-                        ReDoSSeverity::UNKNOWN => $output->info($label), // @codeCoverageIgnore
+                        ReDoSSeverity::UNKNOWN => $output->info($label),
                     };
                     $output->write('  - ['.$findingSeverity.'] '.$finding->message."\n");
                     if (null !== $finding->suggestedRewrite && '' !== $finding->suggestedRewrite) {

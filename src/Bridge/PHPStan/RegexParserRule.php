@@ -295,11 +295,9 @@ final class RegexParserRule implements Rule
             }
 
             $analysis = $issue['analysis'] ?? null;
-            // @codeCoverageIgnoreStart
             if (!$analysis instanceof ReDoSAnalysis) {
                 continue;
             }
-            // @codeCoverageIgnoreEnd
 
             $identifier = match ($analysis->severity) {
                 ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
@@ -350,11 +348,9 @@ final class RegexParserRule implements Rule
 
         foreach ($lintIssues as $issue) {
             $issueId = $issue['issueId'] ?? null;
-            // @codeCoverageIgnoreStart
             if (!\is_string($issueId) || '' === $issueId) {
                 continue;
             }
-            // @codeCoverageIgnoreEnd
 
             $builder = RuleErrorBuilder::message((string) $issue['message'])
                 ->line($lineNumber)

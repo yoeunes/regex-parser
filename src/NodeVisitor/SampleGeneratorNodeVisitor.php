@@ -101,46 +101,19 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     private array $requiredSuffixes = [];
 
     /**
-     * Constructs a new SampleGeneratorNodeVisitor.
-     *
-     * Purpose: Initializes the visitor with a maximum repetition limit. This limit is crucial
-     * for preventing infinite loops or excessively long sample strings when dealing with
-     * quantifiers like `*` (zero or more) or `+` (one or more), ensuring that sample generation
-     * remains practical and performant.
-     *
-     * @param int $maxRepetition The maximum number of times a quantifier like `*` or `+`
-     *                           should repeat its preceding element. This prevents
-     *                           excessively long or infinite samples.
+     * @param int $maxRepetition Maximum repetitions for quantifiers like `*` or `+`
      */
     public function __construct(private readonly int $maxRepetition = 3)
     {
         $this->resetRandomizer();
     }
 
-    /**
-     * Seeds the local random number generator.
-     *
-     * Purpose: This method allows for deterministic sample generation. By setting a specific
-     * seed, you can ensure that the `SampleGeneratorNodeVisitor` will produce the exact same
-     * sample string for a given regex every time it's run with that seed. This is highly
-     * beneficial for reproducible testing and debugging.
-     *
-     * @param int $seed the integer seed value to use for the random number generator
-     */
     public function setSeed(int $seed): void
     {
         $this->seed = $seed;
         $this->resetRandomizer($seed);
     }
 
-    /**
-     * Resets the random number generator to its default, unseeded state.
-     *
-     * Purpose: This method reverts the local RNG to its default behavior,
-     * where it is seeded with a random value. This is useful when you want to
-     * generate different, non-reproducible samples after having previously set
-     * a specific seed.
-     */
     public function resetSeed(): void
     {
         $this->seed = null;
@@ -339,12 +312,10 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             $ord2 = \ord($node->end->value);
 
             return \chr($this->randomInt($ord1, $ord2));
-            // @codeCoverageIgnoreStart
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
         }
-        // @codeCoverageIgnoreEnd
     }
 
     #[\Override]
@@ -519,17 +490,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return '';
     }
 
-    /**
-     * Parses a quantifier string into its minimum and maximum repetition counts.
-     *
-     * Purpose: This helper method interprets the various quantifier syntaxes (e.g., `*`, `+`, `?`, `{n}`, `{n,}`, `{n,m}`)
-     * and converts them into a standardized `[min, max]` array. It also applies the `maxRepetition`
-     * limit to prevent excessively long samples for unbounded quantifiers.
-     *
-     * @param string $q The quantifier string (e.g., `*`, `+`, `{1,5}`).
-     *
-     * @return array{0: int, 1: int} an array containing the minimum and maximum repetition counts
-     */
     private function parseQuantifierRange(string $q): array
     {
         $range = match ($q) {
@@ -543,9 +503,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
                 ) :
                     [(int) $m[1], (int) $m[1]] // {n}
                 ) :
-                // @codeCoverageIgnoreStart
                 [0, 0], // Fallback
-            // @codeCoverageIgnoreEnd
         };
 
         // Ensure min <= max, as Validator may not have run.
@@ -646,17 +604,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
-    /**
-     * Selects a random character from a given array of characters.
-     *
-     * Purpose: This utility method provides a simple way to pick one character
-     * from a predefined set. It's used by various `visit` methods to generate
-     * a representative character when a specific type or class of character is needed.
-     *
-     * @param array<string> $chars an array of single-character strings to choose from
-     *
-     * @return string a randomly selected character from the input array, or '?' if the array is empty
-     */
     private function getRandomChar(array $chars): string
     {
         if (empty($chars)) {
@@ -667,17 +614,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return $chars[$key];
     }
 
-    /**
-     * Generates a sample character for a given character type (e.g., `d`, `s`, `w`).
-     *
-     * Purpose: This helper method centralizes the logic for generating sample characters
-     * for various `\d`, `\s`, `\w`, etc., character types. It provides a specific
-     * random character that fits the definition of the character type.
-     *
-     * @param string $type The character type identifier (e.g., 'd', 'D', 's', 'S').
-     *
-     * @return string a single character matching the specified type, or '?' as a fallback
-     */
     private function generateForCharType(string $type): string
     {
         try {
@@ -695,11 +631,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
                 'R' => $this->getRandomChar(["\r\n", "\r", "\n"]),
                 default => '?',
             };
-            // @codeCoverageIgnoreStart
         } catch (\Throwable) {
             return '?'; // Fallback for random generation failure
         }
-        // @codeCoverageIgnoreEnd
     }
 
     private function collectGroups(NodeInterface $node): void
