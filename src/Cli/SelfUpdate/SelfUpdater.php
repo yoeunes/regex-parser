@@ -20,17 +20,7 @@ class SelfUpdater
     public function run(Output $output): void
     {
         $pharPath = $this->getPharPath();
-        if ('' === $pharPath) {
-            throw new \RuntimeException('Self-update is only supported for phar installs.');
-        }
-
-        if (!file_exists($pharPath)) {
-            throw new \RuntimeException('Unable to locate the running phar.');
-        }
-
-        if (!is_writable($pharPath)) {
-            throw new \RuntimeException('The phar file is not writable: '.$pharPath.'.');
-        }
+        $this->validatePharPath($pharPath);
 
         $updateUrl = $this->getUpdateUrl();
         $checksumUrl = $this->getChecksumUrl();
@@ -39,44 +29,13 @@ class SelfUpdater
 
         $checksum = $this->parseChecksum($this->fetchRemoteString($checksumUrl));
 
-        $tempBase = tempnam(sys_get_temp_dir(), 'regex-phar-');
-        if (false === $tempBase) {
-            throw new \RuntimeException('Unable to create a temporary file.');
-        }
-
-        @unlink($tempBase);
-        $tempPath = $tempBase.'.phar';
-
+        $tempPath = $this->createTempFile();
         $this->downloadFile($updateUrl, $tempPath);
 
-        $hash = hash_file('sha256', $tempPath);
-        if (false === $hash) {
-            @unlink($tempPath);
-
-            throw new \RuntimeException('Unable to hash the downloaded phar.');
-        }
-
-        if (strtolower($hash) !== strtolower($checksum)) {
-            @unlink($tempPath);
-
-            throw new \RuntimeException('Checksum verification failed.');
-        }
-
+        $this->verifyChecksum($tempPath, $checksum);
         $this->validateDownloadedPhar($tempPath);
 
-        $permissions = @fileperms($pharPath);
-        if (false !== $permissions) {
-            @chmod($tempPath, $permissions & 0o777);
-        }
-
-        if (!@rename($tempPath, $pharPath)) {
-            if (!@copy($tempPath, $pharPath)) {
-                @unlink($tempPath);
-
-                throw new \RuntimeException('Unable to replace the existing binary.');
-            }
-            @unlink($tempPath);
-        }
+        $this->replacePhar($pharPath, $tempPath);
 
         $output->write('  '.$output->badge('PASS', Output::WHITE, Output::BG_GREEN).' '.$output->success('RegexParser updated successfully.')."\n");
     }
@@ -96,9 +55,165 @@ class SelfUpdater
         return $this->getUpdateUrl().'.sha256';
     }
 
+    private function validatePharPath(string $pharPath): void
+    {
+        if ('' === $pharPath) {
+            throw new \RuntimeException('Self-update is only supported for phar installs.');
+        }
+
+        if (!file_exists($pharPath)) {
+            throw new \RuntimeException('Unable to locate the running phar.');
+        }
+
+        if (!is_writable($pharPath)) {
+            throw new \RuntimeException('The phar file is not writable: '.$pharPath.'.');
+        }
+    }
+
+    private function createTempFile(): string
+    {
+        $tempBase = tempnam(sys_get_temp_dir(), 'regex-phar-');
+        if (false === $tempBase) {
+            throw new \RuntimeException('Unable to create a temporary file.');
+        }
+
+        @unlink($tempBase);
+
+        return $tempBase.'.phar';
+    }
+
+    private function verifyChecksum(string $tempPath, string $expectedChecksum): void
+    {
+        $hash = hash_file('sha256', $tempPath);
+        if (false === $hash) {
+            @unlink($tempPath);
+
+            throw new \RuntimeException('Unable to hash the downloaded phar.');
+        }
+
+        if (strtolower($hash) !== strtolower($expectedChecksum)) {
+            @unlink($tempPath);
+
+            throw new \RuntimeException('Checksum verification failed.');
+        }
+    }
+
+    private function replacePhar(string $pharPath, string $tempPath): void
+    {
+        $permissions = @fileperms($pharPath);
+        if (false !== $permissions) {
+            @chmod($tempPath, $permissions & 0o777);
+        }
+
+        if (!@rename($tempPath, $pharPath)) {
+            if (!@copy($tempPath, $pharPath)) {
+                @unlink($tempPath);
+
+                throw new \RuntimeException('Unable to replace the existing binary.');
+            }
+            @unlink($tempPath);
+        }
+    }
+
     private function downloadFile(string $url, string $destination): void
     {
-        $context = stream_context_create([
+        $streamSuccess = $this->downloadWithStreamContext($url, $destination);
+        if ($streamSuccess) {
+            return;
+        }
+
+        $curlSuccess = $this->downloadWithCurl($url, $destination);
+        if ($curlSuccess) {
+            return;
+        }
+
+        $wgetSuccess = $this->downloadWithWget($url, $destination);
+        if ($wgetSuccess) {
+            return;
+        }
+
+        throw new \RuntimeException('Unable to download '.$url.'.');
+    }
+
+    private function downloadWithStreamContext(string $url, string $destination): bool
+    {
+        $context = $this->createStreamContext();
+
+        $read = @fopen($url, 'r', false, $context);
+        if (!\is_resource($read)) {
+            return false;
+        }
+
+        $write = @fopen($destination, 'w');
+        if (!\is_resource($write)) {
+            fclose($read);
+
+            throw new \RuntimeException('Unable to write to '.$destination.'.');
+        }
+
+        stream_copy_to_stream($read, $write);
+        fclose($read);
+        fclose($write);
+
+        if (!file_exists($destination) || 0 === (int) filesize($destination)) {
+            throw new \RuntimeException('Downloaded file is empty.');
+        }
+
+        return true;
+    }
+
+    private function downloadWithCurl(string $url, string $destination): bool
+    {
+        if (!\function_exists('exec')) {
+            return false;
+        }
+
+        $escapedUrl = escapeshellarg($url);
+        $escapedDestination = escapeshellarg($destination);
+
+        $output = [];
+        $exitCode = 1;
+        @exec("curl -fsSL {$escapedUrl} -o {$escapedDestination}", $output, $exitCode);
+        if (0 !== $exitCode) {
+            return false;
+        }
+
+        if (!file_exists($destination) || 0 === (int) filesize($destination)) {
+            throw new \RuntimeException('Downloaded file is empty.');
+        }
+
+        return true;
+    }
+
+    private function downloadWithWget(string $url, string $destination): bool
+    {
+        if (!\function_exists('exec')) {
+            return false;
+        }
+
+        $escapedUrl = escapeshellarg($url);
+        $escapedDestination = escapeshellarg($destination);
+
+        $output = [];
+        $exitCode = 1;
+        @exec("wget -q -O {$escapedDestination} {$escapedUrl}", $output, $exitCode);
+        if (0 !== $exitCode) {
+            return false;
+        }
+
+        if (!file_exists($destination) || 0 === (int) filesize($destination)) {
+            throw new \RuntimeException('Downloaded file is empty.');
+        }
+
+        return true;
+    }
+
+    /**
+     * @return resource
+     */
+    private function createStreamContext()
+    {
+        return stream_context_create([
             'http' => [
                 'follow_location' => 1,
                 'timeout' => 30,
@@ -110,55 +225,6 @@ class SelfUpdater
                 'user_agent' => 'regex-parser-cli',
             ],
         ]);
-
-        $read = @fopen($url, 'r', false, $context);
-        if (\is_resource($read)) {
-            $write = @fopen($destination, 'w');
-            if (!\is_resource($write)) {
-                fclose($read);
-
-                throw new \RuntimeException('Unable to write to '.$destination.'.');
-            }
-
-            stream_copy_to_stream($read, $write);
-            fclose($read);
-            fclose($write);
-
-            if (!file_exists($destination) || 0 === (int) filesize($destination)) {
-                throw new \RuntimeException('Downloaded file is empty.');
-            }
-
-            return;
-        }
-
-        if (\function_exists('exec')) {
-            $escapedUrl = escapeshellarg($url);
-            $escapedDestination = escapeshellarg($destination);
-
-            $output = [];
-            $exitCode = 1;
-            @exec("curl -fsSL {$escapedUrl} -o {$escapedDestination}", $output, $exitCode);
-            if (0 === $exitCode) {
-                if (!file_exists($destination) || 0 === (int) filesize($destination)) {
-                    throw new \RuntimeException('Downloaded file is empty.');
-                }
-
-                return;
-            }
-
-            $output = [];
-            $exitCode = 1;
-            @exec("wget -q -O {$escapedDestination} {$escapedUrl}", $output, $exitCode);
-            if (0 === $exitCode) {
-                if (!file_exists($destination) || 0 === (int) filesize($destination)) {
-                    throw new \RuntimeException('Downloaded file is empty.');
-                }
-
-                return;
-            }
-        }
-
-        throw new \RuntimeException('Unable to download '.$url.'.');
     }
 
     private function fetchRemoteString(string $url): string
