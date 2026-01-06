@@ -49,7 +49,7 @@ if ($analysis->isConfirmed()) {
 }
 ```
 
-**Note:** confirmation is intentionally conservative and bounded; it may fail to confirm real issues.
+**Note:** confirmation is intentionally conservative and bounded; it may not detect all potential issues.
 
 ## Runtime Context (Why It Matters)
 
@@ -134,7 +134,7 @@ echo $analysis->severity->value;
 
 ## Fixing Risky Patterns (Verify Behavior)
 
-These mitigations reduce backtracking but can change matching results or capture behavior. Validate with tests.
+These techniques may reduce backtracking but could change matching results or capture behavior. Always validate with tests.
 
 ### Use possessive quantifiers
 
