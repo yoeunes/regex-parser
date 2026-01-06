@@ -49,7 +49,14 @@
         "phpcs": "tools/php-cs-fixer/vendor/bin/php-cs-fixer fix",
         "phplint": "tools/phplint/vendor/bin/phplint",
         "bench": "tools/phpbench/vendor/bin/phpbench run",
-        "infection": "tools/infection/vendor/bin/infection"
+        "infection": "tools/infection/vendor/bin/infection",
+        "lint": [
+            "@rector",
+            "@phpcs",
+            "@phplint",
+            "@phpunit",
+            "@phpstan"
+        ]
     },
     "config": {
         "optimize-autoloader": true,

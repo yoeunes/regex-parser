@@ -117,7 +117,7 @@ final class ApplicationTest extends TestCase
         $help = new DummyCommand('help');
         $app = new Application(new GlobalOptionsParser(), $output, $help);
 
-        $method = new \ReflectionMethod(Application::class, 'resolveAnsi');
+        $method = new \ReflectionMethod(Application::class, 'shouldUseAnsi');
 
         $this->assertTrue($method->invoke($app, true));
         $this->assertFalse($method->invoke($app, false));

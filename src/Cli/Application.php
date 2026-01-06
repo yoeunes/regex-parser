@@ -31,6 +31,7 @@ final class Application
     public function register(CommandInterface $command): void
     {
         $this->commands[$command->getName()] = $command;
+
         foreach ($command->getAliases() as $alias) {
             $this->commands[$alias] = $command;
         }
@@ -41,70 +42,153 @@ final class Application
      */
     public function run(array $argv): int
     {
-        $args = $argv;
-        array_shift($args);
-
-        $parsed = $this->globalOptionsParser->parse($args);
+        $parsed = $this->parseArguments($argv);
         $options = $parsed->options;
         $args = $parsed->args;
 
-        $this->output->setAnsi($this->resolveAnsi($options->ansi));
-        $this->output->setQuiet($options->quiet);
+        $this->configureOutput($options);
 
         if (null !== $options->error) {
-            $this->output->write($this->output->error('Error: '.$options->error."\n"));
-
-            return 1;
+            return $this->handleError($options->error);
         }
 
         if ($options->help) {
-            $helpArgs = [] === $args ? [] : [$args[0]];
-
-            return $this->helpCommand->run(new Input('help', $helpArgs, $options, []), $this->output);
+            return $this->showHelpFor($args, $options);
         }
 
-        if ([] === $args) {
-            $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
-
-            return 1;
+        $commandName = $this->resolveCommandName($args);
+        if (null === $commandName) {
+            return $this->showHelpAndExit($options);
         }
 
-        $commandName = $args[0] ?? '';
-        if ('' === $commandName) {
-            $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
-
-            return 1;
+        if ($this->isRegexArgument($commandName)) {
+            return $this->runAsHighlight($args, $options);
         }
 
-        $commandArgs = \array_slice($args, 1);
-        if (str_starts_with($commandName, '/')) {
-            $commandArgs = $args;
-            $commandName = 'highlight';
-        }
-
-        $command = $this->commands[$commandName] ?? null;
+        $command = $this->getCommand($commandName);
         if (null === $command) {
-            $this->output->write($this->output->error("Unknown command: {$commandName}\n\n"));
-            $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
-
-            return 1;
+            return $this->handleUnknownCommand($commandName, $options);
         }
 
-        $regexOptions = null !== $options->phpVersion
-            ? ['php_version' => $options->phpVersion]
-            : [];
-
-        $input = new Input($commandName, $commandArgs, $options, $regexOptions);
+        $commandArgs = $this->extractCommandArgs($args);
+        $input = $this->createInput($commandName, $commandArgs, $options);
 
         return $command->run($input, $this->output);
     }
 
-    private function resolveAnsi(?bool $forced): bool
+    /**
+     * @param array<int, string> $argv
+     */
+    private function parseArguments(array $argv): ParsedGlobalOptions
     {
-        if (null !== $forced) {
-            return $forced;
+        $args = $argv;
+        array_shift($args);
+
+        return $this->globalOptionsParser->parse($args);
+    }
+
+    private function configureOutput(GlobalOptions $options): void
+    {
+        $this->output->setAnsi($this->shouldUseAnsi($options->ansi));
+        $this->output->setQuiet($options->quiet);
+    }
+
+    private function shouldUseAnsi(?bool $forced): bool
+    {
+        return $forced ?? (\function_exists('posix_isatty') && posix_isatty(\STDOUT));
+    }
+
+    private function handleError(string $errorMessage): int
+    {
+        $this->output->write($this->output->error('Error: '.$errorMessage."\n"));
+
+        return 1;
+    }
+
+    /**
+     * @param array<int, string> $args
+     */
+    private function showHelpFor(array $args, GlobalOptions $options): int
+    {
+        $targetCommand = $args[0] ?? null;
+
+        return $this->helpCommand->run(
+            new Input('help', null !== $targetCommand ? [$targetCommand] : [], $options, []),
+            $this->output,
+        );
+    }
+
+    /**
+     * @param array<int, string> $args
+     */
+    private function resolveCommandName(array $args): ?string
+    {
+        return $args[0] ?? null;
+    }
+
+    private function showHelpAndExit(GlobalOptions $options): int
+    {
+        $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
+
+        return 1;
+    }
+
+    /**
+     * @param array<int, string> $args
+     */
+    private function runAsHighlight(array $args, GlobalOptions $options): int
+    {
+        $command = $this->getCommand('highlight');
+
+        if (null === $command) {
+            return $this->handleError('Highlight command is not registered.');
         }
 
-        return \function_exists('posix_isatty') && posix_isatty(\STDOUT);
+        $input = new Input('highlight', $args, $options, []);
+
+        return $command->run($input, $this->output);
+    }
+
+    private function isRegexArgument(string $value): bool
+    {
+        return str_starts_with($value, '/');
+    }
+
+    private function getCommand(string $name): ?CommandInterface
+    {
+        return $this->commands[$name] ?? null;
+    }
+
+    /**
+     * @param array<int, string> $args
+     *
+     * @return array<int, string>
+     */
+    private function extractCommandArgs(array $args): array
+    {
+        return \array_slice($args, 1);
+    }
+
+    private function handleUnknownCommand(string $commandName, GlobalOptions $options): int
+    {
+        $this->output->write($this->output->error("Unknown command: {$commandName}\n\n"));
+        $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
+
+        return 1;
+    }
+
+    /**
+     * @param array<int, string> $commandArgs
+     */
+    private function createInput(
+        string $commandName,
+        array $commandArgs,
+        GlobalOptions $options,
+    ): Input {
+        $regexOptions = null !== $options->phpVersion
+            ? ['php_version' => $options->phpVersion]
+            : [];
+
+        return new Input($commandName, $commandArgs, $options, $regexOptions);
     }
 }
