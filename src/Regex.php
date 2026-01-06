@@ -95,6 +95,14 @@ final readonly class Regex
      */
     public const DEFAULT_MAX_LOOKBEHIND_LENGTH = 255;
 
+    // Visual snippet constants
+    private const MAX_CONTEXT_WIDTH = 80;
+    private const ELLIPSIS_LENGTH = 3;
+
+    // Cache seed patterns
+    private const CACHE_VERSION_PREFIX = '#cache=';
+    private const PHP_VERSION_PREFIX = '#php_version=';
+
     /**
      * Create a new Regex instance with specified configuration.
      *
@@ -634,7 +642,7 @@ final readonly class Regex
         $displayStart = $lineStart;
         $displayEnd = $lineEnd;
 
-        $maxContextWidth = 80;
+        $maxContextWidth = self::MAX_CONTEXT_WIDTH;
         if (($displayEnd - $displayStart) > $maxContextWidth) {
             $half = intdiv($maxContextWidth, 2);
             $displayStart = max($lineStart, $caretIndex - $half);
@@ -652,7 +660,7 @@ final readonly class Regex
             .substr($pattern, $displayStart, $displayEnd - $displayStart)
             .$suffixEllipsis;
 
-        $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
+        $caretOffset = ('' === $prefixEllipsis ? 0 : self::ELLIPSIS_LENGTH) + ($caretIndex - $displayStart);
         if ($caretOffset < 0) {
             $caretOffset = 0;
         }
@@ -684,13 +692,13 @@ final readonly class Regex
 
     private function getCacheSeed(string $regex): string
     {
-        $seed = $regex."\n#cache=".self::CACHE_VERSION;
+        $seed = $regex."\n".self::CACHE_VERSION_PREFIX.self::CACHE_VERSION;
 
         if (!$this->phpVersionExplicit) {
             return $seed;
         }
 
-        return $seed."\n#php_version=".$this->phpVersionId;
+        return $seed."\n".self::PHP_VERSION_PREFIX.$this->phpVersionId;
     }
 
     private function getParserPhpVersionId(): ?int
@@ -885,6 +893,30 @@ final readonly class Regex
     }
 
     /**
+     * @param callable(string): string $patternBuilder
+     *
+     * @return array<string>
+     */
+    private function processLiteralPatterns(mixed $literalSet, string $property, callable $patternBuilder): array
+    {
+        if (!\is_object($literalSet) || !property_exists($literalSet, $property)) {
+            return [];
+        }
+
+        /** @var iterable<string> $items */
+        $items = $literalSet->$property;
+        $patterns = [];
+
+        foreach ($items as $item) {
+            if (\is_string($item) && '' !== $item) {
+                $patterns[] = $patternBuilder($item);
+            }
+        }
+
+        return array_values(array_unique($patterns));
+    }
+
+    /**
      * Build search patterns from prefixes and suffixes.
      *
      * @param mixed $literalSet The literal set containing prefixes/suffixes
@@ -893,31 +925,19 @@ final readonly class Regex
      */
     private function buildSearchPatterns(mixed $literalSet): array
     {
-        $patterns = [];
+        $prefixPatterns = $this->processLiteralPatterns(
+            $literalSet,
+            'prefixes',
+            static fn (string $prefix): string => '^'.preg_quote($prefix, '/'),
+        );
 
-        if (\is_object($literalSet) && property_exists($literalSet, 'prefixes')) {
-            /** @var array<string> $prefixes */
-            $prefixes = $literalSet->prefixes;
+        $suffixPatterns = $this->processLiteralPatterns(
+            $literalSet,
+            'suffixes',
+            static fn (string $suffix): string => preg_quote($suffix, '/').'$',
+        );
 
-            foreach ($prefixes as $prefix) {
-                if (\is_string($prefix) && '' !== $prefix) {
-                    $patterns[] = '^'.preg_quote($prefix, '/');
-                }
-            }
-        }
-
-        if (\is_object($literalSet) && property_exists($literalSet, 'suffixes')) {
-            /** @var array<string> $suffixes */
-            $suffixes = $literalSet->suffixes;
-
-            foreach ($suffixes as $suffix) {
-                if (\is_string($suffix) && '' !== $suffix) {
-                    $patterns[] = preg_quote($suffix, '/').'$';
-                }
-            }
-        }
-
-        return array_values(array_unique($patterns));
+        return array_values(array_unique(array_merge($prefixPatterns, $suffixPatterns)));
     }
 
     /**
@@ -936,15 +956,11 @@ final readonly class Regex
         $isComplete = property_exists($literalSet, 'complete') ? $literalSet->complete : false;
         $isVoid = (method_exists($literalSet, 'isVoid') && $literalSet->isVoid()) ? true : false;
 
-        if ($isComplete && !$isVoid) {
-            return 'high';
+        if ($isVoid) {
+            return 'low';
         }
 
-        if (!$isVoid) {
-            return 'medium';
-        }
-
-        return 'low';
+        return $isComplete ? 'high' : 'medium';
     }
 
     /**
