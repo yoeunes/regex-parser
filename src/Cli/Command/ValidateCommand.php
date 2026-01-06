@@ -19,6 +19,8 @@ use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\Regex;
+use RegexParser\ValidationResult;
 
 final class ValidateCommand extends AbstractCommand
 {
@@ -40,11 +42,9 @@ final class ValidateCommand extends AbstractCommand
     public function run(Input $input, Output $output): int
     {
         $pattern = $input->args[0] ?? '';
-        if ('' === $pattern) {
-            $output->write($output->error("Error: Missing pattern\n"));
-            $output->write("Usage: regex validate <pattern>\n");
 
-            return 1;
+        if ('' === $pattern) {
+            return $this->handleMissingPattern($output);
         }
 
         $regex = $this->createRegex($output, $input->regexOptions);
@@ -53,38 +53,80 @@ final class ValidateCommand extends AbstractCommand
         }
 
         $style = new ConsoleStyle($output, $input->globalOptions->visuals);
-        $meta = [];
-        if (null !== $input->globalOptions->phpVersion) {
-            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
-        }
+        $meta = $this->buildRuntimeMeta($input, $output);
         $style->renderBanner('validate', $meta);
 
         $validation = $regex->validate($pattern);
-        $highlightedPattern = $pattern;
-        if ($output->isAnsi() && $validation->isValid) {
-            try {
-                $ast = $regex->parse($pattern);
-                $highlightedPattern = $ast->accept(new ConsoleHighlighterVisitor());
-            } catch (LexerException|ParserException) {
-                $highlightedPattern = $pattern;
-            }
-        }
+        $highlightedPattern = $this->highlightPattern($regex, $pattern, $output, $validation);
 
-        $style->renderSection('Validating pattern', 1, 1);
-        $style->renderPattern($highlightedPattern);
+        $this->renderValidationSection($style, $highlightedPattern);
 
         if ($validation->isValid) {
-            $style->renderKeyValueBlock([
-                'Status' => $output->success('OK'),
-            ]);
-
-            return 0;
+            return $this->renderSuccessResult($style, $output);
         }
 
+        return $this->renderErrorResult($style, $output, $validation);
+    }
+
+    private function handleMissingPattern(Output $output): int
+    {
+        $output->write($output->error("Error: Missing pattern\n"));
+        $output->write("Usage: regex validate <pattern>\n");
+
+        return 1;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildRuntimeMeta(Input $input, Output $output): array
+    {
+        $meta = [];
+
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+
+        return $meta;
+    }
+
+    private function highlightPattern(Regex $regex, string $pattern, Output $output, ValidationResult $validation): string
+    {
+        if (!$output->isAnsi() || !$validation->isValid) {
+            return $pattern;
+        }
+
+        try {
+            $ast = $regex->parse($pattern);
+
+            return $ast->accept(new ConsoleHighlighterVisitor());
+        } catch (LexerException|ParserException) {
+            return $pattern;
+        }
+    }
+
+    private function renderValidationSection(ConsoleStyle $style, string $highlightedPattern): void
+    {
+        $style->renderSection('Validating pattern', 1, 1);
+        $style->renderPattern($highlightedPattern);
+    }
+
+    private function renderSuccessResult(ConsoleStyle $style, Output $output): int
+    {
+        $style->renderKeyValueBlock([
+            'Status' => $output->success('OK'),
+        ]);
+
+        return 0;
+    }
+
+    private function renderErrorResult(ConsoleStyle $style, Output $output, ValidationResult $validation): int
+    {
         $style->renderKeyValueBlock([
             'Status' => $output->error('INVALID'),
         ]);
-        if ($validation->error) {
+
+        if (null !== $validation->error) {
             $output->write('  '.$output->error($validation->error)."\n");
         }
 
