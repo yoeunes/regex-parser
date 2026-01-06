@@ -42,6 +42,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexLintCommand extends Command
 {
+    private const DEFAULT_MIN_SAVINGS = 1;
+    private const AUTO_DETECT_JOBS = -1;
+    private const MIN_JOBS_VALUE = 1;
+    private const PROGRESS_BAR_WIDTH = 28;
+    private const MESSAGE_PAD_LENGTH = 15;
+    private const MEMORY_DIVISOR = 1024;
+
+    private const FORMAT_CONSOLE = 'console';
+    private const STAR_REPO_URL = 'https://github.com/yoeunes/regex-parser';
+
     private RelativePathHelper $pathHelper;
 
     private LinkFormatter $linkFormatter;
@@ -98,11 +108,11 @@ final class RegexLintCommand extends Command
         $this
             ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', array_values($this->defaultPaths))
             ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
-            ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
-             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis (auto-detected if not specified)', -1)
+            ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', self::DEFAULT_MIN_SAVINGS)
+             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis (auto-detected if not specified)', self::AUTO_DETECT_JOBS)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
-            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', 'console')
+            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', self::FORMAT_CONSOLE)
             ->setHelp(<<<'EOF'
                 The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
 
@@ -149,33 +159,27 @@ final class RegexLintCommand extends Command
         $paths = $this->normalizeStringList($input->getArgument('paths'));
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
         $minSavingsValue = $input->getOption('min-savings');
-        $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
+        $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : self::DEFAULT_MIN_SAVINGS;
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
-        $formatOption = $input->getOption('format');
-        $format = \is_string($formatOption) ? strtolower($formatOption) : 'console';
 
-        $this->formatterRegistry->override(
-            'console',
-            new SymfonyConsoleFormatter($this->analysis, $this->linkFormatter, $output->isDecorated()),
-        );
-
-        if (!$this->formatterRegistry->has($format)) {
-            $io->error(\sprintf(
-                "Invalid format '%s'. Supported formats: %s",
-                $format,
-                implode(', ', $this->formatterRegistry->getNames()),
-            ));
-
+        try {
+            $format = $this->validateAndNormalizeFormat($input, $io);
+        } catch (\RuntimeException) {
             return Command::FAILURE;
         }
 
+        $this->formatterRegistry->override(
+            self::FORMAT_CONSOLE,
+            new SymfonyConsoleFormatter($this->analysis, $this->linkFormatter, $output->isDecorated()),
+        );
+
         $jobsExplicitlySet = $input->hasParameterOption(['--jobs', '-j']);
         $jobsValue = $input->getOption('jobs');
-        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : -1;
+        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : self::AUTO_DETECT_JOBS;
 
         if ($jobsExplicitlySet) {
-            if ($jobs < 1) {
+            if ($jobs < self::MIN_JOBS_VALUE) {
                 $io->error('The --jobs value must be a positive integer.');
 
                 return Command::FAILURE;
@@ -185,14 +189,14 @@ final class RegexLintCommand extends Command
             $jobs = self::detectCpuCount();
         }
 
-        if ('console' === $format) {
+        if (self::FORMAT_CONSOLE === $format) {
             $this->showBanner($io, $jobs);
         }
 
         $startTime = (float) microtime(true);
         $collectionStartTime = $startTime;
         $collectionProgress = null;
-        $showProgress = 'console' === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity();
+        $showProgress = self::FORMAT_CONSOLE === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity();
         $collectionBar = null;
         $collectionFinished = false;
         $lastCount = 0;
@@ -207,16 +211,10 @@ final class RegexLintCommand extends Command
                 $fileCount = $total;
 
                 if (null === $collectionBar) {
-                    $collectionBar = $io->createProgressBar($total);
-                    $collectionBar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
-                    $collectionBar->setBarWidth(28);
-                    $collectionBar->setProgressCharacter('▓');
-                    $collectionBar->setEmptyBarCharacter('░');
-                    $collectionBar->setMessage(str_pad('0/'.$total, 15, ' ', \STR_PAD_LEFT));
-                    $collectionBar->start();
+                    $collectionBar = $this->createProgressBar($io, $total);
                 }
 
-                $status = str_pad($current.'/'.$total, 15, ' ', \STR_PAD_LEFT);
+                $status = str_pad($current.'/'.$total, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT);
                 $collectionBar->setMessage($status);
                 $advance = $current - $lastCount;
                 if ($advance > 0) {
@@ -225,7 +223,7 @@ final class RegexLintCommand extends Command
                 }
 
                 if ($current >= $total) {
-                    $collectionBar->setMessage(str_pad($total.'/'.$total, 15, ' ', \STR_PAD_LEFT));
+                    $collectionBar->setMessage(str_pad($total.'/'.$total, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT));
                     $collectionBar->finish();
                     $collectionFinished = true;
                 }
@@ -265,17 +263,11 @@ final class RegexLintCommand extends Command
         if ($showProgress) {
             $io->newLine();
             $io->writeln('  <fg=gray>[2/2] Analyzing patterns</>');
-            $analysisBar = $io->createProgressBar(\count($patterns));
-            $analysisBar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
-            $analysisBar->setBarWidth(28);
-            $analysisBar->setProgressCharacter('▓');
-            $analysisBar->setEmptyBarCharacter('░');
             $totalPatterns = \count($patterns);
-            $analysisBar->setMessage(str_pad('0/'.$totalPatterns, 15, ' ', \STR_PAD_LEFT));
-            $analysisBar->start();
+            $analysisBar = $this->createProgressBar($io, $totalPatterns);
             $progressCallback = function () use ($analysisBar, &$currentAnalysis, $totalPatterns): void {
                 $currentAnalysis++;
-                $analysisBar->setMessage(str_pad($currentAnalysis.'/'.$totalPatterns, 15, ' ', \STR_PAD_LEFT));
+                $analysisBar->setMessage(str_pad($currentAnalysis.'/'.$totalPatterns, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT));
                 $analysisBar->advance();
             };
         } else {
@@ -300,13 +292,11 @@ final class RegexLintCommand extends Command
         $formatter = $this->formatterRegistry->get($format);
         $output->write($formatter->format($report));
 
-        if ('console' === $format) {
+        if (self::FORMAT_CONSOLE === $format) {
             $elapsed = (float) microtime(true) - $startTime;
             $peakMemory = memory_get_peak_usage(true);
             $cacheStats = $this->analysis->getRegex()->getCacheStats();
-            $io->writeln('  <options=bold>Time:</> <fg=yellow>'.round($elapsed, 2).'s</> | <options=bold>Memory:</> <fg=yellow>'.round($peakMemory / 1024 / 1024, 2).' MB</> | <options=bold>Cache:</> <fg=yellow>'.$cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses</> | <options=bold>Processes:</> <fg=yellow>'.$jobs.'</>');
-            $io->newLine();
-            $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+            $io->writeln('  <options=bold>Time:</> <fg=yellow>'.round($elapsed, 2).'s</> | <options=bold>Memory:</> <fg=yellow>'.round($peakMemory / self::MEMORY_DIVISOR / self::MEMORY_DIVISOR, 2).' MB</> | <options=bold>Cache:</> <fg=yellow>'.$cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses</> | <options=bold>Processes:</> <fg=yellow>'.$jobs.'</>');
             $io->newLine();
         }
 
@@ -335,7 +325,7 @@ final class RegexLintCommand extends Command
     ): int {
         $message = "Failed to collect patterns: {$errorMessage}";
 
-        if ('console' === $format) {
+        if (self::FORMAT_CONSOLE === $format) {
             $io->error($message);
         } else {
             $formatter = $this->formatterRegistry->get($format);
@@ -347,7 +337,7 @@ final class RegexLintCommand extends Command
 
     private function renderEmptyResults(string $format, OutputInterface $output, SymfonyStyle $io): int
     {
-        if ('console' === $format) {
+        if (self::FORMAT_CONSOLE === $format) {
             $this->renderEmptySummary($io);
 
             return Command::SUCCESS;
@@ -371,8 +361,39 @@ final class RegexLintCommand extends Command
     private function showFooter(SymfonyStyle $io): void
     {
         $io->newLine();
-        $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+        $io->writeln('  <fg=gray>Star repo:'.self::STAR_REPO_URL.'</>');
         $io->newLine();
+    }
+
+    private function createProgressBar(SymfonyStyle $io, int $total): object
+    {
+        $bar = $io->createProgressBar($total);
+        $bar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
+        $bar->setBarWidth(self::PROGRESS_BAR_WIDTH);
+        $bar->setProgressCharacter('▓');
+        $bar->setEmptyBarCharacter('░');
+        $bar->setMessage(str_pad('0/'.$total, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT));
+        $bar->start();
+
+        return $bar;
+    }
+
+    private function validateAndNormalizeFormat(InputInterface $input, SymfonyStyle $io): string
+    {
+        $formatOption = $input->getOption('format');
+        $format = \is_string($formatOption) ? strtolower($formatOption) : self::FORMAT_CONSOLE;
+
+        if (!$this->formatterRegistry->has($format)) {
+            $io->error(\sprintf(
+                "Invalid format '%s'. Supported formats: %s",
+                $format,
+                implode(', ', $this->formatterRegistry->getNames()),
+            ));
+
+            throw new \RuntimeException('Invalid format');
+        }
+
+        return $format;
     }
 
     /**
