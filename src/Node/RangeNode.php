@@ -29,13 +29,6 @@ final readonly class RangeNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitRange($this);

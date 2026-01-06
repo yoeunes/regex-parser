@@ -23,14 +23,6 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class ControlCharNode extends AbstractNode
 {
-    /**
-     * Initializes a control character node.
-     *
-     * @param string $char          The control character identifier (e.g., 'M' for \cM).
-     * @param int    $codePoint     the computed control character code point
-     * @param int    $startPosition the start position
-     * @param int    $endPosition   the end position
-     */
     public function __construct(
         public string $char,
         public int $codePoint,
@@ -40,15 +32,6 @@ final readonly class ControlCharNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * Implements the visitor pattern for traversing the AST.
-     *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitControlChar($this);

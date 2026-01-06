@@ -17,12 +17,8 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 readonly class UnicodeNode extends AbstractNode
 {
-    /**
-     * @param int $startPos The 0-based start offset
-     * @param int $endPos   The 0-based end offset (exclusive)
-     */
     public function __construct(
-        public readonly string $code,
+        public string $code,
         int $startPos,
         int $endPos,
     ) {

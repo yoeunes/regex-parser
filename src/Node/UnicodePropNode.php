@@ -40,13 +40,6 @@ final readonly class UnicodePropNode extends AbstractNode
         parent::__construct($startPosition, $endPosition ?? $startPosition);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitUnicodeProp($this);

@@ -23,14 +23,6 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class VersionConditionNode extends AbstractNode
 {
-    /**
-     * Initializes a version condition node.
-     *
-     * @param string $operator      The comparison operator (e.g., '>=').
-     * @param string $version       The version string (e.g., '10.0').
-     * @param int    $startPosition the start position
-     * @param int    $endPosition   the end position
-     */
     public function __construct(
         public string $operator,
         public string $version,
@@ -40,15 +32,6 @@ final readonly class VersionConditionNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * Implements the visitor pattern for traversing the AST.
-     *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitVersionCondition($this);

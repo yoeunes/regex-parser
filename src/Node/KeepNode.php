@@ -20,13 +20,6 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class KeepNode extends AbstractNode
 {
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitKeep($this);

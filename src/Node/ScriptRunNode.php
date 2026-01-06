@@ -23,13 +23,6 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class ScriptRunNode extends AbstractNode
 {
-    /**
-     * Initializes a script run node.
-     *
-     * @param string $script        The script name (e.g., 'Latin').
-     * @param int    $startPosition the start position
-     * @param int    $endPosition   the end position
-     */
     public function __construct(
         public string $script,
         int $startPosition,
@@ -38,15 +31,6 @@ final readonly class ScriptRunNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * Implements the visitor pattern for traversing the AST.
-     *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitScriptRun($this);
