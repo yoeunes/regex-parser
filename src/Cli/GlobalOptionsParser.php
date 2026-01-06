@@ -31,51 +31,34 @@ final class GlobalOptionsParser
         for ($i = 0; $i < \count($args); $i++) {
             $arg = $args[$i];
 
-            if ('-q' === $arg || '--quiet' === $arg || '--silent' === $arg) {
+            if ($this->isQuietOption($arg)) {
                 $quiet = true;
 
                 continue;
             }
 
-            if ('--ansi' === $arg) {
-                $ansi = true;
+            if ($this->isAnsiOption($arg)) {
+                $ansi = '--ansi' === $arg;
 
                 continue;
             }
 
-            if ('--no-ansi' === $arg) {
-                $ansi = false;
-
-                continue;
-            }
-
-            if ('--help' === $arg || '-h' === $arg) {
+            if ($this->isHelpOption($arg)) {
                 $help = true;
 
                 continue;
             }
 
-            if ('--no-visuals' === $arg || '--no-art' === $arg || '--no-splash' === $arg) {
+            if ($this->isVisualsOption($arg)) {
                 $visuals = false;
 
                 continue;
             }
 
-            if (str_starts_with($arg, '--php-version=')) {
-                $phpVersion = substr($arg, \strlen('--php-version='));
-
-                continue;
-            }
-
-            if ('--php-version' === $arg) {
-                $value = $args[$i + 1] ?? '';
-                if ('' === $value || str_starts_with($value, '-')) {
-                    $error = 'Missing value for --php-version.';
-
+            if ($this->isPhpVersionOption($arg, $args, $i, $phpVersion, $error)) {
+                if (null !== $error) {
                     break;
                 }
-                $phpVersion = $value;
-                $i++;
 
                 continue;
             }
@@ -86,5 +69,54 @@ final class GlobalOptionsParser
         $options = new GlobalOptions($quiet, $ansi, $help, $visuals, $phpVersion, $error);
 
         return new ParsedGlobalOptions($options, $remaining);
+    }
+
+    private function isQuietOption(string $arg): bool
+    {
+        return '-q' === $arg || '--quiet' === $arg || '--silent' === $arg;
+    }
+
+    private function isAnsiOption(string $arg): bool
+    {
+        return '--ansi' === $arg || '--no-ansi' === $arg;
+    }
+
+    private function isHelpOption(string $arg): bool
+    {
+        return '--help' === $arg || '-h' === $arg;
+    }
+
+    private function isVisualsOption(string $arg): bool
+    {
+        return '--no-visuals' === $arg || '--no-art' === $arg || '--no-splash' === $arg;
+    }
+
+    /**
+     * @param array<int, string> $args
+     */
+    private function isPhpVersionOption(string $arg, array $args, int &$i, ?string &$phpVersion, ?string &$error): bool
+    {
+        if (str_starts_with($arg, '--php-version=')) {
+            $phpVersion = substr($arg, \strlen('--php-version='));
+
+            return true;
+        }
+
+        if ('--php-version' !== $arg) {
+            return false;
+        }
+
+        $value = $args[$i + 1] ?? '';
+
+        if ('' === $value || str_starts_with($value, '-')) {
+            $error = 'Missing value for --php-version.';
+
+            return true;
+        }
+
+        $phpVersion = $value;
+        $i++;
+
+        return true;
     }
 }
