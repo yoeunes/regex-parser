@@ -162,7 +162,7 @@ final class RegexLintCommandTest extends TestCase
         $io = $this->createMock(SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');
         $io->expects($this->once())->method('writeln')
-            ->with('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+            ->with('  <fg=gray>Star the repo: https://github.org/yoeunes/regex-parser</>');
 
         $method->invoke($command, $io);
     }

@@ -43,15 +43,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexLintCommand extends Command
 {
-    private const DEFAULT_MIN_SAVINGS = 1;
-    private const AUTO_DETECT_JOBS = -1;
-    private const MIN_JOBS_VALUE = 1;
     private const PROGRESS_BAR_WIDTH = 28;
     private const MESSAGE_PAD_LENGTH = 15;
-    private const MEMORY_DIVISOR = 1024;
-
     private const FORMAT_CONSOLE = 'console';
-    private const STAR_REPO_URL = 'https://github.com/yoeunes/regex-parser';
 
     private RelativePathHelper $pathHelper;
 
@@ -109,8 +103,8 @@ final class RegexLintCommand extends Command
         $this
             ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', array_values($this->defaultPaths))
             ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
-            ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', self::DEFAULT_MIN_SAVINGS)
-             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis (auto-detected if not specified)', self::AUTO_DETECT_JOBS)
+            ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
+             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis (auto-detected if not specified)', -1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
             ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', self::FORMAT_CONSOLE)
@@ -160,7 +154,7 @@ final class RegexLintCommand extends Command
         $paths = $this->normalizeStringList($input->getArgument('paths'));
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
         $minSavingsValue = $input->getOption('min-savings');
-        $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : self::DEFAULT_MIN_SAVINGS;
+        $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
 
@@ -177,10 +171,10 @@ final class RegexLintCommand extends Command
 
         $jobsExplicitlySet = $input->hasParameterOption(['--jobs', '-j']);
         $jobsValue = $input->getOption('jobs');
-        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : self::AUTO_DETECT_JOBS;
+        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : -1;
 
         if ($jobsExplicitlySet) {
-            if ($jobs < self::MIN_JOBS_VALUE) {
+            if ($jobs < 1) {
                 $io->error('The --jobs value must be a positive integer.');
 
                 return Command::FAILURE;
@@ -297,7 +291,7 @@ final class RegexLintCommand extends Command
             $elapsed = (float) microtime(true) - $startTime;
             $peakMemory = memory_get_peak_usage(true);
             $cacheStats = $this->analysis->getRegex()->getCacheStats();
-            $io->writeln('  <options=bold>Time:</> <fg=yellow>'.round($elapsed, 2).'s</> | <options=bold>Memory:</> <fg=yellow>'.round($peakMemory / self::MEMORY_DIVISOR / self::MEMORY_DIVISOR, 2).' MB</> | <options=bold>Cache:</> <fg=yellow>'.$cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses</> | <options=bold>Processes:</> <fg=yellow>'.$jobs.'</>');
+            $io->writeln('  <options=bold>Time:</> <fg=yellow>'.round($elapsed, 2).'s</> | <options=bold>Memory:</> <fg=yellow>'.round($peakMemory / 1024 / 1024, 2).' MB</> | <options=bold>Cache:</> <fg=yellow>'.$cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses</> | <options=bold>Processes:</> <fg=yellow>'.$jobs.'</>');
             $io->newLine();
         }
 
@@ -362,7 +356,7 @@ final class RegexLintCommand extends Command
     private function showFooter(SymfonyStyle $io): void
     {
         $io->newLine();
-        $io->writeln('  <fg=gray>Star the repo: '.self::STAR_REPO_URL.'</>');
+        $io->writeln('  <fg=gray>Star repo: https://github.org/yoeunes/regex-parser</>');
         $io->newLine();
     }
 
