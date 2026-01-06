@@ -615,11 +615,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Validates a `CommentNode`.
-     *
-     * Purpose: Comments (`(?#...)`) are ignored by the regex engine and thus do not
-     * require semantic validation. This method serves as a pass-through.
-     *
-     * @param Node\CommentNode $node the comment node to validate
      */
     #[\Override]
     public function visitComment(CommentNode $node): void
@@ -1021,17 +1016,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return false !== $result && \PREG_NO_ERROR === $error;
     }
 
-    /**
-     * Helper to check if a node represents a valid single character for a range.
-     *
-     * Purpose: This private helper method is used by `visitRange` to determine if a
-     * given node can serve as a valid start or end point for a character range.
-     * It ensures that only single-character representations are used for ranges.
-     *
-     * @param Node\NodeInterface $node the node to check
-     *
-     * @return bool true if the node represents a single character, false otherwise
-     */
     private function isSingleCharNode(NodeInterface $node): bool
     {
         return $node instanceof LiteralNode

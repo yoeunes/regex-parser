@@ -41,12 +41,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
- * A visitor that generates test cases (matching and non-matching strings) for a regex pattern.
- *
- * Purpose: This visitor traverses the Abstract Syntax Tree (AST) of a regular expression
- * and generates sample strings that should match the pattern, as well as strings that should not.
- * This is invaluable for testing regex implementations, validating patterns, and ensuring
- * correctness in applications like Laravel or Symfony form validations.
+ * Generates test cases (matching and non-matching strings) for a regex pattern.
  *
  * @extends AbstractNodeVisitor<array{matching: array<string>, non_matching: array<string>}>
  */
