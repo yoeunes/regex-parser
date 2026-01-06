@@ -90,6 +90,34 @@ final class Lexer
         'T_LITERAL' => '[^\\\\]',
     ];
 
+    // Token value extraction offsets
+    private const OFFSET_VERB_START = 2; // After (* or (?
+    private const OFFSET_VERB_END = -1;
+    private const OFFSET_CALLOUT_START = 3; // After (?C
+    private const OFFSET_CALLOUT_END = -1;
+    private const OFFSET_BACKSLASH = 1; // After backslash
+    private const OFFSET_UNICODE_NAMED_START = 3; // After \N{
+    private const OFFSET_UNICODE_NAMED_END = -1;
+    private const OFFSET_CONTROL_CHAR = 2; // After \c
+
+    // Escape sequences
+    private const ESCAPE_BACKSPACE = "\x08";
+    private const ESCAPE_TAB = "\t";
+    private const ESCAPE_NEWLINE = "\n";
+    private const ESCAPE_CARRIAGE_RETURN = "\r";
+    private const ESCAPE_FORM_FEED = "\f";
+    private const ESCAPE_VERTICAL_TAB = "\v";
+    private const ESCAPE_ESCAPE = "\x1B";
+    private const ESCAPE_BELL = "\x07";
+
+    // Pattern literals
+    private const PATTERN_QUOTE_END = '\E';
+    private const PATTERN_COMMENT_CLOSE = ')';
+    private const PATTERN_UNICODE_PROP_BRACE_START = 1; // After {
+    private const PATTERN_UNICODE_PROP_BRACE_END = -1; // Before }
+    private const PATTERN_UNICODE_PROP_NEGATION_START = 1; // After ^
+    private const ERROR_CONTEXT_LENGTH = 10;
+
     // Precompiled regex patterns for maximum performance (version-aware)
     /**
      * @var array<int, string>
@@ -179,6 +207,15 @@ final class Lexer
         return '/(?:'.implode('|', $regexParts).')/xsuA';
     }
 
+    /**
+     * Checks if a token type is a character class operation type.
+     */
+    private function isClassOperationType(TokenType $type): bool
+    {
+        return TokenType::T_CLASS_INTERSECTION === $type
+            || TokenType::T_CLASS_SUBTRACTION === $type;
+    }
+
     private function resetState(): void
     {
         $this->position = 0;
@@ -240,7 +277,7 @@ final class Lexer
         }
 
         if (0 === $result) {
-            $context = substr($this->pattern, $this->position, 10);
+            $context = substr($this->pattern, $this->position, self::ERROR_CONTEXT_LENGTH);
 
             throw LexerException::withContext(
                 \sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context),
@@ -329,7 +366,7 @@ final class Lexer
             }
 
             $lastToken = end($currentTokens);
-            if ($lastToken instanceof Token && \in_array($lastToken->type, [TokenType::T_CLASS_INTERSECTION, TokenType::T_CLASS_SUBTRACTION], true)) {
+            if ($lastToken instanceof Token && $this->isClassOperationType($lastToken->type)) {
                 return $this->openCharClass($startPos);
             }
 
@@ -440,10 +477,10 @@ final class Lexer
             return new Token(TokenType::T_LITERAL, $literalText, $startPos);
         }
 
-        if ('\E' === $endSequence) {
+        if (self::PATTERN_QUOTE_END === $endSequence) {
             $this->inQuoteMode = false;
-            $token = new Token(TokenType::T_QUOTE_MODE_END, '\E', $this->position);
-            $this->position += 2;
+            $token = new Token(TokenType::T_QUOTE_MODE_END, self::PATTERN_QUOTE_END, $this->position);
+            $this->position += \strlen(self::PATTERN_QUOTE_END);
 
             return $token;
         }
@@ -474,10 +511,10 @@ final class Lexer
             return new Token(TokenType::T_LITERAL, $commentText, $startPos);
         }
 
-        if (')' === $endSequence) {
+        if (self::PATTERN_COMMENT_CLOSE === $endSequence) {
             $this->inCommentMode = false;
-            $token = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position);
-            $this->position++;
+            $token = new Token(TokenType::T_GROUP_CLOSE, self::PATTERN_COMMENT_CLOSE, $this->position);
+            $this->position += \strlen(self::PATTERN_COMMENT_CLOSE);
 
             return $token;
         }
@@ -488,26 +525,26 @@ final class Lexer
     }
 
     /**
-     * Extracts the value from an escaped literal token.
+     * Extracts value from an escaped literal token.
      * Handles special escape sequences and context-sensitive escapes like \b.
      */
     private function extractEscapedLiteralValue(string $matchedValue): string
     {
-        $char = substr($matchedValue, 1);
+        $char = substr($matchedValue, self::OFFSET_BACKSLASH);
 
         // Inside character classes, \b means backspace (0x08), not word boundary
         if ($this->inCharClass && 'b' === $char) {
-            return "\x08";
+            return self::ESCAPE_BACKSPACE;
         }
 
         return match ($char) {
-            't' => "\t",
-            'n' => "\n",
-            'r' => "\r",
-            'f' => "\f",
-            'v' => "\v",
-            'e' => "\x1B",
-            'a' => "\x07",
+            't' => self::ESCAPE_TAB,
+            'n' => self::ESCAPE_NEWLINE,
+            'r' => self::ESCAPE_CARRIAGE_RETURN,
+            'f' => self::ESCAPE_FORM_FEED,
+            'v' => self::ESCAPE_VERTICAL_TAB,
+            'e' => self::ESCAPE_ESCAPE,
+            'a' => self::ESCAPE_BELL,
             default => $char,
         };
     }
@@ -519,17 +556,17 @@ final class Lexer
     {
         return match ($type) {
             TokenType::T_LITERAL_ESCAPED => $this->extractEscapedLiteralValue($matchedValue),
-            TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
-            TokenType::T_CALLOUT => substr($matchedValue, 3, -1),
-            TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, 1),
+            TokenType::T_PCRE_VERB => substr($matchedValue, self::OFFSET_VERB_START, self::OFFSET_VERB_END),
+            TokenType::T_CALLOUT => substr($matchedValue, self::OFFSET_CALLOUT_START, self::OFFSET_CALLOUT_END),
+            TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, self::OFFSET_BACKSLASH),
             TokenType::T_BACKREF => $matchedValue,
-            TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1),
+            TokenType::T_OCTAL_LEGACY => substr($matchedValue, self::OFFSET_BACKSLASH),
             /* @phpstan-ignore cast.string */
             TokenType::T_POSIX_CLASS => (string) ($matches['v_posix'] ?? ''),
             TokenType::T_UNICODE => $this->parseUnicodeEscape($matchedValue),
             TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue),
-            TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1),
-            TokenType::T_CONTROL_CHAR => substr($matchedValue, 2),
+            TokenType::T_UNICODE_NAMED => substr($matchedValue, self::OFFSET_UNICODE_NAMED_START, self::OFFSET_UNICODE_NAMED_END),
+            TokenType::T_CONTROL_CHAR => substr($matchedValue, self::OFFSET_CONTROL_CHAR),
             TokenType::T_CLASS_INTERSECTION => '&&',
             TokenType::T_CLASS_SUBTRACTION => '--',
             default => $matchedValue,
@@ -550,17 +587,17 @@ final class Lexer
     private function normalizeUnicodeProp(string $matchedValue): string
     {
         $isNegated = str_starts_with($matchedValue, '\\P');
-        $prop = substr($matchedValue, 2); // Strip "\p" or "\P"
+        $prop = substr($matchedValue, self::OFFSET_VERB_START); // Strip "\p" or "\P"
 
         $hasBraces = str_starts_with($prop, '{') && str_ends_with($prop, '}');
 
         if ($hasBraces) {
-            $prop = substr($prop, 1, -1);
+            $prop = substr($prop, self::PATTERN_UNICODE_PROP_BRACE_START, self::PATTERN_UNICODE_PROP_BRACE_END);
         }
 
         $isPropNegated = str_starts_with($prop, '^');
         if ($isPropNegated) {
-            $prop = substr($prop, 1);
+            $prop = substr($prop, self::PATTERN_UNICODE_PROP_NEGATION_START);
         }
 
         if ('' === $prop) {
