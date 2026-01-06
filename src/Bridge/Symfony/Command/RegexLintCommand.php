@@ -356,7 +356,7 @@ final class RegexLintCommand extends Command
     private function showFooter(SymfonyStyle $io): void
     {
         $io->newLine();
-        $io->writeln('  <fg=gray>Star repo: https://github.org/yoeunes/regex-parser</>');
+        $io->writeln('  <fg=gray>Found it useful? Consider starring: https://github.com/yoeunes/regex-parser</>');
         $io->newLine();
     }
 
