@@ -23,10 +23,9 @@ interface RegexSolverInterface
     /**
      * Compute whether two regexes intersect.
      *
-     * @param string              $left    Left regex pattern
-     * @param string              $right   Right regex pattern
-     * @param SolverOptions|null  $options Comparison options
-     * @return IntersectionResult
+     * @param string             $left    Left regex pattern
+     * @param string             $right   Right regex pattern
+     * @param SolverOptions|null $options Comparison options
      *
      * @throws ComplexityException When the regexes exceed the supported subset
      */
@@ -35,10 +34,9 @@ interface RegexSolverInterface
     /**
      * Determine if left regex language is a subset of the right.
      *
-     * @param string              $left    Left regex pattern
-     * @param string              $right   Right regex pattern
-     * @param SolverOptions|null  $options Comparison options
-     * @return SubsetResult
+     * @param string             $left    Left regex pattern
+     * @param string             $right   Right regex pattern
+     * @param SolverOptions|null $options Comparison options
      *
      * @throws ComplexityException When the regexes exceed the supported subset
      */
@@ -47,10 +45,9 @@ interface RegexSolverInterface
     /**
      * Determine if two regexes are equivalent.
      *
-     * @param string              $left    Left regex pattern
-     * @param string              $right   Right regex pattern
-     * @param SolverOptions|null  $options Comparison options
-     * @return EquivalenceResult
+     * @param string             $left    Left regex pattern
+     * @param string             $right   Right regex pattern
+     * @param SolverOptions|null $options Comparison options
      *
      * @throws ComplexityException When the regexes exceed the supported subset
      */

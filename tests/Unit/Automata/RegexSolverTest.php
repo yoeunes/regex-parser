@@ -16,12 +16,9 @@ namespace RegexParser\Tests\Unit\Automata;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Automata\EquivalenceResult;
-use RegexParser\Automata\IntersectionResult;
 use RegexParser\Automata\MatchMode;
 use RegexParser\Automata\RegexSolver;
 use RegexParser\Automata\SolverOptions;
-use RegexParser\Automata\SubsetResult;
 
 final class RegexSolverTest extends TestCase
 {
@@ -36,7 +33,6 @@ final class RegexSolverTest extends TestCase
         $solver = new RegexSolver();
         $result = $solver->intersection($left, $right, $this->fullMatchOptions());
 
-        $this->assertInstanceOf(IntersectionResult::class, $result);
         $this->assertSame($expectedEmpty, $result->isEmpty);
         $this->assertSame($expectedExample, $result->example);
     }
@@ -52,7 +48,6 @@ final class RegexSolverTest extends TestCase
         $solver = new RegexSolver();
         $result = $solver->subsetOf($left, $right, $this->fullMatchOptions());
 
-        $this->assertInstanceOf(SubsetResult::class, $result);
         $this->assertSame($expectedSubset, $result->isSubset);
 
         if ($expectsCounterExample) {
@@ -77,7 +72,6 @@ final class RegexSolverTest extends TestCase
         $solver = new RegexSolver();
         $result = $solver->equivalent('/(a|b)c/', '/ac|bc/', $this->fullMatchOptions());
 
-        $this->assertInstanceOf(EquivalenceResult::class, $result);
         $this->assertTrue($result->isEquivalent);
         $this->assertNull($result->leftOnlyExample);
         $this->assertNull($result->rightOnlyExample);

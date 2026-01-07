@@ -19,9 +19,7 @@ namespace RegexParser\Automata;
 final readonly class DfaState
 {
     /**
-     * @param int        $id
      * @param array<int, int> $transitions
-     * @param bool       $isAccepting
      */
     public function __construct(
         public int $id,

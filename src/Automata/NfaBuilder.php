@@ -42,10 +42,6 @@ final class NfaBuilder
     ) {}
 
     /**
-     * @param bool $accepting
-     *
-     * @return int
-     *
      * @throws ComplexityException
      */
     public function createState(bool $accepting = false): int
@@ -66,11 +62,6 @@ final class NfaBuilder
         return $stateId;
     }
 
-    /**
-     * @param int     $from
-     * @param CharSet $charSet
-     * @param int     $to
-     */
     public function addTransition(int $from, CharSet $charSet, int $to): void
     {
         if ($charSet->isEmpty()) {
@@ -80,28 +71,16 @@ final class NfaBuilder
         $this->transitions[$from][] = new NfaTransition($charSet, $to);
     }
 
-    /**
-     * @param int $from
-     * @param int $to
-     */
     public function addEpsilon(int $from, int $to): void
     {
         $this->epsilonTransitions[$from][] = $to;
     }
 
-    /**
-     * @param int $state
-     */
     public function markAccepting(int $state): void
     {
         $this->acceptingStates[$state] = true;
     }
 
-    /**
-     * @param NfaFragment $fragment
-     *
-     * @return Nfa
-     */
     public function build(NfaFragment $fragment): Nfa
     {
         foreach ($fragment->acceptStates as $state) {

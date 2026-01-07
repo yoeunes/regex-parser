@@ -28,27 +28,16 @@ final readonly class CharSet
         private array $ranges,
     ) {}
 
-    /**
-     * @return self
-     */
     public static function empty(): self
     {
         return new self([]);
     }
 
-    /**
-     * @return self
-     */
     public static function full(): self
     {
         return new self([[self::MIN_CODEPOINT, self::MAX_CODEPOINT]]);
     }
 
-    /**
-     * @param string $char
-     *
-     * @return self
-     */
     public static function fromChar(string $char): self
     {
         if ('' === $char) {
@@ -58,22 +47,11 @@ final readonly class CharSet
         return self::fromCodePoint(\ord($char[0]));
     }
 
-    /**
-     * @param int $codePoint
-     *
-     * @return self
-     */
     public static function fromCodePoint(int $codePoint): self
     {
         return self::fromRange($codePoint, $codePoint);
     }
 
-    /**
-     * @param int $start
-     * @param int $end
-     *
-     * @return self
-     */
     public static function fromRange(int $start, int $end): self
     {
         if ($end < self::MIN_CODEPOINT || $start > self::MAX_CODEPOINT) {
@@ -90,19 +68,11 @@ final readonly class CharSet
         return new self([[$clampedStart, $clampedEnd]]);
     }
 
-    /**
-     * @return bool
-     */
     public function isEmpty(): bool
     {
         return [] === $this->ranges;
     }
 
-    /**
-     * @param int $codePoint
-     *
-     * @return bool
-     */
     public function contains(int $codePoint): bool
     {
         foreach ($this->ranges as [$start, $end]) {
@@ -114,11 +84,6 @@ final readonly class CharSet
         return false;
     }
 
-    /**
-     * @param self $other
-     *
-     * @return self
-     */
     public function union(self $other): self
     {
         if ([] === $this->ranges) {
@@ -132,11 +97,6 @@ final readonly class CharSet
         return new self($this->normalize(\array_merge($this->ranges, $other->ranges)));
     }
 
-    /**
-     * @param self $other
-     *
-     * @return self
-     */
     public function intersect(self $other): self
     {
         if ([] === $this->ranges || [] === $other->ranges) {
@@ -158,11 +118,6 @@ final readonly class CharSet
         return new self($this->normalize($result));
     }
 
-    /**
-     * @param self $other
-     *
-     * @return self
-     */
     public function subtract(self $other): self
     {
         if ([] === $this->ranges) {
@@ -193,6 +148,7 @@ final readonly class CharSet
 
                 if ($oEnd >= $end) {
                     $cursor = $end + 1;
+
                     break;
                 }
 
@@ -207,9 +163,6 @@ final readonly class CharSet
         return new self($this->normalize($result));
     }
 
-    /**
-     * @return self
-     */
     public function complement(): self
     {
         if ([] === $this->ranges) {
@@ -234,9 +187,6 @@ final readonly class CharSet
         return new self($result);
     }
 
-    /**
-     * @return string|null
-     */
     public function sampleChar(): ?string
     {
         if ([] === $this->ranges) {

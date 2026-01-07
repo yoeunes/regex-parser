@@ -47,11 +47,6 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     ) {}
 
     /**
-     * @param RegexNode     $regex
-     * @param SolverOptions $options
-     *
-     * @return Nfa
-     *
      * @throws ComplexityException
      */
     public function transform(RegexNode $regex, SolverOptions $options): Nfa

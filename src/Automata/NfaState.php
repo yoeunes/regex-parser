@@ -19,10 +19,8 @@ namespace RegexParser\Automata;
 final readonly class NfaState
 {
     /**
-     * @param int                $id
      * @param array<NfaTransition> $transitions
-     * @param array<int>         $epsilonTransitions
-     * @param bool               $isAccepting
+     * @param array<int>           $epsilonTransitions
      */
     public function __construct(
         public int $id,

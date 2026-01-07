@@ -19,7 +19,6 @@ namespace RegexParser\Automata;
 final readonly class NfaFragment
 {
     /**
-     * @param int        $startState
      * @param array<int> $acceptStates
      */
     public function __construct(

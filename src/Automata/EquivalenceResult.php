@@ -19,9 +19,9 @@ namespace RegexParser\Automata;
 final readonly class EquivalenceResult
 {
     /**
-     * @param bool        $isEquivalent      Whether both regexes accept the same language
-     * @param string|null $leftOnlyExample   Example accepted by left but not right
-     * @param string|null $rightOnlyExample  Example accepted by right but not left
+     * @param bool        $isEquivalent     Whether both regexes accept the same language
+     * @param string|null $leftOnlyExample  Example accepted by left but not right
+     * @param string|null $rightOnlyExample Example accepted by right but not left
      */
     public function __construct(
         public bool $isEquivalent,

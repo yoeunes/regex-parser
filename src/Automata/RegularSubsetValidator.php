@@ -53,10 +53,6 @@ final class RegularSubsetValidator
     private string $pattern = '';
 
     /**
-     * @param RegexNode     $regex
-     * @param string        $pattern
-     * @param SolverOptions $options
-     *
      * @throws ComplexityException
      */
     public function assertSupported(RegexNode $regex, string $pattern, SolverOptions $options): void
@@ -111,11 +107,11 @@ final class RegularSubsetValidator
         }
 
         if ($node instanceof GroupNode) {
-            if ($node->type === GroupType::T_GROUP_LOOKAHEAD_POSITIVE
-                || $node->type === GroupType::T_GROUP_LOOKAHEAD_NEGATIVE
-                || $node->type === GroupType::T_GROUP_LOOKBEHIND_POSITIVE
-                || $node->type === GroupType::T_GROUP_LOOKBEHIND_NEGATIVE
-                || $node->type === GroupType::T_GROUP_INLINE_FLAGS
+            if (GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type
+                || GroupType::T_GROUP_LOOKAHEAD_NEGATIVE === $node->type
+                || GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type
+                || GroupType::T_GROUP_LOOKBEHIND_NEGATIVE === $node->type
+                || GroupType::T_GROUP_INLINE_FLAGS === $node->type
             ) {
                 $this->unsupported($node, 'Unsupported group type: '.$node->type->value.'.');
             }
@@ -132,7 +128,7 @@ final class RegularSubsetValidator
         }
 
         if ($node instanceof LiteralNode) {
-            if ($inCharClass && \strlen($node->value) !== 1) {
+            if ($inCharClass && 1 !== \strlen($node->value)) {
                 $this->unsupported($node, 'Multi-character literals are not supported in character classes.');
             }
 
@@ -240,7 +236,7 @@ final class RegularSubsetValidator
     /**
      * @throws ComplexityException
      */
-    private function unsupported(NodeInterface $node, string $message): void
+    private function unsupported(NodeInterface $node, string $message): never
     {
         throw new ComplexityException($message, $node->getStartPosition(), $this->pattern);
     }

@@ -19,7 +19,6 @@ namespace RegexParser\Automata;
 final readonly class Nfa
 {
     /**
-     * @param int                 $startState
      * @param array<int, NfaState> $states
      */
     public function __construct(
@@ -27,11 +26,6 @@ final readonly class Nfa
         public array $states,
     ) {}
 
-    /**
-     * @param int $stateId
-     *
-     * @return NfaState
-     */
     public function getState(int $stateId): NfaState
     {
         return $this->states[$stateId];

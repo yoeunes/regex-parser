@@ -19,20 +19,15 @@ use RegexParser\Regex;
 /**
  * Automata-based solver for regex set operations.
  */
-final class RegexSolver implements RegexSolverInterface
+final readonly class RegexSolver implements RegexSolverInterface
 {
     public function __construct(
-        private readonly ?Regex $regex = null,
-        private readonly ?RegularSubsetValidator $validator = null,
-        private readonly ?DfaBuilder $dfaBuilder = null,
+        private ?Regex $regex = null,
+        private ?RegularSubsetValidator $validator = null,
+        private ?DfaBuilder $dfaBuilder = null,
     ) {}
 
     /**
-     * @param string              $left
-     * @param string              $right
-     * @param SolverOptions|null  $options
-     * @return IntersectionResult
-     *
      * @throws ComplexityException
      */
     public function intersection(string $left, string $right, ?SolverOptions $options = null): IntersectionResult
@@ -50,11 +45,6 @@ final class RegexSolver implements RegexSolverInterface
     }
 
     /**
-     * @param string              $left
-     * @param string              $right
-     * @param SolverOptions|null  $options
-     * @return SubsetResult
-     *
      * @throws ComplexityException
      */
     public function subsetOf(string $left, string $right, ?SolverOptions $options = null): SubsetResult
@@ -72,11 +62,6 @@ final class RegexSolver implements RegexSolverInterface
     }
 
     /**
-     * @param string              $left
-     * @param string              $right
-     * @param SolverOptions|null  $options
-     * @return EquivalenceResult
-     *
      * @throws ComplexityException
      */
     public function equivalent(string $left, string $right, ?SolverOptions $options = null): EquivalenceResult
@@ -147,14 +132,19 @@ final class RegexSolver implements RegexSolverInterface
             return '';
         }
 
+        /** @var \SplQueue<array{int, int, string}> $queue */
         $queue = new \SplQueue();
         $queue->enqueue([$startLeft, $startRight, $startKey]);
 
+        /** @var array<string, bool> $visited */
         $visited = [$startKey => true];
+        /** @var array<string, array{0:string, 1:int}|null> $previous */
         $previous = [$startKey => null];
 
         while (!$queue->isEmpty()) {
-            [$leftStateId, $rightStateId, $currentKey] = $queue->dequeue();
+            $item = $queue->dequeue();
+            /** @var array{int, int, string} $item */
+            [$leftStateId, $rightStateId, $currentKey] = $item;
             $leftState = $left->getState($leftStateId);
             $rightState = $right->getState($rightStateId);
 
@@ -184,7 +174,7 @@ final class RegexSolver implements RegexSolverInterface
     }
 
     /**
-     * @param array<string, array{0:string,1:int}|null> $previous
+     * @param array<string, array{0:string, 1:int}|null> $previous
      */
     private function buildExample(string $key, array $previous): string
     {

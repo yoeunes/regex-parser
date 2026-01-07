@@ -22,11 +22,6 @@ use RegexParser\Node\RegexNode;
 interface AstToNfaTransformerInterface
 {
     /**
-     * @param RegexNode     $regex
-     * @param SolverOptions $options
-     *
-     * @return Nfa
-     *
      * @throws ComplexityException When regex exceeds supported subset
      */
     public function transform(RegexNode $regex, SolverOptions $options): Nfa;

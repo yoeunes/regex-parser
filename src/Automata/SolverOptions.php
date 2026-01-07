@@ -19,9 +19,9 @@ namespace RegexParser\Automata;
 final readonly class SolverOptions
 {
     /**
-     * @param MatchMode $matchMode     How to interpret matching semantics
-     * @param int       $maxNfaStates  Maximum allowed NFA states
-     * @param int       $maxDfaStates  Maximum allowed DFA states
+     * @param MatchMode $matchMode    How to interpret matching semantics
+     * @param int       $maxNfaStates Maximum allowed NFA states
+     * @param int       $maxDfaStates Maximum allowed DFA states
      */
     public function __construct(
         public MatchMode $matchMode = MatchMode::FULL,

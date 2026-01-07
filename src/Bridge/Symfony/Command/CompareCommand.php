@@ -64,12 +64,29 @@ final class CompareCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $pattern1 = (string) $input->getArgument('pattern1');
-        $pattern2 = (string) $input->getArgument('pattern2');
-        $method = \strtolower((string) $input->getOption('method'));
+        $pattern1 = $input->getArgument('pattern1');
+        $pattern2 = $input->getArgument('pattern2');
+        $methodOption = $input->getOption('method');
 
-        $solver = new RegexSolver($this->regex);
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        if (!\is_string($pattern1) || '' === $pattern1) {
+            $io->error('The first pattern must be a non-empty string.');
+
+            return Command::FAILURE;
+        }
+
+        if (!\is_string($pattern2) || '' === $pattern2) {
+            $io->error('The second pattern must be a non-empty string.');
+
+            return Command::FAILURE;
+        }
+
+        if (!\is_string($methodOption) || '' === $methodOption) {
+            $io->error('Invalid --method. Choose intersection, subset, or equivalence.');
+
+            return Command::FAILURE;
+        }
+
+        $method = \strtolower($methodOption);
 
         if (!\in_array($method, [self::METHOD_INTERSECTION, self::METHOD_SUBSET, self::METHOD_EQUIVALENCE], true)) {
             $io->error('Invalid --method. Choose intersection, subset, or equivalence.');
@@ -77,13 +94,19 @@ final class CompareCommand extends Command
             return Command::FAILURE;
         }
 
+        $solver = new RegexSolver($this->regex);
+        $options = new SolverOptions(matchMode: MatchMode::FULL);
+
         try {
-            return match ($method) {
-                self::METHOD_INTERSECTION => $this->handleIntersection($solver, $options, $pattern1, $pattern2, $io),
-                self::METHOD_SUBSET => $this->handleSubset($solver, $options, $pattern1, $pattern2, $io),
-                self::METHOD_EQUIVALENCE => $this->handleEquivalence($solver, $options, $pattern1, $pattern2, $io),
-                default => Command::FAILURE,
-            };
+            if (self::METHOD_INTERSECTION === $method) {
+                return $this->handleIntersection($solver, $options, $pattern1, $pattern2, $io);
+            }
+
+            if (self::METHOD_SUBSET === $method) {
+                return $this->handleSubset($solver, $options, $pattern1, $pattern2, $io);
+            }
+
+            return $this->handleEquivalence($solver, $options, $pattern1, $pattern2, $io);
         } catch (ComplexityException) {
             $io->error('Comparison not supported: Pattern contains advanced features (e.g., lookarounds).');
 

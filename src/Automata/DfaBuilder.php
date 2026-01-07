@@ -21,15 +21,18 @@ use RegexParser\Exception\ComplexityException;
 final class DfaBuilder
 {
     /**
-     * @return Dfa
-     *
      * @throws ComplexityException
      */
     public function determinize(Nfa $nfa, SolverOptions $options): Dfa
     {
         $startSet = $this->epsilonClosure([$nfa->startState], $nfa);
+
+        /** @var array<string, int> $stateMap */
         $stateMap = [];
+        /** @var array<int, array<int>> $stateSets */
         $stateSets = [];
+
+        /** @var \SplQueue<int> $queue */
         $queue = new \SplQueue();
 
         $startKey = $this->setKey($startSet);
@@ -37,14 +40,18 @@ final class DfaBuilder
         $stateSets[0] = $startSet;
         $queue->enqueue(0);
 
+        /** @var array<int, array<int, int>> $transitions */
         $transitions = [];
+        /** @var array<int, bool> $accepting */
         $accepting = [];
 
         while (!$queue->isEmpty()) {
+            /** @var int $dfaId */
             $dfaId = $queue->dequeue();
             $currentSet = $stateSets[$dfaId];
             $accepting[$dfaId] = $this->isAccepting($currentSet, $nfa);
 
+            /** @var array<int, int> $stateTransitions */
             $stateTransitions = [];
             for ($char = CharSet::MIN_CODEPOINT; $char <= CharSet::MAX_CODEPOINT; $char++) {
                 $moveSet = $this->move($currentSet, $char, $nfa);
@@ -69,6 +76,7 @@ final class DfaBuilder
             $transitions[$dfaId] = $stateTransitions;
         }
 
+        /** @var array<int, DfaState> $states */
         $states = [];
         foreach ($transitions as $stateId => $stateTransitions) {
             $states[$stateId] = new DfaState(
@@ -88,7 +96,9 @@ final class DfaBuilder
      */
     private function epsilonClosure(array $stateIds, Nfa $nfa): array
     {
+        /** @var \SplQueue<int> $queue */
         $queue = new \SplQueue();
+        /** @var array<int, bool> $seen */
         $seen = [];
 
         foreach ($stateIds as $stateId) {
@@ -97,6 +107,7 @@ final class DfaBuilder
         }
 
         while (!$queue->isEmpty()) {
+            /** @var int $stateId */
             $stateId = $queue->dequeue();
             $state = $nfa->getState($stateId);
             foreach ($state->epsilonTransitions as $target) {
@@ -107,6 +118,7 @@ final class DfaBuilder
             }
         }
 
+        /** @var array<int> $result */
         $result = \array_keys($seen);
         \sort($result, \SORT_NUMERIC);
 
@@ -119,6 +131,7 @@ final class DfaBuilder
     private function isAccepting(array $stateIds, Nfa $nfa): bool
     {
         foreach ($stateIds as $stateId) {
+            /** @var int $stateId */
             if ($nfa->getState($stateId)->isAccepting) {
                 return true;
             }
@@ -136,6 +149,7 @@ final class DfaBuilder
     {
         $targets = [];
         foreach ($stateIds as $stateId) {
+            /** @var int $stateId */
             $state = $nfa->getState($stateId);
             foreach ($state->transitions as $transition) {
                 if ($transition->charSet->contains($char)) {
@@ -144,6 +158,7 @@ final class DfaBuilder
             }
         }
 
+        /** @var array<int> $result */
         $result = \array_keys($targets);
         \sort($result, \SORT_NUMERIC);
 
