@@ -3,10 +3,6 @@
 </p>
 
 <p align="center">
-    <strong>Treat regular expressions as code.</strong>
-</p>
-
-<p align="center">
     <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/releases"><img src="https://img.shields.io/github/tag/yoeunes/regex-parser.svg" alt="GitHub Release Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License Badge"></a>
@@ -15,9 +11,7 @@
     <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/php-v/yoeunes/regex-parser.svg" alt="Supported PHP Version Badge"></a>
 </p>
 
----
-
-# RegexParser: Static Analysis, Linter & Logic Solver for PHP
+# RegexParser: Static Analysis, Linter & Logic Solver
 
 RegexParser is a PHP 8.2+ library that treats regular expressions as code. 
 
