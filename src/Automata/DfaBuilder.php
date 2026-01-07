@@ -149,7 +149,6 @@ final class DfaBuilder
     {
         $targets = [];
         foreach ($stateIds as $stateId) {
-            /** @var int $stateId */
             $state = $nfa->getState($stateId);
             foreach ($state->transitions as $transition) {
                 if ($transition->charSet->contains($char)) {

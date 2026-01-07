@@ -143,7 +143,6 @@ final readonly class RegexSolver implements RegexSolverInterface
 
         while (!$queue->isEmpty()) {
             $item = $queue->dequeue();
-            /** @var array{int, int, string} $item */
             [$leftStateId, $rightStateId, $currentKey] = $item;
             $leftState = $left->getState($leftStateId);
             $rightState = $right->getState($rightStateId);
