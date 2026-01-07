@@ -62,6 +62,7 @@ final readonly class HelpCommand implements CommandInterface
         $commands = [
             ['parse', 'Parse and recompile a regex pattern'],
             ['analyze', 'Parse, validate, and analyze ReDoS risk'],
+            ['compare', 'Compare two regex patterns using automata logic'],
             ['explain', 'Explain a regex pattern'],
             ['debug', 'Deep ReDoS analysis with heatmap output'],
             ['redos', 'Benchmark regex patterns for ReDoS behavior'],
@@ -149,6 +150,7 @@ final readonly class HelpCommand implements CommandInterface
             [[$binary, "'/a+/'"], 'Quick highlight'],
             [[$binary, 'parse', "'/a+/'", '--validate'], 'Parse with validation'],
             [[$binary, 'analyze', "'/a+/'"], 'Full analysis'],
+            [[$binary, 'compare', "'/[a-z]+/'", "'/edit/'"], 'Compare two patterns'],
             [[$binary, 'explain', "'/a+/'"], 'Explain a pattern'],
             [[$binary, 'diagram', "'/^a+$/'"], 'Text diagram'],
             [[$binary, 'diagram', "'/^a+$/'", '--format=svg'], 'SVG diagram'],
@@ -171,7 +173,7 @@ final readonly class HelpCommand implements CommandInterface
         if (null === $commandData) {
             $output->write($output->error("Unknown command: {$command}\n\n"));
             $this->renderTextSection($output, 'Available Commands', [
-                'parse', 'analyze', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
+                'parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
             ]);
 
             return 1;
@@ -231,6 +233,19 @@ final readonly class HelpCommand implements CommandInterface
                     [[$this->resolveInvocation(), 'analyze', "'/a+/'"], 'Analyze a simple pattern'],
                     [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'"], 'Analyze a potentially risky pattern'],
                     [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'", '--format=json'], 'Analyze with JSON output'],
+                ],
+            ],
+            'compare' => [
+                'description' => 'Compare two regex patterns using automata logic',
+                'options' => [
+                    ['--method <method>', 'intersection (default), subset, or equivalence'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => ['Supports the regular subset only (no lookarounds or backreferences).'],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'compare', "'/[a-z]+/'", "'/edit/'"], 'Check intersection'],
+                    [[$this->resolveInvocation(), 'compare', "'/edit/'", "'/[a-z]+/'", '--method=subset'], 'Check subset'],
+                    [[$this->resolveInvocation(), 'compare', "'/(a|b)c/'", "'/ac|bc/'", '--method=equivalence'], 'Check equivalence'],
                 ],
             ],
             'explain' => [
@@ -386,6 +401,10 @@ final readonly class HelpCommand implements CommandInterface
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<path>', Output::GREEN);
         } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'redos', 'diagram', 'highlight', 'validate'], true)) {
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<pattern>', Output::GREEN);
+        } elseif ('compare' === $command) {
+            $usage .= ' '.$output->color('[options]', Output::CYAN)
+                .' '.$output->color('<pattern1>', Output::GREEN)
+                .' '.$output->color('<pattern2>', Output::GREEN);
         } elseif ('help' === $command) {
             $usage .= ' '.$output->color('[command]', Output::GREEN);
         }
@@ -546,7 +565,7 @@ final readonly class HelpCommand implements CommandInterface
             return $output->color($token, Output::GREEN);
         }
 
-        if (\in_array($token, ['parse', 'analyze', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
+        if (\in_array($token, ['parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
             return $output->color($token, Output::YELLOW.Output::BOLD);
         }
 

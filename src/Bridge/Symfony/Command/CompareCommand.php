@@ -105,12 +105,12 @@ final class CompareCommand extends Command
         $result = $solver->intersection($pattern1, $pattern2, $options);
 
         if ($result->isEmpty) {
-            $io->success('✅ No intersection found. These regexes are disjoint.');
+            $io->success('No intersection found. These regexes are disjoint.');
 
             return Command::SUCCESS;
         }
 
-        $io->error('❌ Conflict detected!');
+        $io->error('Conflict detected!');
         $io->writeln('Example: '.$this->formatExample($result->example ?? ''));
 
         return Command::FAILURE;
@@ -126,12 +126,12 @@ final class CompareCommand extends Command
         $result = $solver->subsetOf($pattern1, $pattern2, $options);
 
         if ($result->isSubset) {
-            $io->success('✅ Pattern 1 is a strict subset of Pattern 2.');
+            $io->success('Pattern 1 is a strict subset of Pattern 2.');
 
             return Command::SUCCESS;
         }
 
-        $io->error('❌ Pattern 1 allows strings that Pattern 2 forbids.');
+        $io->error('Pattern 1 allows strings that Pattern 2 forbids.');
         $io->writeln('Counter-example: '.$this->formatExample($result->counterExample ?? ''));
 
         return Command::FAILURE;
@@ -147,12 +147,12 @@ final class CompareCommand extends Command
         $result = $solver->equivalent($pattern1, $pattern2, $options);
 
         if ($result->isEquivalent) {
-            $io->success('✅ Patterns are mathematically equivalent.');
+            $io->success('Patterns are mathematically equivalent.');
 
             return Command::SUCCESS;
         }
 
-        $io->error('❌ Patterns are different.');
+        $io->error('Patterns are different.');
         if (null !== $result->leftOnlyExample) {
             $io->writeln('Pattern 1 only: '.$this->formatExample($result->leftOnlyExample));
         }
