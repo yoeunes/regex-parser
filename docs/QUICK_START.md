@@ -60,6 +60,21 @@ Match exactly 4 digits, then hyphen, then exactly 2 digits,
 then hyphen, then exactly 2 digits.
 ```
 
+## Comparing Patterns
+
+RegexParser can compare two patterns as mathematical sets of strings.
+
+```bash
+# Intersection: do the patterns overlap?
+bin/regex compare '/edit/' '/[a-z]+/'
+
+# Subset: is pattern 1 fully contained in pattern 2?
+bin/regex compare '/edit/' '/[a-z]+/' --method=subset
+
+# Equivalence: do both patterns accept the same strings?
+bin/regex compare '/[0-9]+/' '/\d+/' --method=equivalence
+```
+
 ## PHP API: five essential operations
 
 ### 1. Parse a pattern (turn regex into structured data)
