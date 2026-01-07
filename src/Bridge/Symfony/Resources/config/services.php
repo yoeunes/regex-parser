@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use RegexParser\Bridge\Symfony\Command\CompareCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
@@ -108,6 +109,11 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$defaultExcludePaths', param('regex_parser.exclude_paths'))
         ->arg('$defaultOptimizations', param('regex_parser.optimizations'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set('regex_parser.command.compare', CompareCommand::class)
+        ->arg('$regex', service('regex_parser.regex'))
         ->tag('console.command')
         ->public();
 

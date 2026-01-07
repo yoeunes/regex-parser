@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Automata;
+
+/**
+ * Result of an equivalence check between two regexes.
+ */
+final readonly class EquivalenceResult
+{
+    /**
+     * @param bool        $isEquivalent     Whether both regexes accept the same language
+     * @param string|null $leftOnlyExample  Example accepted by left but not right
+     * @param string|null $rightOnlyExample Example accepted by right but not left
+     */
+    public function __construct(
+        public bool $isEquivalent,
+        public ?string $leftOnlyExample = null,
+        public ?string $rightOnlyExample = null,
+    ) {}
+}

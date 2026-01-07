@@ -63,14 +63,12 @@ final class PatternParserTest extends TestCase
     public function test_supports_modifier_r_runtime_detection(): void
     {
         // This test triggers the runtime detection code in supportsModifierR
-        // On PHP 8.4+, this should work; on older versions, it should throw
-        if (\PHP_VERSION_ID >= 80400) {
-            // PHP 8.4+ should support the 'r' modifier
+        // The behavior depends on the runtime PCRE capabilities
+        if (self::runtimeSupportsModifierR()) {
             $result = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result);
             $this->assertCount(3, $result);
         } else {
-            // Older PHP versions should reject the 'r' modifier
             $this->expectException(ParserException::class);
             $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
             PatternParser::extractPatternAndFlags('/a/r');
@@ -92,15 +90,13 @@ final class PatternParserTest extends TestCase
     {
         // This test specifically targets the runtime detection code path
         // where phpVersionId is null (lines 137-143 in PatternParser)
-        if (\PHP_VERSION_ID >= 80400) {
-            // PHP 8.4+ should support the 'r' modifier at runtime
+        if (self::runtimeSupportsModifierR()) {
             $result = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result);
             $this->assertCount(3, $result);
             $this->assertSame('a', $result[0]);
             $this->assertSame('r', $result[1]);
         } else {
-            // Older PHP versions should reject the 'r' modifier at runtime
             $this->expectException(ParserException::class);
             $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
             PatternParser::extractPatternAndFlags('/a/r');
@@ -121,7 +117,7 @@ final class PatternParserTest extends TestCase
 
     public function test_supports_modifier_r_caching_behavior(): void
     {
-        if (\PHP_VERSION_ID >= 80400) {
+        if (self::runtimeSupportsModifierR()) {
             $result1 = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result1);
 
@@ -166,7 +162,7 @@ final class PatternParserTest extends TestCase
 
         $result = $reflectionMethod->invoke(null, null);
 
-        $this->assertSame(\PHP_VERSION_ID >= 80400, $result);
+        $this->assertSame(self::runtimeSupportsModifierR(), $result);
     }
 
     public function test_supports_modifier_e_with_null_version_clears_cache_first(): void
@@ -179,5 +175,10 @@ final class PatternParserTest extends TestCase
         $result = $reflectionMethod->invoke(null, null);
 
         $this->assertFalse($result);
+    }
+
+    private static function runtimeSupportsModifierR(): bool
+    {
+        return false !== @preg_match('/a/r', '');
     }
 }

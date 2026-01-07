@@ -46,6 +46,16 @@ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 - Analyze potential ReDoS risk (theoretical by default) and provide cautious suggestions.
 - Lint codebases via the CLI.
 - Provide a visitor API for custom tooling.
+- 🛡️ Logic & Security Solver: Mathematically compare two regexes. Detect route conflicts, validate security subsets (is my regex strict enough?), and prove refactoring equivalence.
+
+Example:
+
+```bash
+$ bin/regex compare "/edit/" "/[a-z]+/"
+  FAIL  Conflict detected!
+
+  Example:           "edit"
+```
 
 ## Philosophy & Accuracy
 
