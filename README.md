@@ -17,14 +17,18 @@
 
 ---
 
-# RegexParser: Parse and analyze PCRE patterns in PHP
+# RegexParser: Static Analysis, Linter & Logic Solver for PHP
 
-RegexParser is a PHP 8.2+ library that parses PCRE regex literals into a typed AST and runs analysis through visitors. It is built for learning, validation, and tooling in PHP projects.
+RegexParser is a PHP 8.2+ library that treats regular expressions as code. 
 
-Project goals:
-- Make regex approachable for newcomers with clear explanations and practical examples.
-- Provide a stable foundation for validation, linting, and security analysis.
-- Stay accurate, transparent, and easy to integrate.
+Unlike simple wrappers around `preg_match`, RegexParser implements a complete **compiler pipeline** (Lexer → Parser → AST) and an **Automata-based Logic Solver** (AST → NFA → DFA). 
+
+This architecture allows for advanced static analysis:
+- **Linting:** Detect redundancy, useless flags, and optimizations.
+- **Safety:** Statically detect catastrophic backtracking (ReDoS).
+- **Logic:** Mathematically compare patterns (Intersection, Equivalence, Subset).
+
+Built for learning, validation, and robust tooling in PHP projects.
 
 If you are new to regex, start with the [Regex Tutorial](docs/tutorial/README.md). If you want a short overview, see the [Quick Start Guide](docs/QUICK_START.md).
 
@@ -40,13 +44,12 @@ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 
 ## What RegexParser provides
 
-- Parse `/pattern/flags` into a structured AST.
-- Validate syntax and semantics with precise error locations.
-- Explain patterns in plain English.
-- Analyze potential ReDoS risk (theoretical by default) and provide cautious suggestions.
-- Lint codebases via the CLI.
-- Provide a visitor API for custom tooling.
-- 🛡️ Logic & Security Solver: Mathematically compare two regexes. Detect route conflicts, validate security subsets (is my regex strict enough?), and prove refactoring equivalence.
+- 🏗️ **Deep Parsing:** Parse `/pattern/flags` into a structured, typed AST.
+- 🧠 **Logic Solver:** Mathematically compare two regexes using NFA/DFA transformation. Detect route conflicts and validate security subsets.
+- 🛡️ **ReDoS Analysis:** Analyze potential catastrophic backtracking risks structure-wise.
+- 🧹 **Linter:** Clean up legacy code (useless flags, redundant groups) via the CLI.
+- 📖 **Explanation:** Explain patterns in plain English.
+- 🔧 **Visitor API:** A flexible API for building custom regex tooling.
 
 Example:
 
