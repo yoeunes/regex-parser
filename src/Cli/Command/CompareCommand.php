@@ -103,7 +103,7 @@ final class CompareCommand extends AbstractCommand
         }
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Conflict detected!')."\n");
-        $output->write('  Example: '.$this->formatExample($result->example ?? '')."\n");
+        $this->writeDetail($output, 'Example', $this->formatExample($result->example ?? ''));
 
         return 1;
     }
@@ -122,7 +122,7 @@ final class CompareCommand extends AbstractCommand
         }
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Pattern 1 allows strings that Pattern 2 forbids.')."\n");
-        $output->write('  Counter-example: '.$this->formatExample($result->counterExample ?? '')."\n");
+        $this->writeDetail($output, 'Counter-example', $this->formatExample($result->counterExample ?? ''));
 
         return 1;
     }
@@ -142,10 +142,10 @@ final class CompareCommand extends AbstractCommand
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Patterns are different.')."\n");
         if (null !== $result->leftOnlyExample) {
-            $output->write('  Pattern 1 only: '.$this->formatExample($result->leftOnlyExample)."\n");
+            $this->writeDetail($output, 'Pattern 1 only', $this->formatExample($result->leftOnlyExample));
         }
         if (null !== $result->rightOnlyExample) {
-            $output->write('  Pattern 2 only: '.$this->formatExample($result->rightOnlyExample)."\n");
+            $this->writeDetail($output, 'Pattern 2 only', $this->formatExample($result->rightOnlyExample));
         }
 
         return 1;
@@ -174,6 +174,12 @@ final class CompareCommand extends AbstractCommand
         }
 
         return '"'.$escaped.'"';
+    }
+
+    private function writeDetail(Output $output, string $label, string $value): void
+    {
+        $labelText = $label.':';
+        $output->write('  '.\str_pad($labelText, 18).' '.$value."\n");
     }
 
     /**
