@@ -103,6 +103,7 @@ final class CompareCommand extends AbstractCommand
         }
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Conflict detected!')."\n");
+        $output->write("\n");
         $this->writeDetail($output, 'Example', $this->formatExample($result->example ?? ''));
 
         return 1;
@@ -122,6 +123,7 @@ final class CompareCommand extends AbstractCommand
         }
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Pattern 1 allows strings that Pattern 2 forbids.')."\n");
+        $output->write("\n");
         $this->writeDetail($output, 'Counter-example', $this->formatExample($result->counterExample ?? ''));
 
         return 1;
@@ -141,6 +143,10 @@ final class CompareCommand extends AbstractCommand
         }
 
         $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Patterns are different.')."\n");
+        $hasDetails = null !== $result->leftOnlyExample || null !== $result->rightOnlyExample;
+        if ($hasDetails) {
+            $output->write("\n");
+        }
         if (null !== $result->leftOnlyExample) {
             $this->writeDetail($output, 'Pattern 1 only', $this->formatExample($result->leftOnlyExample));
         }
@@ -179,7 +185,8 @@ final class CompareCommand extends AbstractCommand
     private function writeDetail(Output $output, string $label, string $value): void
     {
         $labelText = $label.':';
-        $output->write('  '.\str_pad($labelText, 18).' '.$value."\n");
+        $paddedLabel = \str_pad($labelText, 18);
+        $output->write('  '.$output->bold($paddedLabel).' '.$value."\n");
     }
 
     /**
