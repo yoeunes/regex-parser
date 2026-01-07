@@ -7,18 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-07
+
 ### Added
-- New lint rules ported from eslint-plugin-regexp for duplicate character class elements, useless character ranges, zero quantifiers, and redundant `{1}` quantifiers.
-- New lint rules for empty alternatives, duplicate disjunctions, useless backreferences, and optimal quantifier concatenation.
-
-### Documentation
-- Documented new lint rule identifiers and examples in the reference guide.
-
-### Tests
-- Added data-provider coverage for the new lint rules.
+- Automata-based regex logic solver (AST -> NFA -> DFA) with intersection, subset, and equivalence checks plus shortest counter-example search.
+- CLI `compare` command and Symfony console `regex:compare` (alias `debug:compare`) to compare patterns.
+- Regular-subset validator and ComplexityException for non-regular constructs.
+- ReDoS benchmark tooling (`bin/redos-bench`) and CLI `redos` command with confirmation support.
+- New lint rules ported from eslint-plugin-regexp for duplicate character class elements, useless ranges, zero quantifiers, redundant `{1}` quantifiers, empty alternatives, duplicate disjunctions, useless backreferences, and optimal quantifier concatenation.
 
 ### Changed
+- CLI output and banner formatting refined for consistency across commands.
+- Symfony bundle service wiring and lint command structure refactored for maintainability.
+- Parser, lexer, regex facade, and node visitor refactors for clarity and stricter typing.
 - Alternation duplicate warnings now use the `regex.lint.alternation.duplicate_disjunction` identifier.
+
+### Fixed
+- PHPStan type errors in CLI ReDoS command and progress bar type hints.
+- Runtime `r` modifier tests now respect actual PCRE support across PHP versions.
+
+### Documentation
+- Added a logic solver deep dive and compare command usage to the docs.
+- Updated reference and quick start documentation with new lint rules and compare examples.
+- Refreshed corpus and ReDoS guide wording for clarity.
+
+### Tests
+- Added automata solver coverage including unsupported construct checks.
+- Added data-provider coverage for the new lint rules and expanded corpus-based validation.
 
 ## [1.0.10] - 2026-01-04
 
