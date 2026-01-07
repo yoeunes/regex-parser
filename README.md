@@ -45,15 +45,6 @@ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 - 📖 **Explanation:** Explain patterns in plain English.
 - 🔧 **Visitor API:** A flexible API for building custom regex tooling.
 
-Example:
-
-```bash
-$ bin/regex compare "/edit/" "/[a-z]+/"
-  FAIL  Conflict detected!
-
-  Example:           "edit"
-```
-
 ## Philosophy & Accuracy
 
 RegexParser separates what it can guarantee from what is heuristic:
