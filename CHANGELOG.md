@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Symfony route conflict analyzer now sorts routes by specificity to avoid false positive overlaps. Routes are now analyzed in Symfony's best-match priority order (longer static prefix, more variables), so overlapping patterns are only flagged as conflicts when a less specific route is declared BEFORE a more specific route.
+
 ## [1.2.0] - 2026-01-08
 
 ### Added
