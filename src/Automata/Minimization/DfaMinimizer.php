@@ -43,6 +43,17 @@ final readonly class DfaMinimizer
      */
     private function effectiveAlphabet(Dfa $dfa): array
     {
+        if ([] !== $dfa->alphabetRanges) {
+            $symbols = [];
+            foreach ($dfa->alphabetRanges as $range) {
+                $symbols[] = $range[0];
+            }
+
+            \sort($symbols, \SORT_NUMERIC);
+
+            return $symbols;
+        }
+
         $alphabet = [];
 
         foreach ($dfa->states as $state) {

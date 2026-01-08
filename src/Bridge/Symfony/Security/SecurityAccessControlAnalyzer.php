@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Security;
 
-use RegexParser\Automata\Alphabet\CharSet;
 use RegexParser\Automata\Builder\DfaBuilder;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 use RegexParser\Automata\Model\Dfa;
@@ -21,6 +20,7 @@ use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
 use RegexParser\Automata\Transform\AstToNfaTransformer;
 use RegexParser\Automata\Transform\RegularSubsetValidator;
+use RegexParser\Automata\Unicode\CodePointHelper;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Regex;
 use RegexParser\RegexPattern;
@@ -578,6 +578,7 @@ final readonly class SecurityAccessControlAnalyzer
         $startLeft = $left->startState;
         $startRight = $right->startState;
         $startKey = $this->pairKey($startLeft, $startRight);
+        $alphabetRanges = $this->mergeAlphabetRanges($left, $right);
 
         if ($acceptPredicate($left->getState($startLeft)->isAccepting, $right->getState($startRight)->isAccepting)) {
             return '';
@@ -597,9 +598,15 @@ final readonly class SecurityAccessControlAnalyzer
             $leftState = $left->getState($leftStateId);
             $rightState = $right->getState($rightStateId);
 
-            for ($char = CharSet::MIN_CODEPOINT; $char <= CharSet::MAX_CODEPOINT; $char++) {
-                $nextLeft = $leftState->transitions[$char];
-                $nextRight = $rightState->transitions[$char];
+            foreach ($alphabetRanges as [$start]) {
+                $symbol = $start;
+                $nextLeft = $leftState->transitionFor($symbol);
+                $nextRight = $rightState->transitionFor($symbol);
+
+                if (null === $nextLeft || null === $nextRight) {
+                    continue;
+                }
+
                 $nextKey = $this->pairKey($nextLeft, $nextRight);
 
                 if (isset($visited[$nextKey])) {
@@ -607,7 +614,7 @@ final readonly class SecurityAccessControlAnalyzer
                 }
 
                 $visited[$nextKey] = true;
-                $previous[$nextKey] = [$currentKey, $char];
+                $previous[$nextKey] = [$currentKey, $symbol];
 
                 $nextLeftState = $left->getState($nextLeft);
                 $nextRightState = $right->getState($nextRight);
@@ -627,15 +634,19 @@ final readonly class SecurityAccessControlAnalyzer
      */
     private function buildExample(string $key, array $previous): string
     {
-        $chars = '';
+        $chars = [];
         $current = $key;
         while (null !== $previous[$current]) {
             [$prevKey, $char] = $previous[$current];
-            $chars .= \chr($char);
+            $chars[] = CodePointHelper::toString($char) ?? '';
             $current = $prevKey;
         }
 
-        return \strrev($chars);
+        if ([] === $chars) {
+            return '';
+        }
+
+        return implode('', \array_reverse($chars));
     }
 
     private function resolveMinimizationAlgorithm(): MinimizationAlgorithm
@@ -649,5 +660,56 @@ final readonly class SecurityAccessControlAnalyzer
     private function pairKey(int $leftState, int $rightState): string
     {
         return $leftState.':'.$rightState;
+    }
+
+    /**
+     * @return array<int, array{0:int, 1:int}>
+     */
+    private function mergeAlphabetRanges(Dfa $left, Dfa $right): array
+    {
+        $min = \min($left->minCodePoint, $right->minCodePoint);
+        $max = \max($left->maxCodePoint, $right->maxCodePoint);
+
+        $boundaries = [
+            $min => true,
+            $max + 1 => true,
+        ];
+
+        foreach ([$left, $right] as $dfa) {
+            $ranges = $dfa->alphabetRanges;
+            if ([] === $ranges) {
+                $ranges = [[$dfa->minCodePoint, $dfa->maxCodePoint]];
+            }
+
+            foreach ($ranges as [$start, $end]) {
+                $boundaries[$start] = true;
+                if ($end + 1 <= $max + 1) {
+                    $boundaries[$end + 1] = true;
+                }
+            }
+        }
+
+        /** @var array<int> $points */
+        $points = \array_keys($boundaries);
+        \sort($points, \SORT_NUMERIC);
+
+        $ranges = [];
+        $count = \count($points);
+        for ($i = 0; $i < $count - 1; $i++) {
+            $start = $points[$i];
+            $end = $points[$i + 1] - 1;
+
+            if ($start > $max) {
+                break;
+            }
+
+            $ranges[] = [$start, \min($end, $max)];
+        }
+
+        if ([] === $ranges) {
+            $ranges[] = [$min, $max];
+        }
+
+        return $ranges;
     }
 }

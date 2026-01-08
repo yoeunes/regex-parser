@@ -13,64 +13,113 @@ declare(strict_types=1);
 
 namespace RegexParser\Automata\Alphabet;
 
+use RegexParser\Automata\Unicode\CodePointHelper;
+
 /**
- * Immutable character set for byte-based automata.
+ * Immutable character set for automata alphabets.
  */
 final readonly class CharSet
 {
     public const MIN_CODEPOINT = 0;
     public const MAX_CODEPOINT = 255;
+    public const UNICODE_MAX_CODEPOINT = 0x10FFFF;
 
     /**
      * @param array<array{0:int, 1:int}> $ranges
      */
     private function __construct(
         private array $ranges,
+        private int $minCodePoint,
+        private int $maxCodePoint,
     ) {}
 
-    public static function empty(): self
+    public static function empty(?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
     {
-        return new self([]);
+        return new self([], $minCodePoint, $maxCodePoint ?? self::MAX_CODEPOINT);
     }
 
-    public static function full(): self
+    public static function full(?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
     {
-        return new self([[self::MIN_CODEPOINT, self::MAX_CODEPOINT]]);
+        $max = $maxCodePoint ?? self::MAX_CODEPOINT;
+
+        return new self([[$minCodePoint, $max]], $minCodePoint, $max);
     }
 
-    public static function fromChar(string $char): self
+    public static function fromChar(string $char, ?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
     {
         if ('' === $char) {
-            return self::empty();
+            return self::empty($maxCodePoint, $minCodePoint);
         }
 
-        return self::fromCodePoint(\ord($char[0]));
-    }
-
-    public static function fromCodePoint(int $codePoint): self
-    {
-        return self::fromRange($codePoint, $codePoint);
-    }
-
-    public static function fromRange(int $start, int $end): self
-    {
-        if ($end < self::MIN_CODEPOINT || $start > self::MAX_CODEPOINT) {
-            return self::empty();
+        $codePoint = CodePointHelper::toCodePoint($char);
+        if (null === $codePoint) {
+            return self::empty($maxCodePoint, $minCodePoint);
         }
 
-        $clampedStart = \max(self::MIN_CODEPOINT, $start);
-        $clampedEnd = \min(self::MAX_CODEPOINT, $end);
+        return self::fromCodePoint($codePoint, $maxCodePoint, $minCodePoint);
+    }
+
+    public static function fromCodePoint(int $codePoint, ?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
+    {
+        return self::fromRange($codePoint, $codePoint, $maxCodePoint, $minCodePoint);
+    }
+
+    /**
+     * @param array<array{0:int, 1:int}> $ranges
+     */
+    public static function fromRanges(array $ranges, ?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
+    {
+        $max = $maxCodePoint ?? self::MAX_CODEPOINT;
+
+        return new self(self::normalizeRanges($ranges, $minCodePoint, $max), $minCodePoint, $max);
+    }
+
+    public static function fromRange(int $start, int $end, ?int $maxCodePoint = null, int $minCodePoint = self::MIN_CODEPOINT): self
+    {
+        $max = $maxCodePoint ?? self::MAX_CODEPOINT;
+
+        if ($end < $minCodePoint || $start > $max) {
+            return self::empty($max, $minCodePoint);
+        }
+
+        $clampedStart = \max($minCodePoint, $start);
+        $clampedEnd = \min($max, $end);
 
         if ($clampedStart > $clampedEnd) {
-            return self::empty();
+            return self::empty($max, $minCodePoint);
         }
 
-        return new self([[$clampedStart, $clampedEnd]]);
+        return new self([[$clampedStart, $clampedEnd]], $minCodePoint, $max);
     }
 
     public function isEmpty(): bool
     {
         return [] === $this->ranges;
+    }
+
+    public function isFull(): bool
+    {
+        return 1 === \count($this->ranges)
+            && $this->ranges[0][0] === $this->minCodePoint
+            && $this->ranges[0][1] === $this->maxCodePoint;
+    }
+
+    /**
+     * @return array<array{0:int, 1:int}>
+     */
+    public function ranges(): array
+    {
+        return $this->ranges;
+    }
+
+    public function minCodePoint(): int
+    {
+        return $this->minCodePoint;
+    }
+
+    public function maxCodePoint(): int
+    {
+        return $this->maxCodePoint;
     }
 
     public function contains(int $codePoint): bool
@@ -94,15 +143,20 @@ final readonly class CharSet
             return $this;
         }
 
-        return new self($this->normalize(\array_merge($this->ranges, $other->ranges)));
+        [$min, $max] = $this->resolveBounds($other);
+
+        return new self(self::normalizeRanges(\array_merge($this->ranges, $other->ranges), $min, $max), $min, $max);
     }
 
     public function intersect(self $other): self
     {
         if ([] === $this->ranges || [] === $other->ranges) {
-            return self::empty();
+            [$min, $max] = $this->resolveBounds($other);
+
+            return self::empty($max, $min);
         }
 
+        [$min, $max] = $this->resolveBounds($other);
         $result = [];
 
         foreach ($this->ranges as [$start, $end]) {
@@ -115,13 +169,13 @@ final readonly class CharSet
             }
         }
 
-        return new self($this->normalize($result));
+        return new self(self::normalizeRanges($result, $min, $max), $min, $max);
     }
 
     public function subtract(self $other): self
     {
         if ([] === $this->ranges) {
-            return self::empty();
+            return self::empty($this->maxCodePoint, $this->minCodePoint);
         }
 
         if ([] === $other->ranges) {
@@ -129,7 +183,7 @@ final readonly class CharSet
         }
 
         $result = [];
-        $otherRanges = $other->normalize($other->ranges);
+        $otherRanges = self::normalizeRanges($other->ranges, $this->minCodePoint, $this->maxCodePoint);
 
         foreach ($this->ranges as [$start, $end]) {
             $cursor = $start;
@@ -160,18 +214,18 @@ final readonly class CharSet
             }
         }
 
-        return new self($this->normalize($result));
+        return new self(self::normalizeRanges($result, $this->minCodePoint, $this->maxCodePoint), $this->minCodePoint, $this->maxCodePoint);
     }
 
     public function complement(): self
     {
         if ([] === $this->ranges) {
-            return self::full();
+            return self::full($this->maxCodePoint, $this->minCodePoint);
         }
 
-        $normalized = $this->normalize($this->ranges);
+        $normalized = self::normalizeRanges($this->ranges, $this->minCodePoint, $this->maxCodePoint);
         $result = [];
-        $cursor = self::MIN_CODEPOINT;
+        $cursor = $this->minCodePoint;
 
         foreach ($normalized as [$start, $end]) {
             if ($cursor < $start) {
@@ -180,11 +234,11 @@ final readonly class CharSet
             $cursor = $end + 1;
         }
 
-        if ($cursor <= self::MAX_CODEPOINT) {
-            $result[] = [$cursor, self::MAX_CODEPOINT];
+        if ($cursor <= $this->maxCodePoint) {
+            $result[] = [$cursor, $this->maxCodePoint];
         }
 
-        return new self($result);
+        return new self($result, $this->minCodePoint, $this->maxCodePoint);
     }
 
     public function sampleChar(): ?string
@@ -198,7 +252,7 @@ final readonly class CharSet
             return null;
         }
 
-        return \chr($value);
+        return CodePointHelper::toString($value);
     }
 
     /**
@@ -206,7 +260,7 @@ final readonly class CharSet
      *
      * @return array<array{0:int, 1:int}>
      */
-    private function normalize(array $ranges): array
+    private static function normalizeRanges(array $ranges, int $minCodePoint, int $maxCodePoint): array
     {
         if ([] === $ranges) {
             return [];
@@ -216,12 +270,12 @@ final readonly class CharSet
 
         $merged = [];
         foreach ($ranges as [$start, $end]) {
-            if ($end < self::MIN_CODEPOINT || $start > self::MAX_CODEPOINT) {
+            if ($end < $minCodePoint || $start > $maxCodePoint) {
                 continue;
             }
 
-            $start = \max(self::MIN_CODEPOINT, $start);
-            $end = \min(self::MAX_CODEPOINT, $end);
+            $start = \max($minCodePoint, $start);
+            $end = \min($maxCodePoint, $end);
 
             if ([] === $merged) {
                 $merged[] = [$start, $end];
@@ -240,5 +294,16 @@ final readonly class CharSet
         }
 
         return $merged;
+    }
+
+    /**
+     * @return array{0:int, 1:int}
+     */
+    private function resolveBounds(self $other): array
+    {
+        $min = \min($this->minCodePoint, $other->minCodePoint);
+        $max = \max($this->maxCodePoint, $other->maxCodePoint);
+
+        return [$min, $max];
     }
 }

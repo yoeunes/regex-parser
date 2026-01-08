@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Automata\Model;
 
+use RegexParser\Automata\Alphabet\CharSet;
+
 /**
  * Immutable NFA container.
  */
@@ -24,6 +26,8 @@ final readonly class Nfa
     public function __construct(
         public int $startState,
         public array $states,
+        public int $minCodePoint = CharSet::MIN_CODEPOINT,
+        public int $maxCodePoint = CharSet::MAX_CODEPOINT,
     ) {}
 
     public function getState(int $stateId): NfaState

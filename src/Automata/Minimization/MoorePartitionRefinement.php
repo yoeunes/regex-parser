@@ -111,7 +111,7 @@ final class MoorePartitionRefinement implements MinimizationAlgorithmInterface
         $parts = [];
 
         foreach ($alphabet as $symbol) {
-            $target = $state->transitions[$symbol] ?? null;
+            $target = $state->transitionFor($symbol);
             $parts[] = null === $target ? 'x' : (string) $stateToGroup[$target];
         }
 
@@ -129,16 +129,27 @@ final class MoorePartitionRefinement implements MinimizationAlgorithmInterface
         foreach ($partitions as $newId => $group) {
             $representative = $dfa->states[$group[0]];
             $transitions = [];
+            $ranges = [];
 
             foreach ($representative->transitions as $symbol => $target) {
                 $transitions[(int) $symbol] = $stateToGroup[$target];
             }
 
-            $newStates[$newId] = new DfaState($newId, $transitions, $representative->isAccepting);
+            if ([] !== $representative->ranges) {
+                foreach ($representative->ranges as [$start, $end, $target]) {
+                    $ranges[] = [$start, $end, $stateToGroup[$target]];
+                }
+            } else {
+                foreach ($transitions as $symbol => $target) {
+                    $ranges[] = [$symbol, $symbol, $target];
+                }
+            }
+
+            $newStates[$newId] = new DfaState($newId, $transitions, $representative->isAccepting, $ranges);
         }
 
         $startState = $stateToGroup[$dfa->startState];
 
-        return new Dfa($startState, $newStates);
+        return new Dfa($startState, $newStates, $dfa->alphabetRanges, $dfa->minCodePoint, $dfa->maxCodePoint);
     }
 }

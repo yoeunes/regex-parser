@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Automata\Model;
 
+use RegexParser\Automata\Alphabet\CharSet;
+
 /**
  * Immutable DFA container.
  */
@@ -20,10 +22,14 @@ final readonly class Dfa
 {
     /**
      * @param array<int, DfaState> $states
+     * @param array<int, array{0:int, 1:int}> $alphabetRanges
      */
     public function __construct(
         public int $startState,
         public array $states,
+        public array $alphabetRanges = [],
+        public int $minCodePoint = CharSet::MIN_CODEPOINT,
+        public int $maxCodePoint = CharSet::MAX_CODEPOINT,
     ) {}
 
     public function getState(int $stateId): DfaState

@@ -178,13 +178,23 @@ final class HopcroftWorklist implements MinimizationAlgorithmInterface
         $inverse = [];
 
         foreach ($dfa->states as $stateId => $state) {
-            foreach ($state->transitions as $symbol => $target) {
-                $symbol = (int) $symbol;
-                if (!isset($alphabetSet[$symbol])) {
-                    continue;
-                }
+            if ([] !== $state->ranges) {
+                foreach ($state->ranges as [$start, $_end, $target]) {
+                    if (!isset($alphabetSet[$start])) {
+                        continue;
+                    }
 
-                $inverse[$symbol][$target][] = $stateId;
+                    $inverse[$start][$target][] = $stateId;
+                }
+            } else {
+                foreach ($state->transitions as $symbol => $target) {
+                    $symbol = (int) $symbol;
+                    if (!isset($alphabetSet[$symbol])) {
+                        continue;
+                    }
+
+                    $inverse[$symbol][$target][] = $stateId;
+                }
             }
         }
 
@@ -202,16 +212,27 @@ final class HopcroftWorklist implements MinimizationAlgorithmInterface
         foreach ($partitions as $newId => $group) {
             $representative = $dfa->states[$group[0]];
             $transitions = [];
+            $ranges = [];
 
             foreach ($representative->transitions as $symbol => $target) {
                 $transitions[(int) $symbol] = $stateToGroup[$target];
             }
 
-            $newStates[$newId] = new DfaState($newId, $transitions, $representative->isAccepting);
+            if ([] !== $representative->ranges) {
+                foreach ($representative->ranges as [$start, $end, $target]) {
+                    $ranges[] = [$start, $end, $stateToGroup[$target]];
+                }
+            } else {
+                foreach ($transitions as $symbol => $target) {
+                    $ranges[] = [$symbol, $symbol, $target];
+                }
+            }
+
+            $newStates[$newId] = new DfaState($newId, $transitions, $representative->isAccepting, $ranges);
         }
 
         $startState = $stateToGroup[$dfa->startState];
 
-        return new Dfa($startState, $newStates);
+        return new Dfa($startState, $newStates, $dfa->alphabetRanges, $dfa->minCodePoint, $dfa->maxCodePoint);
     }
 }

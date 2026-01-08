@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Unicode-aware automata mode for `/u` patterns with code point literals, dot, and character class handling.
+- Effective alphabet optimization in DFA construction plus a new benchmark script for Unicode-heavy ranges.
+
+### Changed
+- Automata-based analyzers now generate Unicode-aware examples when working with `/u` patterns.
+
 ### Fixed
 - Sort Symfony routes by specificity before conflict analysis to reduce false-positive overlaps.
 - Symfony access_control analysis now uses search semantics to match preg_match behavior and catch prefix shadowing.

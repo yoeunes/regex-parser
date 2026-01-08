@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Automata\Transform;
 
 use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Unicode\CodePointHelper;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -52,6 +53,7 @@ use RegexParser\Node\VersionConditionNode;
 final class RegularSubsetValidator
 {
     private string $pattern = '';
+    private bool $unicode = false;
 
     /**
      * @throws ComplexityException
@@ -59,6 +61,7 @@ final class RegularSubsetValidator
     public function assertSupported(RegexNode $regex, string $pattern, SolverOptions $options): void
     {
         $this->pattern = $pattern;
+        $this->unicode = \str_contains($regex->flags, 'u');
 
         $this->assertSupportedFlags($regex->flags);
         $this->assertNode($regex->pattern, false);
@@ -125,7 +128,7 @@ final class RegularSubsetValidator
         }
 
         if ($node instanceof LiteralNode) {
-            if ($inCharClass && 1 !== \strlen($node->value)) {
+            if ($inCharClass && 1 !== $this->literalLength($node->value, $node)) {
                 $this->unsupported($node, 'Multi-character literals are not supported in character classes.');
             }
 
@@ -216,7 +219,7 @@ final class RegularSubsetValidator
     private function assertRangeEndpoint(NodeInterface $node): void
     {
         if ($node instanceof LiteralNode) {
-            if (1 !== \strlen($node->value)) {
+            if (1 !== $this->literalLength($node->value, $node)) {
                 $this->unsupported($node, 'Invalid range endpoint in character class.');
             }
 
@@ -236,5 +239,23 @@ final class RegularSubsetValidator
     private function unsupported(NodeInterface $node, string $message): never
     {
         throw new ComplexityException($message, $node->getStartPosition(), $this->pattern);
+    }
+
+    private function literalLength(string $value, NodeInterface $node): int
+    {
+        if (!$this->unicode) {
+            return \strlen($value);
+        }
+
+        if (!CodePointHelper::isValidUtf8($value)) {
+            $this->unsupported($node, 'Invalid UTF-8 literal in /u pattern.');
+        }
+
+        $chars = \preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
+        if (false === $chars) {
+            $this->unsupported($node, 'Invalid UTF-8 literal in /u pattern.');
+        }
+
+        return \count($chars);
     }
 }

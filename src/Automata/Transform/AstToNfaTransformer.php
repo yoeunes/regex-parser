@@ -19,6 +19,7 @@ use RegexParser\Automata\Model\Nfa;
 use RegexParser\Automata\Model\NfaFragment;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Unicode\CodePointHelper;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -42,21 +43,45 @@ use RegexParser\Node\SequenceNode;
  */
 final class AstToNfaTransformer implements AstToNfaTransformerInterface
 {
-    private static ?CharSet $fullCharSet = null;
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $fullCharSet = [];
 
-    private static ?CharSet $dotCharSet = null;
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $dotCharSet = [];
 
-    private static ?CharSet $dotAllCharSet = null;
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $dotAllCharSet = [];
 
-    private static ?CharSet $wordCharSet = null;
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $wordCharSet = [];
 
-    private static ?CharSet $spaceCharSet = null;
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $spaceCharSet = [];
+
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $digitCharSet = [];
 
     private NfaBuilder $builder;
 
     private bool $caseInsensitive = false;
 
     private bool $dotAll = false;
+
+    private bool $unicode = false;
+
+    private int $alphabetMax = CharSet::MAX_CODEPOINT;
 
     public function __construct(
         private readonly string $pattern,
@@ -67,7 +92,9 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
      */
     public function transform(RegexNode $regex, SolverOptions $options): Nfa
     {
-        $this->builder = new NfaBuilder($options->maxNfaStates);
+        $this->unicode = \str_contains($regex->flags, 'u');
+        $this->alphabetMax = $this->unicode ? CharSet::UNICODE_MAX_CODEPOINT : CharSet::MAX_CODEPOINT;
+        $this->builder = new NfaBuilder($options->maxNfaStates, CharSet::MIN_CODEPOINT, $this->alphabetMax);
         $this->caseInsensitive = \str_contains($regex->flags, 'i');
         $this->dotAll = \str_contains($regex->flags, 's');
 
@@ -212,14 +239,31 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
         $start = $this->builder->createState();
         $current = $start;
-        $length = \strlen($node->value);
+        if ($this->unicode) {
+            if (!CodePointHelper::isValidUtf8($node->value)) {
+                throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
+            }
 
-        for ($i = 0; $i < $length; $i++) {
-            $next = $this->builder->createState();
-            $codePoint = \ord($node->value[$i]);
-            $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint));
-            $this->builder->addTransition($current, $charSet, $next);
-            $current = $next;
+            $codePoints = CodePointHelper::toCodePoints($node->value);
+            if ([] === $codePoints) {
+                throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
+            }
+
+            foreach ($codePoints as $codePoint) {
+                $next = $this->builder->createState();
+                $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint, $this->alphabetMax));
+                $this->builder->addTransition($current, $charSet, $next);
+                $current = $next;
+            }
+        } else {
+            $length = \strlen($node->value);
+            for ($i = 0; $i < $length; $i++) {
+                $next = $this->builder->createState();
+                $codePoint = \ord($node->value[$i]);
+                $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint, $this->alphabetMax));
+                $this->builder->addTransition($current, $charSet, $next);
+                $current = $next;
+            }
         }
 
         return new NfaFragment($start, [$current]);
@@ -230,13 +274,13 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
      */
     private function buildCharFromCodePoint(int $codePoint, int $position): NfaFragment
     {
-        if ($codePoint < CharSet::MIN_CODEPOINT || $codePoint > CharSet::MAX_CODEPOINT) {
+        if ($codePoint < CharSet::MIN_CODEPOINT || $codePoint > $this->alphabetMax) {
             throw new ComplexityException('Character outside supported alphabet.', $position, $this->pattern);
         }
 
         $start = $this->builder->createState();
         $end = $this->builder->createState();
-        $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint));
+        $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint, $this->alphabetMax));
         $this->builder->addTransition($start, $charSet, $end);
 
         return new NfaFragment($start, [$end]);
@@ -248,8 +292,8 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     private function buildCharType(CharTypeNode $node): NfaFragment
     {
         $charSet = match ($node->value) {
-            'd' => CharSet::fromRange(\ord('0'), \ord('9')),
-            'D' => CharSet::fromRange(\ord('0'), \ord('9'))->complement(),
+            'd' => $this->digitCharSet(),
+            'D' => $this->digitCharSet()->complement(),
             'w' => $this->wordCharSet(),
             'W' => $this->wordCharSet()->complement(),
             's' => $this->spaceCharSet(),
@@ -289,7 +333,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         $startCode = $this->extractCodePoint($node->start);
         $endCode = $this->extractCodePoint($node->end);
 
-        $charSet = CharSet::fromRange($startCode, $endCode);
+        $charSet = CharSet::fromRange($startCode, $endCode, $this->alphabetMax);
         $charSet = $this->applyCaseInsensitive($charSet);
 
         $start = $this->builder->createState();
@@ -316,7 +360,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     private function buildCharClassExpression(NodeInterface $node): CharSet
     {
         if ($node instanceof AlternationNode) {
-            $set = CharSet::empty();
+            $set = CharSet::empty($this->alphabetMax);
             foreach ($node->alternatives as $alternative) {
                 $set = $set->union($this->buildCharClassExpression($alternative));
             }
@@ -328,35 +372,51 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             $startCode = $this->extractCodePoint($node->start);
             $endCode = $this->extractCodePoint($node->end);
 
-            return CharSet::fromRange($startCode, $endCode);
+            return CharSet::fromRange($startCode, $endCode, $this->alphabetMax);
         }
 
         if ($node instanceof LiteralNode) {
             if ('' === $node->value) {
-                return CharSet::empty();
+                return CharSet::empty($this->alphabetMax);
             }
 
-            $set = CharSet::empty();
-            $length = \strlen($node->value);
-            for ($i = 0; $i < $length; $i++) {
-                $set = $set->union(CharSet::fromCodePoint(\ord($node->value[$i])));
+            if ($this->unicode) {
+                if (!CodePointHelper::isValidUtf8($node->value)) {
+                    throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
+                }
+
+                $codePoints = CodePointHelper::toCodePoints($node->value);
+                if ([] === $codePoints) {
+                    throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
+                }
+
+                $set = CharSet::empty($this->alphabetMax);
+                foreach ($codePoints as $codePoint) {
+                    $set = $set->union(CharSet::fromCodePoint($codePoint, $this->alphabetMax));
+                }
+            } else {
+                $set = CharSet::empty($this->alphabetMax);
+                $length = \strlen($node->value);
+                for ($i = 0; $i < $length; $i++) {
+                    $set = $set->union(CharSet::fromCodePoint(\ord($node->value[$i]), $this->alphabetMax));
+                }
             }
 
             return $set;
         }
 
         if ($node instanceof CharLiteralNode) {
-            return CharSet::fromCodePoint($node->codePoint);
+            return CharSet::fromCodePoint($node->codePoint, $this->alphabetMax);
         }
 
         if ($node instanceof ControlCharNode) {
-            return CharSet::fromCodePoint($node->codePoint);
+            return CharSet::fromCodePoint($node->codePoint, $this->alphabetMax);
         }
 
         if ($node instanceof CharTypeNode) {
             return match ($node->value) {
-                'd' => CharSet::fromRange(\ord('0'), \ord('9')),
-                'D' => CharSet::fromRange(\ord('0'), \ord('9'))->complement(),
+                'd' => $this->digitCharSet(),
+                'D' => $this->digitCharSet()->complement(),
                 'w' => $this->wordCharSet(),
                 'W' => $this->wordCharSet()->complement(),
                 's' => $this->spaceCharSet(),
@@ -493,36 +553,69 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
     private function wordCharSet(): CharSet
     {
-        if (null !== self::$wordCharSet) {
-            return self::$wordCharSet;
+        $key = $this->cacheKey();
+        if (isset(self::$wordCharSet[$key])) {
+            return self::$wordCharSet[$key];
         }
 
-        $letters = CharSet::fromRange(\ord('A'), \ord('Z'))
-            ->union(CharSet::fromRange(\ord('a'), \ord('z')));
-        $digits = CharSet::fromRange(\ord('0'), \ord('9'));
-        $underscore = CharSet::fromCodePoint(\ord('_'));
+        if ($this->unicode) {
+            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\w$/u', $char));
+            $set = CharSet::fromRanges($ranges, $this->alphabetMax);
+        } else {
+            $letters = CharSet::fromRange(\ord('A'), \ord('Z'), $this->alphabetMax)
+                ->union(CharSet::fromRange(\ord('a'), \ord('z'), $this->alphabetMax));
+            $digits = CharSet::fromRange(\ord('0'), \ord('9'), $this->alphabetMax);
+            $underscore = CharSet::fromCodePoint(\ord('_'), $this->alphabetMax);
+            $set = $letters->union($digits)->union($underscore);
+        }
 
-        self::$wordCharSet = $letters->union($digits)->union($underscore);
+        self::$wordCharSet[$key] = $set;
 
-        return self::$wordCharSet;
+        return $set;
     }
 
     private function spaceCharSet(): CharSet
     {
-        if (null !== self::$spaceCharSet) {
-            return self::$spaceCharSet;
+        $key = $this->cacheKey();
+        if (isset(self::$spaceCharSet[$key])) {
+            return self::$spaceCharSet[$key];
         }
 
-        $space = CharSet::fromCodePoint(\ord(' '));
-        $tab = CharSet::fromCodePoint(0x09);
-        $newline = CharSet::fromCodePoint(0x0A);
-        $carriage = CharSet::fromCodePoint(0x0D);
-        $formFeed = CharSet::fromCodePoint(0x0C);
-        $vertical = CharSet::fromCodePoint(0x0B);
+        if ($this->unicode) {
+            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\s$/u', $char));
+            $set = CharSet::fromRanges($ranges, $this->alphabetMax);
+        } else {
+            $space = CharSet::fromCodePoint(\ord(' '), $this->alphabetMax);
+            $tab = CharSet::fromCodePoint(0x09, $this->alphabetMax);
+            $newline = CharSet::fromCodePoint(0x0A, $this->alphabetMax);
+            $carriage = CharSet::fromCodePoint(0x0D, $this->alphabetMax);
+            $formFeed = CharSet::fromCodePoint(0x0C, $this->alphabetMax);
+            $vertical = CharSet::fromCodePoint(0x0B, $this->alphabetMax);
+            $set = $space->union($tab)->union($newline)->union($carriage)->union($formFeed)->union($vertical);
+        }
 
-        self::$spaceCharSet = $space->union($tab)->union($newline)->union($carriage)->union($formFeed)->union($vertical);
+        self::$spaceCharSet[$key] = $set;
 
-        return self::$spaceCharSet;
+        return $set;
+    }
+
+    private function digitCharSet(): CharSet
+    {
+        $key = $this->cacheKey();
+        if (isset(self::$digitCharSet[$key])) {
+            return self::$digitCharSet[$key];
+        }
+
+        if ($this->unicode) {
+            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\d$/u', $char));
+            $set = CharSet::fromRanges($ranges, $this->alphabetMax);
+        } else {
+            $set = CharSet::fromRange(\ord('0'), \ord('9'), $this->alphabetMax);
+        }
+
+        self::$digitCharSet[$key] = $set;
+
+        return $set;
     }
 
     /**
@@ -533,6 +626,19 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         if ($node instanceof LiteralNode) {
             if ('' === $node->value) {
                 return 0;
+            }
+
+            if ($this->unicode) {
+                if (!CodePointHelper::isValidUtf8($node->value)) {
+                    throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
+                }
+
+                $codePoint = CodePointHelper::singleCodePoint($node->value);
+                if (null === $codePoint) {
+                    throw new ComplexityException('Invalid range endpoint in character class.', $node->getStartPosition(), $this->pattern);
+                }
+
+                return $codePoint;
             }
 
             return \ord($node->value[0]);
@@ -575,14 +681,49 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             return $charSet;
         }
 
-        $expanded = $charSet;
-        for ($i = \ord('A'); $i <= \ord('Z'); $i++) {
-            $lower = $i + 32;
-            if ($charSet->contains($i)) {
-                $expanded = $expanded->union(CharSet::fromCodePoint($lower));
+        if (!$this->unicode) {
+            $expanded = $charSet;
+            for ($i = \ord('A'); $i <= \ord('Z'); $i++) {
+                $lower = $i + 32;
+                if ($charSet->contains($i)) {
+                    $expanded = $expanded->union(CharSet::fromCodePoint($lower, $this->alphabetMax));
+                }
+                if ($charSet->contains($lower)) {
+                    $expanded = $expanded->union(CharSet::fromCodePoint($i, $this->alphabetMax));
+                }
             }
-            if ($charSet->contains($lower)) {
-                $expanded = $expanded->union(CharSet::fromCodePoint($i));
+
+            return $expanded;
+        }
+
+        if ($charSet->isEmpty() || $charSet->isFull()) {
+            return $charSet;
+        }
+
+        if (!\function_exists('mb_strtolower') || !\function_exists('mb_strtoupper')) {
+            throw new ComplexityException('Unicode case folding requires the mbstring extension.', 0, $this->pattern);
+        }
+
+        $expanded = $charSet;
+        foreach ($charSet->ranges() as [$start, $end]) {
+            for ($codePoint = $start; $codePoint <= $end; $codePoint++) {
+                $char = CodePointHelper::toString($codePoint);
+                if (null === $char) {
+                    continue;
+                }
+
+                $lower = \mb_strtolower($char, 'UTF-8');
+                $upper = \mb_strtoupper($char, 'UTF-8');
+
+                $lowerCodePoint = CodePointHelper::singleCodePoint($lower);
+                if (null !== $lowerCodePoint) {
+                    $expanded = $expanded->union(CharSet::fromCodePoint($lowerCodePoint, $this->alphabetMax));
+                }
+
+                $upperCodePoint = CodePointHelper::singleCodePoint($upper);
+                if (null !== $upperCodePoint) {
+                    $expanded = $expanded->union(CharSet::fromCodePoint($upperCodePoint, $this->alphabetMax));
+                }
             }
         }
 
@@ -724,28 +865,72 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
     private function fullCharSet(): CharSet
     {
-        if (null === self::$fullCharSet) {
-            self::$fullCharSet = CharSet::full();
+        $key = $this->cacheKey();
+        if (!isset(self::$fullCharSet[$key])) {
+            self::$fullCharSet[$key] = CharSet::full($this->alphabetMax);
         }
 
-        return self::$fullCharSet;
+        return self::$fullCharSet[$key];
     }
 
     private function dotCharSet(): CharSet
     {
-        if (null === self::$dotCharSet) {
-            self::$dotCharSet = CharSet::full()->subtract(CharSet::fromCodePoint(\ord("\n")));
+        $key = $this->cacheKey();
+        if (!isset(self::$dotCharSet[$key])) {
+            self::$dotCharSet[$key] = CharSet::full($this->alphabetMax)
+                ->subtract(CharSet::fromCodePoint(\ord("\n"), $this->alphabetMax));
         }
 
-        return self::$dotCharSet;
+        return self::$dotCharSet[$key];
     }
 
     private function dotAllCharSet(): CharSet
     {
-        if (null === self::$dotAllCharSet) {
-            self::$dotAllCharSet = CharSet::full();
+        $key = $this->cacheKey();
+        if (!isset(self::$dotAllCharSet[$key])) {
+            self::$dotAllCharSet[$key] = CharSet::full($this->alphabetMax);
         }
 
-        return self::$dotAllCharSet;
+        return self::$dotAllCharSet[$key];
+    }
+
+    private function cacheKey(): string
+    {
+        return ($this->unicode ? 'u:' : 'b:').$this->alphabetMax;
+    }
+
+    /**
+     * @param callable(string): bool $predicate
+     *
+     * @return array<int, array{0:int, 1:int}>
+     */
+    private function buildUnicodeRanges(callable $predicate): array
+    {
+        $ranges = [];
+        $rangeStart = null;
+
+        for ($codePoint = CharSet::MIN_CODEPOINT; $codePoint <= $this->alphabetMax; $codePoint++) {
+            $char = CodePointHelper::toString($codePoint);
+            $matches = null !== $char && $predicate($char);
+
+            if ($matches) {
+                if (null === $rangeStart) {
+                    $rangeStart = $codePoint;
+                }
+
+                continue;
+            }
+
+            if (null !== $rangeStart) {
+                $ranges[] = [$rangeStart, $codePoint - 1];
+                $rangeStart = null;
+            }
+        }
+
+        if (null !== $rangeStart) {
+            $ranges[] = [$rangeStart, $this->alphabetMax];
+        }
+
+        return $ranges;
     }
 }

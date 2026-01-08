@@ -44,6 +44,8 @@ final class NfaBuilder
 
     public function __construct(
         private readonly int $maxStates,
+        private readonly int $minCodePoint = CharSet::MIN_CODEPOINT,
+        private readonly int $maxCodePoint = CharSet::MAX_CODEPOINT,
     ) {}
 
     /**
@@ -102,6 +104,6 @@ final class NfaBuilder
             );
         }
 
-        return new Nfa($fragment->startState, $states);
+        return new Nfa($fragment->startState, $states, $this->minCodePoint, $this->maxCodePoint);
     }
 }

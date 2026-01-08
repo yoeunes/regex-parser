@@ -38,6 +38,7 @@ final readonly class DfaBuilder
     public function determinize(Nfa $nfa, SolverOptions $options): Dfa
     {
         $startSet = $this->epsilonClosure([$nfa->startState], $nfa);
+        $alphabetRanges = $this->buildAlphabetRanges($nfa);
 
         /** @var array<string, int> $stateMap */
         $stateMap = [];
@@ -52,7 +53,7 @@ final readonly class DfaBuilder
         $stateSets[0] = $startSet;
         $queue->enqueue(0);
 
-        /** @var array<int, array<int, int>> $transitions */
+        /** @var array<int, array{transitions: array<int, int>, ranges: array<int, array{0:int, 1:int, 2:int}>}> $transitions */
         $transitions = [];
         /** @var array<int, bool> $accepting */
         $accepting = [];
@@ -65,8 +66,12 @@ final readonly class DfaBuilder
 
             /** @var array<int, int> $stateTransitions */
             $stateTransitions = [];
-            for ($char = CharSet::MIN_CODEPOINT; $char <= CharSet::MAX_CODEPOINT; $char++) {
-                $moveSet = $this->move($currentSet, $char, $nfa);
+            /** @var array<int, array{0:int, 1:int, 2:int}> $stateRanges */
+            $stateRanges = [];
+
+            foreach ($alphabetRanges as [$start, $end]) {
+                $symbol = $start;
+                $moveSet = $this->move($currentSet, $symbol, $nfa);
                 $targetSet = $this->epsilonClosure($moveSet, $nfa);
                 $targetKey = $this->setKey($targetSet);
 
@@ -82,10 +87,21 @@ final readonly class DfaBuilder
                     $queue->enqueue($newId);
                 }
 
-                $stateTransitions[$char] = $stateMap[$targetKey];
+                $targetId = $stateMap[$targetKey];
+                if ($nfa->maxCodePoint <= CharSet::MAX_CODEPOINT) {
+                    for ($char = $start; $char <= $end; $char++) {
+                        $stateTransitions[$char] = $targetId;
+                    }
+                } else {
+                    $stateTransitions[$symbol] = $targetId;
+                }
+                $stateRanges[] = [$start, $end, $targetId];
             }
 
-            $transitions[$dfaId] = $stateTransitions;
+            $transitions[$dfaId] = [
+                'transitions' => $stateTransitions,
+                'ranges' => $stateRanges,
+            ];
         }
 
         /** @var array<int, DfaState> $states */
@@ -93,12 +109,13 @@ final readonly class DfaBuilder
         foreach ($transitions as $stateId => $stateTransitions) {
             $states[$stateId] = new DfaState(
                 $stateId,
-                $stateTransitions,
+                $stateTransitions['transitions'],
                 $accepting[$stateId] ?? false,
+                $stateTransitions['ranges'],
             );
         }
 
-        $dfa = new Dfa(0, $states);
+        $dfa = new Dfa(0, $states, $alphabetRanges, $nfa->minCodePoint, $nfa->maxCodePoint);
 
         if (!$options->minimizeDfa) {
             return $dfa;
@@ -199,5 +216,57 @@ final readonly class DfaBuilder
         }
 
         return \implode(',', $stateIds);
+    }
+
+    /**
+     * @return array<int, array{0:int, 1:int}>
+     */
+    private function buildAlphabetRanges(Nfa $nfa): array
+    {
+        $min = $nfa->minCodePoint;
+        $max = $nfa->maxCodePoint;
+
+        $boundaries = [
+            $min => true,
+            $max + 1 => true,
+        ];
+
+        foreach ($nfa->states as $state) {
+            foreach ($state->transitions as $transition) {
+                foreach ($transition->charSet->ranges() as [$start, $end]) {
+                    $boundaries[$start] = true;
+                    if ($end + 1 <= $max + 1) {
+                        $boundaries[$end + 1] = true;
+                    }
+                }
+            }
+        }
+
+        /** @var array<int> $points */
+        $points = \array_keys($boundaries);
+        \sort($points, \SORT_NUMERIC);
+
+        $ranges = [];
+        $count = \count($points);
+        for ($i = 0; $i < $count - 1; $i++) {
+            $start = $points[$i];
+            $end = $points[$i + 1] - 1;
+
+            if ($start > $max) {
+                break;
+            }
+
+            if ($end < $min) {
+                continue;
+            }
+
+            $ranges[] = [$start, \min($end, $max)];
+        }
+
+        if ([] === $ranges) {
+            $ranges[] = [$min, $max];
+        }
+
+        return $ranges;
     }
 }
