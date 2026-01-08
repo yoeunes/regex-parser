@@ -1,0 +1,11 @@
+security:
+  access_control:
+    - { path: ^/api, roles: PUBLIC_ACCESS }
+    - path: ^/api/admin
+      roles: ROLE_ADMIN
+      methods: [GET, POST]
+  firewalls:
+    main:
+      pattern: ^/api/(a+)+$
+    dev:
+      request_matcher: dev.matcher

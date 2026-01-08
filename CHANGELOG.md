@@ -10,12 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Symfony `regex:routes` command to analyze routing conflicts and overlaps with ordering-aware suggestions.
 - Automata-based route conflict analyzer for Symfony routing collections.
+- Symfony `regex:security` command to analyze access_control shadowing and firewall ReDoS risks.
+- Access-control security analyzer with critical shadowing detection.
+- Firewall regex ReDoS checks for Symfony security firewalls.
 
 ### Documentation
 - Documented Symfony bundle commands in the CLI guide.
 
 ### Tests
 - Added unit coverage for route conflict analysis and the new Symfony command.
+- Added unit coverage for Symfony security access_control and firewall analysis.
 
 ## [1.1.0] - 2026-01-07
 

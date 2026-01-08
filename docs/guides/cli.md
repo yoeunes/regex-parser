@@ -69,12 +69,15 @@ When using the Symfony bundle, you also get these `bin/console` commands:
 | `regex:lint`            | Lint regex patterns in your PHP code                  |
 | `regex:compare`         | Compare two regex patterns via automata               |
 | `regex:routes`          | Detect route conflicts and overlaps in your router    |
+| `regex:security`        | Analyze access control ordering and firewall regexes  |
 
 Examples:
 
 ```bash
 bin/console regex:routes
 bin/console regex:routes --show-overlaps
+bin/console regex:security
+bin/console regex:security --show-overlaps
 ```
 
 ---

@@ -16,11 +16,16 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use RegexParser\Bridge\Symfony\Command\CompareCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Command\RegexRoutesCommand;
+use RegexParser\Bridge\Symfony\Command\RegexSecurityCommand;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
+use RegexParser\Bridge\Symfony\Security\SecurityAccessControlAnalyzer;
+use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
+use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
+use RegexParser\Bridge\Symfony\Security\SecurityPatternNormalizer;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\PhpRegexPatternSource;
@@ -131,4 +136,25 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RouteRequirementNormalizer::class);
 
     $services->set(RouteControllerFileResolver::class);
+
+    $services->set(SecurityPatternNormalizer::class);
+
+    $services->set(SecurityConfigExtractor::class);
+
+    $services->set(SecurityAccessControlAnalyzer::class)
+        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$patternNormalizer', service(SecurityPatternNormalizer::class));
+
+    $services->set(SecurityFirewallAnalyzer::class)
+        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$patternNormalizer', service(SecurityPatternNormalizer::class));
+
+    $services->set('regex_parser.command.security', RegexSecurityCommand::class)
+        ->arg('$extractor', service(SecurityConfigExtractor::class))
+        ->arg('$accessAnalyzer', service(SecurityAccessControlAnalyzer::class))
+        ->arg('$firewallAnalyzer', service(SecurityFirewallAnalyzer::class))
+        ->arg('$kernel', service('kernel')->nullOnInvalid())
+        ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
+        ->tag('console.command')
+        ->public();
 };
