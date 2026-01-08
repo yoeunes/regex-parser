@@ -73,6 +73,8 @@ final readonly class RouteConflictAnalyzer
             }
         }
 
+        $routes = $this->sortBySpecificity($routes);
+
         $conflicts = [];
         $shadowed = 0;
         $overlaps = 0;
@@ -126,12 +128,6 @@ final readonly class RouteConflictAnalyzer
                     $equivalent++;
                 }
 
-                if ($isSubset) {
-                    $shadowed++;
-                } else {
-                    $overlaps++;
-                }
-
                 if (!$includeOverlaps && !$isSubset) {
                     continue;
                 }
@@ -139,6 +135,22 @@ final readonly class RouteConflictAnalyzer
                 $notes = $this->buildNotes($left, $right);
                 if ($isEquivalent) {
                     $notes[] = 'Equivalent route patterns.';
+                }
+
+                $conflictType = $isSubset ? 'shadowed' : 'overlap';
+
+                if ($isSubset && $left['index'] > $right['index']) {
+                    $notes[] = 'Less specific route declared BEFORE more specific route.';
+                }
+
+                if (!$isSubset && $left['index'] < $right['index']) {
+                    continue;
+                }
+
+                if ($isSubset) {
+                    $shadowed++;
+                } else {
+                    $overlaps++;
                 }
 
                 $conflicts[] = [
@@ -563,6 +575,56 @@ final readonly class RouteConflictAnalyzer
         }
 
         return $staticSegments;
+    }
+
+    /**
+     * Sorts routes by specificity to match Symfony's best-match routing algorithm.
+     *
+     * Routes with more static characters come first, then more static segments.
+     * Routes with variable segments are more specific than routes without.
+     * Original index is used as tiebreaker to preserve declaration order.
+     *
+     * @param array<int, array> $routes
+     *
+     * @return array<int, array>
+     */
+    private function sortBySpecificity(array $routes): array
+    {
+        usort($routes, function (array $a, array $b): int {
+            $staticPrefixA = $a['staticPrefix'];
+            $staticPrefixB = $b['staticPrefix'];
+            $prefixLenA = \strlen($staticPrefixA);
+            $prefixLenB = \strlen($staticPrefixB);
+
+            if ($prefixLenA !== $prefixLenB) {
+                return $prefixLenB <=> $prefixLenA;
+            }
+
+            $segmentsA = \count($a['staticSegments']);
+            $segmentsB = \count($b['staticSegments']);
+
+            if ($segmentsA !== $segmentsB) {
+                return $segmentsB <=> $segmentsA;
+            }
+
+            $variableSegmentsA = $this->countVariableSegments($a['path']);
+            $variableSegmentsB = $this->countVariableSegments($b['path']);
+
+            if ($variableSegmentsA !== $variableSegmentsB) {
+                return $variableSegmentsB <=> $variableSegmentsA;
+            }
+
+            return $a['index'] <=> $b['index'];
+        });
+
+        return $routes;
+    }
+
+    private function countVariableSegments(string $path): int
+    {
+        preg_match_all('/\{[^}]+\}/', $path, $matches);
+
+        return \count($matches[0]);
     }
 
     /**
