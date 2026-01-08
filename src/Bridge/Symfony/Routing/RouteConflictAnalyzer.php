@@ -40,7 +40,7 @@ final readonly class RouteConflictAnalyzer
     /**
      * @var array<int, string>
      */
-    private const SUPPORTED_FLAGS = ['i', 's'];
+    private const SUPPORTED_FLAGS = ['i', 's', 'u'];
 
     /**
      * @var array<int, string>
