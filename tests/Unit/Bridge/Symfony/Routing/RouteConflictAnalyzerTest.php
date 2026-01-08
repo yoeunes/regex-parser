@@ -64,13 +64,13 @@ final class RouteConflictAnalyzerTest extends TestCase
     {
         $collection = new RouteCollection();
 
-        $digits = new Route('/users/{id}');
-        $digits->setRequirements(['id' => '\d+']);
-        $collection->add('api_user_digits', $digits);
+        $generic = new Route('/users/{slug}');
+        $generic->setRequirements(['slug' => '(?:admin-[a-m]+|user-[a-z]+)']);
+        $collection->add('api_user_generic', $generic);
 
-        $alnum = new Route('/users/{slug}');
-        $alnum->setRequirements(['slug' => '[a-z0-9]+']);
-        $collection->add('api_user_alnum', $alnum);
+        $specific = new Route('/users/admin-{slug}');
+        $specific->setRequirements(['slug' => '[a-z]+']);
+        $collection->add('api_user_admin', $specific);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());
         $report = $analyzer->analyze($collection, true);
@@ -85,13 +85,13 @@ final class RouteConflictAnalyzerTest extends TestCase
     {
         $collection = new RouteCollection();
 
-        $digits = new Route('/users/{id}');
-        $digits->setRequirements(['id' => '\d+']);
-        $collection->add('api_user_digits', $digits);
+        $generic = new Route('/users/{slug}');
+        $generic->setRequirements(['slug' => '(?:admin-[a-m]+|user-[a-z]+)']);
+        $collection->add('api_user_generic', $generic);
 
-        $alnum = new Route('/users/{slug}');
-        $alnum->setRequirements(['slug' => '[a-z0-9]+']);
-        $collection->add('api_user_alnum', $alnum);
+        $specific = new Route('/users/admin-{slug}');
+        $specific->setRequirements(['slug' => '[a-z]+']);
+        $collection->add('api_user_admin', $specific);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());
         $report = $analyzer->analyze($collection, false);

@@ -49,6 +49,7 @@ final readonly class RouteConflictAnalyzer
 
     public function analyze(RouteCollection $collection, bool $includeOverlaps = true): RouteConflictReport
     {
+        /** @var array<int, RouteDescriptor> $routes */
         $routes = [];
         $skippedRoutes = [];
         $routesWithConditions = [];
@@ -75,6 +76,7 @@ final readonly class RouteConflictAnalyzer
 
         $routes = $this->sortBySpecificity($routes);
 
+        /** @var array<int, RouteConflict> $conflicts */
         $conflicts = [];
         $shadowed = 0;
         $overlaps = 0;
@@ -113,23 +115,19 @@ final readonly class RouteConflictAnalyzer
                     continue;
                 }
 
-                $isSubset = null === $this->findExample(
+                $rightSubsetLeft = null === $this->findExample(
                     $right['pathDfa'],
                     $left['pathDfa'],
                     static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
                 );
-                $leftSubset = null === $this->findExample(
+                $leftSubsetRight = null === $this->findExample(
                     $left['pathDfa'],
                     $right['pathDfa'],
                     static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
                 );
-                $isEquivalent = $isSubset && $leftSubset;
+                $isEquivalent = $rightSubsetLeft && $leftSubsetRight;
                 if ($isEquivalent) {
                     $equivalent++;
-                }
-
-                if (!$includeOverlaps && !$isSubset) {
-                    continue;
                 }
 
                 $notes = $this->buildNotes($left, $right);
@@ -137,30 +135,43 @@ final readonly class RouteConflictAnalyzer
                     $notes[] = 'Equivalent route patterns.';
                 }
 
-                $conflictType = $isSubset ? 'shadowed' : 'overlap';
+                if ($leftSubsetRight && $left['index'] > $right['index']) {
+                    $shadowed++;
+                    $route = $right;
+                    $other = $left;
+                    $conflictType = 'shadowed';
+                    $notes[] = 'Less specific route declared BEFORE more specific route.';
+                } elseif ($rightSubsetLeft && $right['index'] > $left['index']) {
+                    $shadowed++;
+                    $route = $left;
+                    $other = $right;
+                    $conflictType = 'shadowed';
+                    $notes[] = 'Less specific route declared BEFORE more specific route.';
+                } else {
+                    if ($right['index'] > $left['index']) {
+                        continue;
+                    }
 
-                if ($isSubset && $left['index'] > $right['index']) {
+                    $overlaps++;
+
+                    if (!$includeOverlaps) {
+                        continue;
+                    }
+
+                    $route = $right;
+                    $other = $left;
+                    $conflictType = 'overlap';
                     $notes[] = 'Less specific route declared BEFORE more specific route.';
                 }
 
-                if (!$isSubset && $left['index'] < $right['index']) {
-                    continue;
-                }
-
-                if ($isSubset) {
-                    $shadowed++;
-                } else {
-                    $overlaps++;
-                }
-
                 $conflicts[] = [
-                    'route' => $left,
-                    'conflict' => $right,
-                    'type' => $isSubset ? 'shadowed' : 'overlap',
+                    'route' => $route,
+                    'conflict' => $other,
+                    'type' => $conflictType,
                     'example' => $example,
                     'equivalent' => $isEquivalent,
-                    'methods' => $this->intersectMethods($left['methods'], $right['methods']),
-                    'schemes' => $this->intersectSchemes($left['schemes'], $right['schemes']),
+                    'methods' => $this->intersectMethods($route['methods'], $other['methods']),
+                    'schemes' => $this->intersectSchemes($route['schemes'], $other['schemes']),
                     'notes' => $notes,
                 ];
             }
@@ -584,9 +595,9 @@ final readonly class RouteConflictAnalyzer
      * Routes with variable segments are more specific than routes without.
      * Original index is used as tiebreaker to preserve declaration order.
      *
-     * @param array<int, array> $routes
+     * @phpstan-param array<int, RouteDescriptor> $routes
      *
-     * @return array<int, array>
+     * @phpstan-return array<int, RouteDescriptor>
      */
     private function sortBySpecificity(array $routes): array
     {
