@@ -19,7 +19,7 @@ use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
 use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Automata\Unicode\CodePointHelper;
-use RegexParser\Exception\ComplexityException;
+use RegexParser\Exception\LexerException;
 
 final class UnicodeSupportTest extends TestCase
 {
@@ -29,12 +29,12 @@ final class UnicodeSupportTest extends TestCase
         $solver = new RegexSolver();
         $options = $this->fullMatchOptions();
 
-        $result = $solver->intersection('/[🥶-🥵]/u', '/[🥳-🥵]/u', $options);
+        $result = $solver->intersection('/[🥵-🥶]/u', '/[🥳-🥶]/u', $options);
 
         $this->assertFalse($result->isEmpty);
         $this->assertNotNull($result->example);
-        $this->assertMatchesRegularExpression('/[🥶-🥵]/u', $result->example ?? '');
-        $this->assertMatchesRegularExpression('/[🥳-🥵]/u', $result->example ?? '');
+        $this->assertMatchesRegularExpression('/[🥵-🥶]/u', $result->example ?? '');
+        $this->assertMatchesRegularExpression('/[🥳-🥶]/u', $result->example ?? '');
     }
 
     #[Test]
@@ -88,7 +88,7 @@ final class UnicodeSupportTest extends TestCase
         $solver = new RegexSolver();
         $options = $this->fullMatchOptions();
 
-        $this->expectException(ComplexityException::class);
+        $this->expectException(LexerException::class);
         $solver->intersection("/\xFF/u", '/./u', $options);
     }
 

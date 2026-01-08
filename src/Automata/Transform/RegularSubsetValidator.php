@@ -53,6 +53,7 @@ use RegexParser\Node\VersionConditionNode;
 final class RegularSubsetValidator
 {
     private string $pattern = '';
+
     private bool $unicode = false;
 
     /**

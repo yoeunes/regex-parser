@@ -21,7 +21,7 @@ use RegexParser\Automata\Alphabet\CharSet;
 final readonly class Dfa
 {
     /**
-     * @param array<int, DfaState> $states
+     * @param array<int, DfaState>            $states
      * @param array<int, array{0:int, 1:int}> $alphabetRanges
      */
     public function __construct(

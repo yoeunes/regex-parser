@@ -29,7 +29,7 @@ final class CodePointHelper
         if (\function_exists('mb_chr')) {
             $char = \mb_chr($codePoint, 'UTF-8');
 
-            return '' === $char ? null : $char;
+            return false === $char || '' === $char ? null : $char;
         }
 
         if (\class_exists(\IntlChar::class)) {
@@ -57,14 +57,10 @@ final class CodePointHelper
                 .\chr(0x80 | ($codePoint & 0x3F));
         }
 
-        if ($codePoint <= CharSet::UNICODE_MAX_CODEPOINT) {
-            return \chr(0xF0 | ($codePoint >> 18))
-                .\chr(0x80 | (($codePoint >> 12) & 0x3F))
-                .\chr(0x80 | (($codePoint >> 6) & 0x3F))
-                .\chr(0x80 | ($codePoint & 0x3F));
-        }
-
-        return null;
+        return \chr(0xF0 | ($codePoint >> 18))
+            .\chr(0x80 | (($codePoint >> 12) & 0x3F))
+            .\chr(0x80 | (($codePoint >> 6) & 0x3F))
+            .\chr(0x80 | ($codePoint & 0x3F));
     }
 
     public static function toCodePoint(string $char): ?int
@@ -90,6 +86,7 @@ final class CodePointHelper
             return null;
         }
 
+        /** @var array<int, int> $bytes */
         $bytes = \array_values($bytes);
         $lead = $bytes[0];
 
@@ -120,23 +117,25 @@ final class CodePointHelper
             }
         }
 
-        $codePoint = match ($length) {
-            2 => (($lead & 0x1F) << 6) | ($bytes[1] & 0x3F),
-            3 => (($lead & 0x0F) << 12) | (($bytes[1] & 0x3F) << 6) | ($bytes[2] & 0x3F),
-            4 => (($lead & 0x07) << 18) | (($bytes[1] & 0x3F) << 12) | (($bytes[2] & 0x3F) << 6) | ($bytes[3] & 0x3F),
-            default => null,
-        };
+        switch ($length) {
+            case 2:
+                $codePoint = (($lead & 0x1F) << 6) | ($bytes[1] & 0x3F);
+                $minValue = 0x80;
 
-        if (null === $codePoint) {
-            return null;
+                break;
+            case 3:
+                $codePoint = (($lead & 0x0F) << 12) | (($bytes[1] & 0x3F) << 6) | ($bytes[2] & 0x3F);
+                $minValue = 0x800;
+
+                break;
+            case 4:
+                $codePoint = (($lead & 0x07) << 18) | (($bytes[1] & 0x3F) << 12) | (($bytes[2] & 0x3F) << 6) | ($bytes[3] & 0x3F);
+                $minValue = 0x10000;
+
+                break;
+            default:
+                return null;
         }
-
-        $minValue = match ($length) {
-            2 => 0x80,
-            3 => 0x800,
-            4 => 0x10000,
-            default => 0,
-        };
 
         if ($codePoint < $minValue || $codePoint > CharSet::UNICODE_MAX_CODEPOINT) {
             return null;

@@ -19,7 +19,7 @@ namespace RegexParser\Automata\Model;
 final readonly class DfaState
 {
     /**
-     * @param array<int, int> $transitions
+     * @param array<int, int>                        $transitions
      * @param array<int, array{0:int, 1:int, 2:int}> $ranges
      */
     public function __construct(
