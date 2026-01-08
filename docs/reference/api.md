@@ -257,12 +257,16 @@ $result = Regex::create()->optimize('/[0-9]+/', [
     'autoPossessify' => false,     // Add possessive quantifiers
     'allowAlternationFactorization' => false,  // Factor common parts
     'minQuantifierCount' => 4,     // Use {n} only when repetition >= 4
+    'verifyWithAutomata' => false, // Verify equivalence with the automata solver when possible
 ]);
 
 echo $result->original;    // '/[0-9]+/'
 echo $result->optimized;   // '/\d+/'
 echo $result->changes[0];  // 'Optimized pattern.'
 ```
+
+When `verifyWithAutomata` is enabled, RegexParser validates that the optimization is language-equivalent for the
+supported regular subset. Unsupported patterns fall back to the original behavior.
 
 ---
 

@@ -11,23 +11,21 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Model;
+
+use RegexParser\Automata\Alphabet\CharSet;
 
 /**
- * Immutable NFA container.
+ * NFA transition labeled with a character set.
  */
-final readonly class Nfa
+final readonly class NfaTransition
 {
     /**
-     * @param array<int, NfaState> $states
+     * @param CharSet $charSet Transition label
+     * @param int     $target  Target state id
      */
     public function __construct(
-        public int $startState,
-        public array $states,
+        public CharSet $charSet,
+        public int $target,
     ) {}
-
-    public function getState(int $stateId): NfaState
-    {
-        return $this->states[$stateId];
-    }
 }

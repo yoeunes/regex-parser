@@ -32,7 +32,10 @@
     "autoload": {
         "psr-4": {
             "RegexParser\\": "src/"
-        }
+        },
+        "files": [
+            "src/Automata/LegacyAliases.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

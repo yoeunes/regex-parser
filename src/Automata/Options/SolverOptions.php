@@ -11,7 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Options;
+
+use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 
 /**
  * Configuration for automata-based regex comparisons.

@@ -11,8 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Solver;
 
+use RegexParser\Automata\Options\SolverOptions;
 use RegexParser\Exception\ComplexityException;
 
 /**

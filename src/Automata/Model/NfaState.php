@@ -11,18 +11,21 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Model;
 
 /**
- * NFA fragment with a start state and accepting states.
+ * Immutable NFA state.
  */
-final readonly class NfaFragment
+final readonly class NfaState
 {
     /**
-     * @param array<int> $acceptStates
+     * @param array<NfaTransition> $transitions
+     * @param array<int>           $epsilonTransitions
      */
     public function __construct(
-        public int $startState,
-        public array $acceptStates,
+        public int $id,
+        public array $transitions,
+        public array $epsilonTransitions,
+        public bool $isAccepting,
     ) {}
 }

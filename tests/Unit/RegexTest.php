@@ -76,6 +76,12 @@ final class RegexTest extends TestCase
         $this->assertSame('/a+/', $optimized->optimized);
     }
 
+    public function test_optimize_method_with_automata_verification(): void
+    {
+        $optimized = $this->regexService->optimize('/[0-9]+/', ['verifyWithAutomata' => true]);
+        $this->assertSame('/\\d+/', $optimized->optimized);
+    }
+
     #[DataProvider('provideRegexForExplanation')]
     public function test_explain_method(string $pattern, string $expectedExplanation): void
     {

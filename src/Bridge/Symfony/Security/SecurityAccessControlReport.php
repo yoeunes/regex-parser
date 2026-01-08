@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Security;
 
-use RegexParser\Automata\Dfa;
+use RegexParser\Automata\Model\Dfa;
 
 /**
  * @internal

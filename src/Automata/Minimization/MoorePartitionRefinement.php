@@ -11,7 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Minimization;
+
+use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Model\DfaState;
 
 /**
  * Moore's partition refinement minimization algorithm.

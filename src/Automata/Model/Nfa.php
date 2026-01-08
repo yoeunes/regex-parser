@@ -11,19 +11,23 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Model;
 
 /**
- * Result of an intersection check between two regexes.
+ * Immutable NFA container.
  */
-final readonly class IntersectionResult
+final readonly class Nfa
 {
     /**
-     * @param bool        $isEmpty Whether the intersection is empty
-     * @param string|null $example Example string found in the intersection
+     * @param array<int, NfaState> $states
      */
     public function __construct(
-        public bool $isEmpty,
-        public ?string $example = null,
+        public int $startState,
+        public array $states,
     ) {}
+
+    public function getState(int $stateId): NfaState
+    {
+        return $this->states[$stateId];
+    }
 }

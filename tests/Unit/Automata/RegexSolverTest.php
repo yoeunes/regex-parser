@@ -16,9 +16,9 @@ namespace RegexParser\Tests\Unit\Automata;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Automata\MatchMode;
-use RegexParser\Automata\RegexSolver;
-use RegexParser\Automata\SolverOptions;
+use RegexParser\Automata\Options\MatchMode;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Exception\ComplexityException;
 
 final class RegexSolverTest extends TestCase

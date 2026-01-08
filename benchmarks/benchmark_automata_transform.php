@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Automata\AstToNfaTransformer;
-use RegexParser\Automata\MatchMode;
-use RegexParser\Automata\SolverOptions;
+use RegexParser\Automata\Options\MatchMode;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Transform\AstToNfaTransformer;
 use RegexParser\Regex;
 
 $iterations = 200;

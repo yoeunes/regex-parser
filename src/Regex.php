@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\RemovableCacheInterface;
@@ -297,13 +299,14 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string                                                                                                                                                                  $regex   The regular expression to optimize
-     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $options Optimization options
+     * @param string                                                                                                                                                                                             $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int, verifyWithAutomata?: bool} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied
      */
     public function optimize(string $regex, array $options = []): OptimizationResult
     {
+        $verifyWithAutomata = (bool) ($options['verifyWithAutomata'] ?? false);
         $optimizer = new OptimizerNodeVisitor(
             optimizeDigits: (bool) ($options['digits'] ?? true),
             optimizeWord: (bool) ($options['word'] ?? true),
@@ -338,6 +341,13 @@ final readonly class Regex
             $optimizedPattern = $delimiter.$pattern.$closingDelimiter.$optimizedAst->flags;
         } else {
             $optimizedPattern = $optimizedCompiled;
+        }
+
+        if ($optimizedPattern !== $regex && $verifyWithAutomata) {
+            $isEquivalent = $this->verifyOptimizedPatternWithAutomata($regex, $optimizedPattern);
+            if (false === $isEquivalent) {
+                return new OptimizationResult($regex, $regex, []);
+            }
         }
 
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
@@ -996,6 +1006,21 @@ final readonly class Regex
             return [$pattern, $flags, $delimiter, $patternLength];
         } catch (ParserException) {
             return [$regex, '', '/', \strlen($regex)];
+        }
+    }
+
+    /**
+     * @return bool|null true when equivalent, false when not, null when unsupported
+     */
+    private function verifyOptimizedPatternWithAutomata(string $original, string $optimized): ?bool
+    {
+        try {
+            $solver = new RegexSolver($this);
+            $result = $solver->equivalent($original, $optimized, new SolverOptions());
+
+            return $result->isEquivalent;
+        } catch (\Throwable) {
+            return null;
         }
     }
 

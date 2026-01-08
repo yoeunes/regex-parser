@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
-use RegexParser\Automata\MatchMode;
-use RegexParser\Automata\MinimizationAlgorithm;
-use RegexParser\Automata\RegexSolver;
-use RegexParser\Automata\SolverOptions;
+use RegexParser\Automata\Minimization\MinimizationAlgorithm;
+use RegexParser\Automata\Options\MatchMode;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;

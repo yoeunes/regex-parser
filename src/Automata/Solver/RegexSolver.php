@@ -11,8 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Solver;
 
+use RegexParser\Automata\Alphabet\CharSet;
+use RegexParser\Automata\Builder\DfaBuilder;
+use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Transform\AstToNfaTransformer;
+use RegexParser\Automata\Transform\RegularSubsetValidator;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Regex;
 

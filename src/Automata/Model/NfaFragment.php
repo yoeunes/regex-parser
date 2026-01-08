@@ -11,23 +11,18 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Model;
 
 /**
- * Immutable DFA container.
+ * NFA fragment with a start state and accepting states.
  */
-final readonly class Dfa
+final readonly class NfaFragment
 {
     /**
-     * @param array<int, DfaState> $states
+     * @param array<int> $acceptStates
      */
     public function __construct(
         public int $startState,
-        public array $states,
+        public array $acceptStates,
     ) {}
-
-    public function getState(int $stateId): DfaState
-    {
-        return $this->states[$stateId];
-    }
 }

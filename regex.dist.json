@@ -16,6 +16,7 @@
         "canonicalizeCharClasses": false,
         "possessive": false,
         "factorize": false,
-        "minQuantifierCount": 4
+        "minQuantifierCount": 4,
+        "verifyWithAutomata": true
     }
 }

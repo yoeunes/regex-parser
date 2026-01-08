@@ -11,19 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Minimization;
 
 /**
- * Immutable DFA state.
+ * Supported DFA minimization strategies.
  */
-final readonly class DfaState
+enum MinimizationAlgorithm: string
 {
-    /**
-     * @param array<int, int> $transitions
-     */
-    public function __construct(
-        public int $id,
-        public array $transitions,
-        public bool $isAccepting,
-    ) {}
+    case HOPCROFT = 'hopcroft';
+    case MOORE = 'moore';
 }

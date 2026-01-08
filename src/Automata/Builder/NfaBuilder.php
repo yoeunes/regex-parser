@@ -11,8 +11,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Builder;
 
+use RegexParser\Automata\Alphabet\CharSet;
+use RegexParser\Automata\Model\Nfa;
+use RegexParser\Automata\Model\NfaFragment;
+use RegexParser\Automata\Model\NfaState;
+use RegexParser\Automata\Model\NfaTransition;
 use RegexParser\Exception\ComplexityException;
 
 /**

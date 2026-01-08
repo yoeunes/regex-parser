@@ -13,14 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Security;
 
-use RegexParser\Automata\AstToNfaTransformer;
-use RegexParser\Automata\CharSet;
-use RegexParser\Automata\Dfa;
-use RegexParser\Automata\DfaBuilder;
-use RegexParser\Automata\MatchMode;
-use RegexParser\Automata\MinimizationAlgorithm;
-use RegexParser\Automata\RegularSubsetValidator;
-use RegexParser\Automata\SolverOptions;
+use RegexParser\Automata\Alphabet\CharSet;
+use RegexParser\Automata\Builder\DfaBuilder;
+use RegexParser\Automata\Minimization\MinimizationAlgorithm;
+use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Options\MatchMode;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Transform\AstToNfaTransformer;
+use RegexParser\Automata\Transform\RegularSubsetValidator;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Regex;
 use RegexParser\RegexPattern;

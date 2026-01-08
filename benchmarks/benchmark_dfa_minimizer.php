@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Automata\Dfa;
-use RegexParser\Automata\DfaMinimizer;
-use RegexParser\Automata\DfaState;
-use RegexParser\Automata\HopcroftWorklist;
-use RegexParser\Automata\MoorePartitionRefinement;
+use RegexParser\Automata\Minimization\DfaMinimizer;
+use RegexParser\Automata\Minimization\HopcroftWorklist;
+use RegexParser\Automata\Minimization\MoorePartitionRefinement;
+use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Model\DfaState;
 
 $seed = 1337;
 $stateCount = 160;

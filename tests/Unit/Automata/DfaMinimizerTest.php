@@ -16,12 +16,12 @@ namespace RegexParser\Tests\Unit\Automata;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Automata\Dfa;
-use RegexParser\Automata\DfaMinimizer;
-use RegexParser\Automata\DfaState;
-use RegexParser\Automata\HopcroftWorklist;
-use RegexParser\Automata\MinimizationAlgorithmInterface;
-use RegexParser\Automata\MoorePartitionRefinement;
+use RegexParser\Automata\Minimization\DfaMinimizer;
+use RegexParser\Automata\Minimization\HopcroftWorklist;
+use RegexParser\Automata\Minimization\MinimizationAlgorithmInterface;
+use RegexParser\Automata\Minimization\MoorePartitionRefinement;
+use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Model\DfaState;
 
 final class DfaMinimizerTest extends TestCase
 {

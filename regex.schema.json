@@ -270,6 +270,11 @@
           "description": "Minimum quantifier count required to suggest optimizations (min: 2).",
           "minimum": 2,
           "default": 4
+        },
+        "verifyWithAutomata": {
+          "type": "boolean",
+          "description": "Verify optimization suggestions with the automata solver when possible.",
+          "default": true
         }
       }
     }
@@ -297,7 +302,8 @@
         "canonicalizeCharClasses": true,
         "possessive": false,
         "factorize": false,
-        "minQuantifierCount": 4
+        "minQuantifierCount": 4,
+        "verifyWithAutomata": true
       }
     }
   ]

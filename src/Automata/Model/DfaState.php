@@ -11,19 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Model;
 
 /**
- * NFA transition labeled with a character set.
+ * Immutable DFA state.
  */
-final readonly class NfaTransition
+final readonly class DfaState
 {
     /**
-     * @param CharSet $charSet Transition label
-     * @param int     $target  Target state id
+     * @param array<int, int> $transitions
      */
     public function __construct(
-        public CharSet $charSet,
-        public int $target,
+        public int $id,
+        public array $transitions,
+        public bool $isAccepting,
     ) {}
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint;
 
+use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Internal\PatternParser;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
@@ -142,8 +143,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                                                                           $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                                                                                      $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int, verifyWithAutomata?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -481,8 +482,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                                                                           $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                                                                                      $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int, verifyWithAutomata?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -495,6 +496,7 @@ final readonly class RegexAnalysisService
     private function suggestOptimizationsChunk(array $patterns, int $minSavings, array $optimizationConfig = []): array
     {
         $suggestions = [];
+        $verifyWithAutomata = (bool) ($optimizationConfig['verifyWithAutomata'] ?? true);
 
         foreach ($patterns as $occurrence) {
             if ($occurrence->isIgnored) {
@@ -532,9 +534,18 @@ final readonly class RegexAnalysisService
                         continue;
                     }
 
+                    if ($verifyWithAutomata) {
+                        $isEquivalent = $this->verifyOptimizationWithAutomata($baseline, $optimizedPattern);
+                        if (false === $isEquivalent) {
+                            continue;
+                        }
+                    }
+
                     $optimization = new OptimizationResult($baseline, $optimizedPattern, ['Optimized pattern.']);
                 } else {
-                    $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
+                    $options = $optimizationConfig;
+                    $options['verifyWithAutomata'] = $verifyWithAutomata;
+                    $optimization = $this->regex->optimize($occurrence->pattern, $options);
                 }
             } catch (\Throwable) {
                 continue;
@@ -1130,6 +1141,21 @@ final readonly class RegexAnalysisService
         $hints[] = 'Test with adversarial inputs like repeated strings followed by a non-matching character.';
 
         return implode(' ', $hints);
+    }
+
+    /**
+     * @return bool|null true when equivalent, false when not, null when unsupported
+     */
+    private function verifyOptimizationWithAutomata(string $original, string $optimized): ?bool
+    {
+        try {
+            $solver = new RegexSolver($this->regex);
+            $result = $solver->equivalent($original, $optimized);
+
+            return $result->isEquivalent;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

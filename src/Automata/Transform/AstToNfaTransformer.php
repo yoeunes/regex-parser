@@ -11,8 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Automata;
+namespace RegexParser\Automata\Transform;
 
+use RegexParser\Automata\Alphabet\CharSet;
+use RegexParser\Automata\Builder\NfaBuilder;
+use RegexParser\Automata\Model\Nfa;
+use RegexParser\Automata\Model\NfaFragment;
+use RegexParser\Automata\Options\MatchMode;
+use RegexParser\Automata\Options\SolverOptions;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
