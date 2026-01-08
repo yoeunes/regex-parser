@@ -65,6 +65,9 @@ final class RegexParserExtension extends Extension
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>,
          *     },
+         *     automata: array{
+         *         minimization_algorithm: string,
+         *     },
          *     optimizations: array{
          *         digits: bool,
          *         word: bool,
@@ -95,6 +98,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
+        $container->setParameter('regex_parser.automata.minimization_algorithm', $config['automata']['minimization_algorithm']);
         $container->setParameter('regex_parser.optimizations', [
             'digits' => $config['optimizations']['digits'],
             'word' => $config['optimizations']['word'],

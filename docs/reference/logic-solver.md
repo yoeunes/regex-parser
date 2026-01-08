@@ -88,6 +88,40 @@ RegexParser follows a formal pipeline:
 
 The BFS step guarantees the **shortest possible counter-example** when one exists.
 
+## Minimization Strategies and Complexity
+
+RegexParser minimizes DFAs before comparison to shrink the product graph and keep searches fast.
+
+- **Hopcroft worklist** (default): `O(|Σ_eff| · n log n)`
+- **Moore partition refinement**: `O(|Σ_eff| · n^2)`
+
+**Effective alphabet (`Σ_eff`)** means only the symbols that actually appear as DFA transitions are iterated.
+This avoids scanning a full Unicode range and keeps minimization proportional to real symbols. For standard
+byte-based DFAs, `Σ_eff` is at most 256 symbols and often much smaller.
+
+### Selecting a Strategy
+
+CLI:
+
+```bash
+bin/regex compare '/foo/' '/bar/' --minimizer=moore
+```
+
+Symfony bundle:
+
+```yaml
+# config/packages/regex_parser.yaml
+regex_parser:
+  automata:
+    minimization_algorithm: hopcroft
+```
+
+You can also override it per command:
+
+```bash
+bin/console regex:compare '/foo/' '/bar/' --minimizer=moore
+```
+
 ## Limitations
 
 - Supports the **regular subset** of PCRE only (no lookarounds, no backreferences, no recursion).

@@ -63,6 +63,7 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
         $this->assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
         $this->assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
+        $this->assertSame('hopcroft', $container->getParameter('regex_parser.automata.minimization_algorithm'));
         $this->assertSame([
             'digits' => true,
             'word' => true,

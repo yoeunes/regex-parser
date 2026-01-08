@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Automata\MatchMode;
+use RegexParser\Automata\MinimizationAlgorithm;
 use RegexParser\Automata\RegexSolver;
 use RegexParser\Automata\SolverOptions;
 use RegexParser\Exception\ComplexityException;
@@ -38,6 +39,7 @@ final class CompareCommand extends Command
 
     public function __construct(
         private readonly Regex $regex,
+        private readonly string $defaultMinimizer = MinimizationAlgorithm::HOPCROFT->value,
     ) {
         parent::__construct();
     }
@@ -49,6 +51,7 @@ final class CompareCommand extends Command
             ->addArgument('pattern1', InputArgument::REQUIRED, 'The first regex pattern (with delimiters)')
             ->addArgument('pattern2', InputArgument::REQUIRED, 'The second regex pattern (with delimiters)')
             ->addOption('method', null, InputOption::VALUE_REQUIRED, 'intersection, subset, or equivalence', self::METHOD_INTERSECTION)
+            ->addOption('minimizer', null, InputOption::VALUE_REQUIRED, 'hopcroft or moore', $this->defaultMinimizer)
             ->setHelp(<<<'EOF'
                 The <info>%command.name%</info> command compares two regex patterns using automata logic.
 
@@ -57,6 +60,7 @@ final class CompareCommand extends Command
                 Choose a method:
                 <info>php %command.full_name% "/[a-z]+/" "/edit/" --method=subset</info>
                 <info>php %command.full_name% "/foo|bar/" "/bar|foo/" --method=equivalence</info>
+                <info>php %command.full_name% "/foo/" "/bar/" --minimizer=moore</info>
                 EOF);
     }
 
@@ -67,6 +71,7 @@ final class CompareCommand extends Command
         $pattern1 = $input->getArgument('pattern1');
         $pattern2 = $input->getArgument('pattern2');
         $methodOption = $input->getOption('method');
+        $minimizerOption = $input->getOption('minimizer');
 
         if (!\is_string($pattern1) || '' === $pattern1) {
             $io->error('The first pattern must be a non-empty string.');
@@ -94,8 +99,16 @@ final class CompareCommand extends Command
             return Command::FAILURE;
         }
 
+        $minimizer = $this->resolveMinimizationAlgorithm($minimizerOption, $io);
+        if (null === $minimizer) {
+            return Command::FAILURE;
+        }
+
         $solver = new RegexSolver($this->regex);
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        $options = new SolverOptions(
+            matchMode: MatchMode::FULL,
+            minimizationAlgorithm: $minimizer,
+        );
 
         try {
             if (self::METHOD_INTERSECTION === $method) {
@@ -209,5 +222,23 @@ final class CompareCommand extends Command
         }
 
         return '"'.$escaped.'"';
+    }
+
+    private function resolveMinimizationAlgorithm(mixed $value, SymfonyStyle $io): ?MinimizationAlgorithm
+    {
+        $normalized = \is_string($value) ? strtolower(trim($value)) : '';
+
+        if ('' === $normalized) {
+            $normalized = $this->defaultMinimizer;
+        }
+
+        $algorithm = MinimizationAlgorithm::tryFrom($normalized);
+        if (null === $algorithm) {
+            $io->error('Invalid --minimizer. Choose hopcroft or moore.');
+
+            return null;
+        }
+
+        return $algorithm;
     }
 }

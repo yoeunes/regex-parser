@@ -130,11 +130,13 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.command.compare', CompareCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$defaultMinimizer', param('regex_parser.automata.minimization_algorithm'))
         ->tag('console.command')
         ->public();
 
     $services->set(RouteConflictAnalyzer::class)
-        ->arg('$regex', service('regex_parser.regex'));
+        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$minimizationAlgorithm', param('regex_parser.automata.minimization_algorithm'));
 
     $services->set(RouteConflictSuggestionBuilder::class);
 
@@ -159,7 +161,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(SecurityAccessControlAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
-        ->arg('$patternNormalizer', service(SecurityPatternNormalizer::class));
+        ->arg('$patternNormalizer', service(SecurityPatternNormalizer::class))
+        ->arg('$minimizationAlgorithm', param('regex_parser.automata.minimization_algorithm'));
 
     $services->set(SecurityFirewallAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))

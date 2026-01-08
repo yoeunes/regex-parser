@@ -18,6 +18,7 @@ use RegexParser\Automata\CharSet;
 use RegexParser\Automata\Dfa;
 use RegexParser\Automata\DfaBuilder;
 use RegexParser\Automata\MatchMode;
+use RegexParser\Automata\MinimizationAlgorithm;
 use RegexParser\Automata\RegularSubsetValidator;
 use RegexParser\Automata\SolverOptions;
 use RegexParser\Exception\ComplexityException;
@@ -50,6 +51,7 @@ final readonly class SecurityAccessControlAnalyzer
         private SecurityPatternNormalizer $patternNormalizer = new SecurityPatternNormalizer(),
         private ?RegularSubsetValidator $validator = null,
         private ?DfaBuilder $dfaBuilder = null,
+        private string $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT->value,
     ) {}
 
     /**
@@ -65,7 +67,10 @@ final readonly class SecurityAccessControlAnalyzer
         $rulesWithUnsupportedHosts = [];
         $index = 0;
 
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        $options = new SolverOptions(
+            matchMode: MatchMode::FULL,
+            minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
+        );
 
         foreach ($rules as $rule) {
             $index++;
@@ -631,6 +636,14 @@ final readonly class SecurityAccessControlAnalyzer
         }
 
         return \strrev($chars);
+    }
+
+    private function resolveMinimizationAlgorithm(): MinimizationAlgorithm
+    {
+        $normalized = \strtolower(\trim($this->minimizationAlgorithm));
+        $algorithm = MinimizationAlgorithm::tryFrom($normalized);
+
+        return $algorithm ?? MinimizationAlgorithm::HOPCROFT;
     }
 
     private function pairKey(int $leftState, int $rightState): string

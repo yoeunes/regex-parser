@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Cli\Command;
 
 use RegexParser\Automata\MatchMode;
+use RegexParser\Automata\MinimizationAlgorithm;
 use RegexParser\Automata\RegexSolver;
 use RegexParser\Automata\SolverOptions;
 use RegexParser\Cli\ConsoleStyle;
@@ -47,7 +48,7 @@ final class CompareCommand extends AbstractCommand
         $parsed = $this->parseArguments($input->args);
         if (null !== $parsed['error']) {
             $output->write($output->error('Error: '.$parsed['error']."\n"));
-            $output->write("Usage: regex compare <pattern1> <pattern2> [--method intersection|subset|equivalence]\n");
+            $output->write("Usage: regex compare <pattern1> <pattern2> [--method intersection|subset|equivalence] [--minimizer hopcroft|moore]\n");
 
             return 1;
         }
@@ -58,10 +59,16 @@ final class CompareCommand extends AbstractCommand
         }
 
         $solver = new RegexSolver($regex);
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        $options = new SolverOptions(
+            matchMode: MatchMode::FULL,
+            minimizationAlgorithm: MinimizationAlgorithm::from($parsed['minimizer']),
+        );
 
         $style = new ConsoleStyle($output, $input->globalOptions->visuals);
-        $meta = ['Method' => $output->warning($parsed['method'])];
+        $meta = [
+            'Method' => $output->warning($parsed['method']),
+            'Minimizer' => $output->warning($parsed['minimizer']),
+        ];
         if (null !== $input->globalOptions->phpVersion) {
             $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
         }
@@ -90,7 +97,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
      */
     private function handleIntersection(RegexSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -110,7 +117,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
      */
     private function handleSubset(RegexSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -130,7 +137,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
      */
     private function handleEquivalence(RegexSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -192,11 +199,12 @@ final class CompareCommand extends AbstractCommand
     /**
      * @param array<int, string> $args
      *
-     * @return array{pattern1: string, pattern2: string, method: string, error: ?string}
+     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string}
      */
     private function parseArguments(array $args): array
     {
         $method = self::METHOD_INTERSECTION;
+        $minimizer = MinimizationAlgorithm::HOPCROFT->value;
         $patterns = [];
         $stopParsing = false;
 
@@ -226,6 +234,23 @@ final class CompareCommand extends AbstractCommand
                 continue;
             }
 
+            if (!$stopParsing && str_starts_with($arg, '--minimizer=')) {
+                $minimizer = \strtolower(substr($arg, \strlen('--minimizer=')));
+
+                continue;
+            }
+
+            if (!$stopParsing && '--minimizer' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return $this->errorResult('Missing value for --minimizer.');
+                }
+                $minimizer = \strtolower($value);
+                $i++;
+
+                continue;
+            }
+
             if (!$stopParsing && str_starts_with($arg, '--')) {
                 return $this->errorResult('Unknown option: '.$arg);
             }
@@ -235,6 +260,10 @@ final class CompareCommand extends AbstractCommand
 
         if (!\in_array($method, [self::METHOD_INTERSECTION, self::METHOD_SUBSET, self::METHOD_EQUIVALENCE], true)) {
             return $this->errorResult('Invalid value for --method.');
+        }
+
+        if (!\in_array($minimizer, [MinimizationAlgorithm::HOPCROFT->value, MinimizationAlgorithm::MOORE->value], true)) {
+            return $this->errorResult('Invalid value for --minimizer. Use hopcroft or moore.');
         }
 
         if (\count($patterns) < 2) {
@@ -249,12 +278,13 @@ final class CompareCommand extends AbstractCommand
             'pattern1' => $patterns[0],
             'pattern2' => $patterns[1],
             'method' => $method,
+            'minimizer' => $minimizer,
             'error' => null,
         ];
     }
 
     /**
-     * @return array{pattern1: string, pattern2: string, method: string, error: string}
+     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, error: string}
      */
     private function errorResult(string $error): array
     {
@@ -262,6 +292,7 @@ final class CompareCommand extends AbstractCommand
             'pattern1' => '',
             'pattern2' => '',
             'method' => self::METHOD_INTERSECTION,
+            'minimizer' => MinimizationAlgorithm::HOPCROFT->value,
             'error' => $error,
         ];
     }

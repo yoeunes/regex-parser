@@ -18,6 +18,7 @@ use RegexParser\Automata\CharSet;
 use RegexParser\Automata\Dfa;
 use RegexParser\Automata\DfaBuilder;
 use RegexParser\Automata\MatchMode;
+use RegexParser\Automata\MinimizationAlgorithm;
 use RegexParser\Automata\RegularSubsetValidator;
 use RegexParser\Automata\SolverOptions;
 use RegexParser\Exception\ComplexityException;
@@ -45,6 +46,7 @@ final readonly class RouteConflictAnalyzer
         private Regex $regex,
         private ?RegularSubsetValidator $validator = null,
         private ?DfaBuilder $dfaBuilder = null,
+        private string $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT->value,
     ) {}
 
     public function analyze(RouteCollection $collection, bool $includeOverlaps = true): RouteConflictReport
@@ -56,7 +58,10 @@ final readonly class RouteConflictAnalyzer
         $routesWithUnsupportedHosts = [];
         $index = 0;
 
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        $options = new SolverOptions(
+            matchMode: MatchMode::FULL,
+            minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
+        );
 
         foreach ($collection as $name => $route) {
             $index++;
@@ -709,5 +714,13 @@ final readonly class RouteConflictAnalyzer
     private function pairKey(int $leftState, int $rightState): string
     {
         return $leftState.':'.$rightState;
+    }
+
+    private function resolveMinimizationAlgorithm(): MinimizationAlgorithm
+    {
+        $normalized = \strtolower(\trim($this->minimizationAlgorithm));
+        $algorithm = MinimizationAlgorithm::tryFrom($normalized);
+
+        return $algorithm ?? MinimizationAlgorithm::HOPCROFT;
     }
 }
