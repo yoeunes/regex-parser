@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictReport;
+use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -33,7 +34,11 @@ use Symfony\Component\Routing\RouterInterface;
 )]
 final class RegexRoutesCommand extends Command
 {
+    private const ARROW_LABEL = "\u{21B3}";
     private const TYPE_SHADOWED = 'shadowed';
+    private const BADGE_FAIL = '<bg=red;fg=white;options=bold> FAIL </>';
+    private const BADGE_WARN = '<bg=yellow;fg=black;options=bold> WARN </>';
+    private const BADGE_PASS = '<bg=green;fg=white;options=bold> PASS </>';
 
     public function __construct(
         private readonly RouteConflictAnalyzer $analyzer,
@@ -71,7 +76,9 @@ final class RegexRoutesCommand extends Command
 
         $collection = $this->router->getRouteCollection();
         if (0 === \count($collection->all())) {
-            $io->success('No routes found.');
+            $this->showBanner($io);
+            $io->writeln('  '.self::BADGE_PASS.' <fg=white>No routes found.</>');
+            $this->showFooter($io);
 
             return Command::SUCCESS;
         }
@@ -79,16 +86,19 @@ final class RegexRoutesCommand extends Command
         $includeOverlaps = (bool) $input->getOption('show-overlaps');
         $report = $this->analyzer->analyze($collection, $includeOverlaps);
 
-        $io->title('RegexParser Routes');
+        $this->showBanner($io);
         $this->renderWarnings($io, $output, $report);
-        $this->renderSummary($io, $report, $includeOverlaps);
+        $this->renderMeta($io, $report, $includeOverlaps);
+        $this->renderStatus($io, $report, $includeOverlaps);
 
         if (0 === $report->stats['conflicts']) {
             if (!$includeOverlaps && $report->stats['overlaps'] > 0) {
-                $io->note('Partial overlaps detected. Re-run with --show-overlaps to see details.');
+                $message = 'Partial overlaps detected. Re-run with --show-overlaps to see details.';
+                $io->writeln('  <fg=gray>'.self::ARROW_LABEL.' '.$message.'</>');
+                $io->newLine();
             }
 
-            $io->success('No route conflicts detected.');
+            $this->showFooter($io);
 
             return Command::SUCCESS;
         }
@@ -98,25 +108,40 @@ final class RegexRoutesCommand extends Command
         $suggestions = $this->collectSuggestions($report->conflicts);
         if ([] !== $suggestions) {
             $io->section('Suggestions');
-            $io->listing($suggestions);
+            foreach ($suggestions as $suggestion) {
+                $io->writeln('  <fg=gray>'.self::ARROW_LABEL.'</> '.$suggestion);
+            }
+            $io->newLine();
         }
 
+        $this->showFooter($io);
+
         return Command::FAILURE;
+    }
+
+    private function showBanner(SymfonyStyle $io): void
+    {
+        $io->writeln('<fg=cyan;options=bold>RegexParser</> <fg=yellow>'.Regex::VERSION.'</> by Younes ENNAJI');
+        $io->newLine();
     }
 
     private function renderWarnings(SymfonyStyle $io, OutputInterface $output, RouteConflictReport $report): void
     {
         if ([] !== $report->skippedRoutes) {
             $message = \sprintf('%d routes skipped due to unsupported regex features.', \count($report->skippedRoutes));
-            $io->warning($message);
+            $io->writeln('  '.self::BADGE_WARN.' <fg=white>'.$message.'</>');
 
             if ($output->getVerbosity() >= OutputInterface::VERBOSITY_VERBOSE) {
                 $details = [];
                 foreach ($report->skippedRoutes as $skip) {
                     $details[] = $skip['route'].': '.$skip['reason'];
                 }
-                $io->writeln($details);
+                foreach ($details as $detail) {
+                    $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' '.$detail.'</>');
+                }
             }
+
+            $io->newLine();
         }
 
         if ([] !== $report->routesWithConditions) {
@@ -124,7 +149,8 @@ final class RegexRoutesCommand extends Command
                 '%d routes use conditions; conditions are not evaluated during conflict analysis.',
                 \count(array_unique($report->routesWithConditions)),
             );
-            $io->note($message);
+            $io->writeln('  '.self::BADGE_WARN.' <fg=white>'.$message.'</>');
+            $io->newLine();
         }
 
         if ([] !== $report->routesWithUnsupportedHosts) {
@@ -132,22 +158,54 @@ final class RegexRoutesCommand extends Command
                 '%d routes use host requirements that could not be analyzed.',
                 \count(array_unique($report->routesWithUnsupportedHosts)),
             );
-            $io->note($message);
+            $io->writeln('  '.self::BADGE_WARN.' <fg=white>'.$message.'</>');
+            $io->newLine();
         }
     }
 
-    private function renderSummary(SymfonyStyle $io, RouteConflictReport $report, bool $includeOverlaps): void
+    private function renderMeta(SymfonyStyle $io, RouteConflictReport $report, bool $includeOverlaps): void
     {
-        $mode = $includeOverlaps ? 'shadowed + overlaps' : 'shadowed only';
+        $mode = $includeOverlaps ? 'Shadowed + overlaps' : 'Shadowed only';
 
-        $io->writeln(\sprintf('Routes analyzed: %d', $report->stats['routes']));
-        $io->writeln(\sprintf('Mode: %s', $mode));
-        $io->writeln(\sprintf(
-            'Conflicts reported: %d (shadowed: %d, overlaps: %d)',
-            $report->stats['conflicts'],
-            $report->stats['shadowed'],
-            $report->stats['overlaps'],
-        ));
+        $labels = ['Routes', 'Mode', 'Shadowed', 'Overlaps'];
+        $maxLabelLength = max(array_map(strlen(...), $labels));
+        $io->writeln($this->formatMetaLine('Routes', (string) $report->stats['routes'], $maxLabelLength));
+        $io->writeln($this->formatMetaLine('Mode', $mode, $maxLabelLength));
+        $io->writeln($this->formatMetaLine('Shadowed', (string) $report->stats['shadowed'], $maxLabelLength));
+        $io->writeln($this->formatMetaLine('Overlaps', (string) $report->stats['overlaps'], $maxLabelLength));
+        $io->newLine();
+    }
+
+    private function renderStatus(SymfonyStyle $io, RouteConflictReport $report, bool $includeOverlaps): void
+    {
+        $shadowed = $report->stats['shadowed'];
+        $overlaps = $report->stats['overlaps'];
+
+        if (0 === $shadowed && 0 === $overlaps) {
+            $io->writeln('  '.self::BADGE_PASS.' <fg=white>No route conflicts detected.</>');
+            $io->newLine();
+
+            return;
+        }
+
+        if ($shadowed > 0) {
+            $io->writeln(\sprintf(
+                '  %s <fg=white>%d shadowed routes detected.</>',
+                self::BADGE_FAIL,
+                $shadowed,
+            ));
+        }
+
+        if ($overlaps > 0) {
+            $suffix = $includeOverlaps ? 'Listed below.' : 'Use --show-overlaps to include them.';
+            $io->writeln(\sprintf(
+                '  %s <fg=white>%d overlapping routes detected.</> <fg=gray>%s</>',
+                self::BADGE_WARN,
+                $overlaps,
+                $suffix,
+            ));
+        }
+
         $io->newLine();
     }
 
@@ -172,6 +230,7 @@ final class RegexRoutesCommand extends Command
 
         $io->section('Route Conflicts Detected');
         $io->table(['Route', 'Conflict With', 'Type', 'Scope', 'Example'], $rows);
+        $io->newLine();
     }
 
     /**
@@ -302,10 +361,12 @@ final class RegexRoutesCommand extends Command
      */
     private function formatType(array $conflict): string
     {
-        $type = self::TYPE_SHADOWED === $conflict['type'] ? 'Shadowed' : 'Overlap';
+        $type = self::TYPE_SHADOWED === $conflict['type']
+            ? self::BADGE_FAIL.' <fg=red>Shadowed</>'
+            : self::BADGE_WARN.' <fg=yellow>Overlap</>';
 
         if ([] !== $conflict['notes']) {
-            $type .= ' (approx)';
+            $type .= ' <fg=gray>(approx)</>';
         }
 
         return $type;
@@ -318,7 +379,7 @@ final class RegexRoutesCommand extends Command
     {
         $label = \sprintf('#%d %s', $route['index'], $route['name']);
 
-        return $label."\n".$route['path'];
+        return $label."\n".self::ARROW_LABEL.' '.$route['path'];
     }
 
     /**
@@ -368,6 +429,21 @@ final class RegexRoutesCommand extends Command
             };
         }
 
-        return '"'.$escaped.'"';
+        return '<fg=cyan>"'.$escaped.'"</>';
+    }
+
+    private function showFooter(SymfonyStyle $io): void
+    {
+        $io->writeln('  <fg=gray>Found it useful? Consider starring: https://github.com/yoeunes/regex-parser</>');
+        $io->newLine();
+    }
+
+    private function formatMetaLine(string $label, string $value, int $maxLabelLength): string
+    {
+        return \sprintf(
+            '<fg=white;options=bold>%s</> : <fg=yellow>%s</>',
+            str_pad($label, $maxLabelLength),
+            $value,
+        );
     }
 }
