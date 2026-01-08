@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-01-08
+
 ### Added
 - Symfony `regex:routes` command to analyze routing conflicts and overlaps with ordering-aware suggestions.
 - Automata-based route conflict analyzer for Symfony routing collections.
