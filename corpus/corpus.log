@@ -420,6 +420,13 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
 
+  corpus/staabm/phpstan-dba/src/QueryReflection/QuerySimulation.php:162:13
+      → /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m
+     WARN  Flag 'm' is useless: pattern '/("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m' contains no anchors.
+     TIP 
+         - /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m
+         + /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/
+
   corpus/october/modules/system/models/SiteDefinition.php:211:17
       → /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -1759,6 +1766,18 @@
      TIP 
          - /[\\]{1}/
          + /[\\]/
+
+  corpus/Nyholm/psr7/src/MessageTrait.php:212:86
+      → @^[ \t!-~\200-\377]*$@
+     FAIL  Input string is not valid UTF-8.
+         ↳         ^[ 	!-~�-�]*$
+                   ^
+
+  corpus/Nyholm/psr7/src/MessageTrait.php:226:76
+      → @^[ \t!-~\200-\377]*$@D
+     FAIL  Input string is not valid UTF-8.
+         ↳         ^[ 	!-~�-�]*$
+                   ^
 
   corpus/flarum/framework/extensions/package-manager/src/Exception/ComposerCommandFailedException.php:32:29
       → /^([A-z0-9-_\/]+)(?::.*|)$/i
@@ -3379,6 +3398,10 @@
       → /(^|_|\.)+(.)/
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/stof/CssToInlineStyles/src/Css/Rule/Processor.php:91:43
+      → /  \#/ix
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/laravel/framework/src/Illuminate/Foundation/Exceptions/Renderer/Mappers/BladeMapper.php:259:13
       → /<\s*x[-:]([\w\-:.]*)/mx
