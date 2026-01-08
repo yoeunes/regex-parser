@@ -59,10 +59,6 @@ final class RegularSubsetValidator
     {
         $this->pattern = $pattern;
 
-        if (MatchMode::PARTIAL === $options->matchMode) {
-            throw new ComplexityException('Partial match mode is not supported yet.');
-        }
-
         $this->assertSupportedFlags($regex->flags);
         $this->assertNode($regex->pattern, false);
     }

@@ -126,3 +126,4 @@ bin/console regex:compare '/foo/' '/bar/' --minimizer=moore
 
 - Supports the **regular subset** of PCRE only (no lookarounds, no backreferences, no recursion).
 - Operates on **UTF-8 bytes** (alphabet 0-255), not full Unicode code points.
+- Partial matching is modeled as **Σ* L Σ***, with start/end anchors allowed only at the outer boundaries.

@@ -44,4 +44,15 @@ final class LexerEdgeCasesTest extends TestCase
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
         $this->assertSame('.', $tokens[0]->value);
     }
+
+    public function test_quote_mode_without_end_quotes_until_eof(): void
+    {
+        $tokens = (new Lexer())->tokenize('\\Qfoo[')->getTokens();
+
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame('\\Q', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('foo[', $tokens[1]->value);
+        $this->assertSame(TokenType::T_EOF, $tokens[2]->type);
+    }
 }

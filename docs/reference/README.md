@@ -8,6 +8,8 @@ This section contains the reference material for RegexParser. Use it when you ne
 - [API Reference](api.md)
 - [Diagnostics](diagnostics.md)
 - [Diagnostics Cheat Sheet](diagnostics-cheatsheet.md)
+- [Feature Support Matrix](feature-support-matrix.md)
+- [Correctness Contracts](correctness-contracts.md)
 - [FAQ and Glossary](faq-glossary.md)
 
 ## AST and Visitors

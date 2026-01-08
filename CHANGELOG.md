@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Sort Symfony routes by specificity before conflict analysis to reduce false-positive overlaps.
+- Symfony access_control analysis now uses search semantics to match preg_match behavior and catch prefix shadowing.
 
 ## [1.2.0] - 2026-01-08
 

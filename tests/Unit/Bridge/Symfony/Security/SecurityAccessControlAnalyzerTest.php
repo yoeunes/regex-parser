@@ -37,4 +37,42 @@ final class SecurityAccessControlAnalyzerTest extends TestCase
         $this->assertSame('shadowed', $report->conflicts[0]['type']);
         $this->assertSame('critical', $report->conflicts[0]['severity']);
     }
+
+    #[Test]
+    public function test_detects_prefix_shadowing_with_search_semantics(): void
+    {
+        $rules = [
+            [
+                'file' => 'security.yaml',
+                'line' => 10,
+                'path' => '^/admin',
+                'host' => null,
+                'roles' => ['PUBLIC_ACCESS'],
+                'methods' => [],
+                'ips' => [],
+                'allowIf' => null,
+                'requestMatcher' => null,
+                'requiresChannel' => null,
+            ],
+            [
+                'file' => 'security.yaml',
+                'line' => 12,
+                'path' => '^/admin/secure',
+                'host' => null,
+                'roles' => ['ROLE_ADMIN'],
+                'methods' => [],
+                'ips' => [],
+                'allowIf' => null,
+                'requestMatcher' => null,
+                'requiresChannel' => null,
+            ],
+        ];
+
+        $analyzer = new SecurityAccessControlAnalyzer(Regex::create());
+        $report = $analyzer->analyze($rules);
+
+        $this->assertSame(1, $report->stats['shadowed']);
+        $this->assertSame(1, $report->stats['critical']);
+        $this->assertSame('shadowed', $report->conflicts[0]['type']);
+    }
 }

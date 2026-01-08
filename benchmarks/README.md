@@ -14,6 +14,7 @@ This directory contains performance benchmark scripts for various components of 
 - `benchmark_regexoptions.php` - RegexOptions performance tests
 - `benchmark_formatters.php` - Console, GitHub, and Symfony formatter output benchmarks
 - `benchmark_dfa_minimizer.php` - DFA minimization strategy benchmark
+- `benchmark_automata_transform.php` - AST-to-NFA transformation benchmark
 
 Note: The Symfony formatter benchmark runs only when `symfony/console` is installed.
 

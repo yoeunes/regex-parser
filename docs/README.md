@@ -34,6 +34,8 @@ Start here:
 - [API Reference](reference/api.md) - PHP API documentation.
 - [Diagnostics](reference/diagnostics.md) - Error types and messages.
 - [Diagnostics Cheat Sheet](reference/diagnostics-cheatsheet.md) - Quick error reference.
+- [Feature Support Matrix](reference/feature-support-matrix.md) - PCRE construct coverage by component.
+- [Correctness Contracts](reference/correctness-contracts.md) - Soundness/completeness guarantees by feature.
 - [FAQ and Glossary](reference/faq-glossary.md) - Common terms and questions.
 - [Maintainers Guide](MAINTAINERS_GUIDE.md) - Project maintenance notes.
 

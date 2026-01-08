@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Automata\MatchMode;
 use RegexParser\Automata\RegexSolver;
 use RegexParser\Automata\SolverOptions;
+use RegexParser\Exception\ComplexityException;
 
 final class RegexSolverTest extends TestCase
 {
@@ -95,6 +96,30 @@ final class RegexSolverTest extends TestCase
         $result = $solver->equivalent('/^foo$/', '/foo/', $this->fullMatchOptions());
 
         $this->assertTrue($result->isEquivalent);
+    }
+
+    #[Test]
+    public function test_partial_match_intersection_uses_search_semantics(): void
+    {
+        $solver = new RegexSolver();
+        $options = new SolverOptions(matchMode: MatchMode::PARTIAL);
+
+        $result = $solver->intersection('/admin/', '/admin\\/secure/', $options);
+
+        $this->assertFalse($result->isEmpty);
+        $this->assertNotNull($result->example);
+        $this->assertMatchesRegularExpression('/admin/', $result->example ?? '');
+        $this->assertMatchesRegularExpression('/admin\/secure/', $result->example ?? '');
+    }
+
+    #[Test]
+    public function test_partial_match_rejects_anchors(): void
+    {
+        $solver = new RegexSolver();
+        $options = new SolverOptions(matchMode: MatchMode::PARTIAL);
+
+        $this->expectException(ComplexityException::class);
+        $solver->intersection('/foo^bar/', '/foobar/', $options);
     }
 
     public static function provideIntersectionCases(): \Generator

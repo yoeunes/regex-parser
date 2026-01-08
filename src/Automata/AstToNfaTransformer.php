@@ -36,6 +36,16 @@ use RegexParser\Node\SequenceNode;
  */
 final class AstToNfaTransformer implements AstToNfaTransformerInterface
 {
+    private static ?CharSet $fullCharSet = null;
+
+    private static ?CharSet $dotCharSet = null;
+
+    private static ?CharSet $dotAllCharSet = null;
+
+    private static ?CharSet $wordCharSet = null;
+
+    private static ?CharSet $spaceCharSet = null;
+
     private NfaBuilder $builder;
 
     private bool $caseInsensitive = false;
@@ -56,6 +66,10 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         $this->dotAll = \str_contains($regex->flags, 's');
 
         $fragment = $this->buildNode($regex->pattern, $options);
+        if (MatchMode::PARTIAL === $options->matchMode) {
+            [$startAnchored, $endAnchored] = $this->analyzePartialAnchors($regex->pattern);
+            $fragment = $this->wrapPartialMatch($fragment, $startAnchored, $endAnchored);
+        }
 
         return $this->builder->build($fragment);
     }
@@ -106,10 +120,6 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         if ($node instanceof AnchorNode) {
-            if (MatchMode::FULL !== $options->matchMode) {
-                throw new ComplexityException('Anchors are not supported in partial match mode.');
-            }
-
             return $this->epsilonFragment();
         }
 
@@ -194,14 +204,14 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         if ('' === $node->value) {
             return $this->epsilonFragment();
         }
-
-        $chars = \str_split($node->value);
         $start = $this->builder->createState();
         $current = $start;
+        $length = \strlen($node->value);
 
-        foreach ($chars as $char) {
+        for ($i = 0; $i < $length; $i++) {
             $next = $this->builder->createState();
-            $charSet = $this->applyCaseInsensitive(CharSet::fromChar($char));
+            $codePoint = \ord($node->value[$i]);
+            $charSet = $this->applyCaseInsensitive(CharSet::fromCodePoint($codePoint));
             $this->builder->addTransition($current, $charSet, $next);
             $current = $next;
         }
@@ -285,10 +295,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
     private function buildDot(): NfaFragment
     {
-        $charSet = CharSet::full();
-        if (!$this->dotAll) {
-            $charSet = $charSet->subtract(CharSet::fromCodePoint(\ord("\n")));
-        }
+        $charSet = $this->dotAll ? $this->dotAllCharSet() : $this->dotCharSet();
 
         $start = $this->builder->createState();
         $end = $this->builder->createState();
@@ -324,8 +331,9 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             }
 
             $set = CharSet::empty();
-            foreach (\str_split($node->value) as $char) {
-                $set = $set->union(CharSet::fromChar($char));
+            $length = \strlen($node->value);
+            for ($i = 0; $i < $length; $i++) {
+                $set = $set->union(CharSet::fromCodePoint(\ord($node->value[$i])));
             }
 
             return $set;
@@ -479,24 +487,36 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
     private function wordCharSet(): CharSet
     {
+        if (null !== self::$wordCharSet) {
+            return self::$wordCharSet;
+        }
+
         $letters = CharSet::fromRange(\ord('A'), \ord('Z'))
             ->union(CharSet::fromRange(\ord('a'), \ord('z')));
         $digits = CharSet::fromRange(\ord('0'), \ord('9'));
-        $underscore = CharSet::fromChar('_');
+        $underscore = CharSet::fromCodePoint(\ord('_'));
 
-        return $letters->union($digits)->union($underscore);
+        self::$wordCharSet = $letters->union($digits)->union($underscore);
+
+        return self::$wordCharSet;
     }
 
     private function spaceCharSet(): CharSet
     {
-        $space = CharSet::fromChar(' ');
+        if (null !== self::$spaceCharSet) {
+            return self::$spaceCharSet;
+        }
+
+        $space = CharSet::fromCodePoint(\ord(' '));
         $tab = CharSet::fromCodePoint(0x09);
         $newline = CharSet::fromCodePoint(0x0A);
         $carriage = CharSet::fromCodePoint(0x0D);
         $formFeed = CharSet::fromCodePoint(0x0C);
         $vertical = CharSet::fromCodePoint(0x0B);
 
-        return $space->union($tab)->union($newline)->union($carriage)->union($formFeed)->union($vertical);
+        self::$spaceCharSet = $space->union($tab)->union($newline)->union($carriage)->union($formFeed)->union($vertical);
+
+        return self::$spaceCharSet;
     }
 
     /**
@@ -561,5 +581,165 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         return $expanded;
+    }
+
+    private function wrapPartialMatch(
+        NfaFragment $fragment,
+        bool $startAnchored,
+        bool $endAnchored,
+    ): NfaFragment {
+        $charSet = $this->fullCharSet();
+
+        $start = $fragment->startState;
+        if (!$startAnchored) {
+            $start = $this->builder->createState();
+            $this->builder->addTransition($start, $charSet, $start);
+            $this->builder->addEpsilon($start, $fragment->startState);
+        }
+
+        if (!$endAnchored) {
+            foreach ($fragment->acceptStates as $acceptState) {
+                $this->builder->addTransition($acceptState, $charSet, $acceptState);
+            }
+        }
+
+        return new NfaFragment($start, $fragment->acceptStates);
+    }
+
+    /**
+     * @return array{0: bool, 1: bool}
+     */
+    private function analyzePartialAnchors(NodeInterface $node): array
+    {
+        $alternatives = $node instanceof AlternationNode ? $node->alternatives : [$node];
+        $seenStartAnchor = false;
+        $seenNoStartAnchor = false;
+        $seenEndAnchor = false;
+        $seenNoEndAnchor = false;
+
+        foreach ($alternatives as $alternative) {
+            $sequence = $alternative instanceof SequenceNode ? $alternative->children : [$alternative];
+            if ([] === $sequence) {
+                $seenNoStartAnchor = true;
+                $seenNoEndAnchor = true;
+
+                continue;
+            }
+
+            $lastIndex = \count($sequence) - 1;
+            $hasStart = $sequence[0] instanceof AnchorNode && '^' === $sequence[0]->value;
+            $hasEnd = $sequence[$lastIndex] instanceof AnchorNode && '$' === $sequence[$lastIndex]->value;
+
+            $seenStartAnchor = $seenStartAnchor || $hasStart;
+            $seenNoStartAnchor = $seenNoStartAnchor || !$hasStart;
+            $seenEndAnchor = $seenEndAnchor || $hasEnd;
+            $seenNoEndAnchor = $seenNoEndAnchor || !$hasEnd;
+
+            foreach ($sequence as $index => $child) {
+                if ($child instanceof AnchorNode) {
+                    $isStart = 0 === $index && '^' === $child->value;
+                    $isEnd = $lastIndex === $index && '$' === $child->value;
+                    if (!$isStart && !$isEnd) {
+                        throw new ComplexityException(
+                            'Anchors in partial match mode must appear at the start or end of each alternative.',
+                            $child->getStartPosition(),
+                            $this->pattern,
+                        );
+                    }
+
+                    continue;
+                }
+
+                if ($this->containsAnchor($child)) {
+                    throw new ComplexityException(
+                        'Nested anchors are not supported in partial match mode.',
+                        $child->getStartPosition(),
+                        $this->pattern,
+                    );
+                }
+            }
+        }
+
+        if ($seenStartAnchor && $seenNoStartAnchor) {
+            throw new ComplexityException(
+                'Mixed start anchors across alternatives are not supported in partial match mode.',
+                0,
+                $this->pattern,
+            );
+        }
+
+        if ($seenEndAnchor && $seenNoEndAnchor) {
+            throw new ComplexityException(
+                'Mixed end anchors across alternatives are not supported in partial match mode.',
+                0,
+                $this->pattern,
+            );
+        }
+
+        return [$seenStartAnchor, $seenEndAnchor];
+    }
+
+    private function containsAnchor(NodeInterface $node): bool
+    {
+        if ($node instanceof AnchorNode) {
+            return true;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->containsAnchor($child)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alternative) {
+                if ($this->containsAnchor($alternative)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof GroupNode) {
+            return $this->containsAnchor($node->child);
+        }
+
+        if ($node instanceof QuantifierNode) {
+            return $this->containsAnchor($node->node);
+        }
+
+        return false;
+    }
+
+    private function fullCharSet(): CharSet
+    {
+        if (null === self::$fullCharSet) {
+            self::$fullCharSet = CharSet::full();
+        }
+
+        return self::$fullCharSet;
+    }
+
+    private function dotCharSet(): CharSet
+    {
+        if (null === self::$dotCharSet) {
+            self::$dotCharSet = CharSet::full()->subtract(CharSet::fromCodePoint(\ord("\n")));
+        }
+
+        return self::$dotCharSet;
+    }
+
+    private function dotAllCharSet(): CharSet
+    {
+        if (null === self::$dotAllCharSet) {
+            self::$dotAllCharSet = CharSet::full();
+        }
+
+        return self::$dotAllCharSet;
     }
 }
