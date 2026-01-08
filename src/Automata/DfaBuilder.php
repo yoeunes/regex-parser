@@ -22,6 +22,7 @@ final readonly class DfaBuilder
 {
     public function __construct(
         private ?DfaMinimizer $minimizer = null,
+        private ?MinimizationAlgorithmFactory $minimizationFactory = null,
     ) {}
 
     /**
@@ -96,7 +97,12 @@ final readonly class DfaBuilder
             return $dfa;
         }
 
-        $minimizer = $this->minimizer ?? new DfaMinimizer();
+        $minimizer = $this->minimizer;
+        if (null === $minimizer) {
+            $factory = $this->minimizationFactory ?? new MinimizationAlgorithmFactory();
+            $algorithm = $factory->create($options->minimizationAlgorithm);
+            $minimizer = new DfaMinimizer($algorithm);
+        }
 
         return $minimizer->minimize($dfa);
     }

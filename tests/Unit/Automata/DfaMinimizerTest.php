@@ -13,33 +13,80 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Automata;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Automata\CharSet;
 use RegexParser\Automata\Dfa;
 use RegexParser\Automata\DfaMinimizer;
 use RegexParser\Automata\DfaState;
+use RegexParser\Automata\HopcroftWorklist;
+use RegexParser\Automata\MinimizationAlgorithmInterface;
+use RegexParser\Automata\MoorePartitionRefinement;
 
 final class DfaMinimizerTest extends TestCase
 {
     #[Test]
-    public function test_minimize_merges_equivalent_states(): void
+    #[DataProvider('provideAlgorithms')]
+    public function test_minimize_merges_equivalent_states(MinimizationAlgorithmInterface $algorithm): void
     {
+        $alphabet = [97, 98, 99];
         $states = [
-            0 => new DfaState(0, $this->transitions(3, ['a' => 1, 'b' => 2]), false),
-            1 => new DfaState(1, $this->transitions(3), true),
-            2 => new DfaState(2, $this->transitions(3), true),
-            3 => new DfaState(3, $this->transitions(3), false),
+            0 => new DfaState(0, $this->transitions($alphabet, 3, [97 => 1, 98 => 2]), false),
+            1 => new DfaState(1, $this->transitions($alphabet, 3), true),
+            2 => new DfaState(2, $this->transitions($alphabet, 3), true),
+            3 => new DfaState(3, $this->transitions($alphabet, 3), false),
         ];
 
         $dfa = new Dfa(0, $states);
-        $minimized = (new DfaMinimizer())->minimize($dfa);
+        $minimized = (new DfaMinimizer($algorithm))->minimize($dfa);
 
         $this->assertCount(3, $minimized->states);
 
         foreach (['', 'a', 'b', 'ab', 'ba', 'aa', 'bb', 'c'] as $input) {
             $this->assertSame($this->accepts($dfa, $input), $this->accepts($minimized, $input));
         }
+    }
+
+    #[Test]
+    #[DataProvider('provideAlgorithms')]
+    public function test_minimize_merges_dead_states(MinimizationAlgorithmInterface $algorithm): void
+    {
+        $alphabet = [97, 98];
+        $states = [
+            0 => new DfaState(0, $this->transitions($alphabet, 1, [97 => 1, 98 => 2]), true),
+            1 => new DfaState(1, $this->transitions($alphabet, 1), false),
+            2 => new DfaState(2, $this->transitions($alphabet, 2), false),
+        ];
+
+        $dfa = new Dfa(0, $states);
+        $minimized = (new DfaMinimizer($algorithm))->minimize($dfa);
+
+        $this->assertCount(2, $minimized->states);
+    }
+
+    #[Test]
+    #[DataProvider('provideAlgorithms')]
+    public function test_minimize_handles_large_codepoints(MinimizationAlgorithmInterface $algorithm): void
+    {
+        $snowman = 0x2603;
+        $alphabet = [97, $snowman];
+        $states = [
+            0 => new DfaState(0, $this->transitions($alphabet, 1, [$snowman => 2]), false),
+            1 => new DfaState(1, $this->transitions($alphabet, 1), true),
+            2 => new DfaState(2, $this->transitions($alphabet, 2), true),
+        ];
+
+        $dfa = new Dfa(0, $states);
+        $minimized = (new DfaMinimizer($algorithm))->minimize($dfa);
+
+        $this->assertCount(2, $minimized->states);
+        $this->assertArrayHasKey($snowman, $minimized->states[$minimized->startState]->transitions);
+    }
+
+    public static function provideAlgorithms(): \Generator
+    {
+        yield 'moore' => [new MoorePartitionRefinement()];
+        yield 'hopcroft' => [new HopcroftWorklist()];
     }
 
     private function accepts(Dfa $dfa, string $input): bool
@@ -55,17 +102,21 @@ final class DfaMinimizerTest extends TestCase
     }
 
     /**
-     * @param array<string, int> $overrides
+     * @param array<int>      $alphabet
+     * @param array<int, int> $overrides
      *
      * @return array<int, int>
      */
-    private function transitions(int $defaultTarget, array $overrides = []): array
+    private function transitions(array $alphabet, int $defaultTarget, array $overrides = []): array
     {
-        $count = CharSet::MAX_CODEPOINT - CharSet::MIN_CODEPOINT + 1;
-        $transitions = \array_fill(CharSet::MIN_CODEPOINT, $count, $defaultTarget);
+        $transitions = [];
 
-        foreach ($overrides as $char => $target) {
-            $transitions[\ord($char)] = $target;
+        foreach ($alphabet as $symbol) {
+            $transitions[$symbol] = $defaultTarget;
+        }
+
+        foreach ($overrides as $symbol => $target) {
+            $transitions[$symbol] = $target;
         }
 
         return $transitions;

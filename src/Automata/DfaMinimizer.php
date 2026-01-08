@@ -14,10 +14,14 @@ declare(strict_types=1);
 namespace RegexParser\Automata;
 
 /**
- * Deterministic DFA minimizer using partition refinement.
+ * Deterministic DFA minimizer delegating to a strategy implementation.
  */
-final class DfaMinimizer
+final readonly class DfaMinimizer
 {
+    public function __construct(
+        private ?MinimizationAlgorithmInterface $algorithm = null,
+    ) {}
+
     public function minimize(Dfa $dfa): Dfa
     {
         $states = $dfa->states;
@@ -26,103 +30,29 @@ final class DfaMinimizer
             return $dfa;
         }
 
-        $accepting = [];
-        $nonAccepting = [];
+        $alphabet = $this->effectiveAlphabet($dfa);
+        $algorithm = $this->algorithm ?? new HopcroftWorklist();
 
-        foreach ($states as $stateId => $state) {
-            if ($state->isAccepting) {
-                $accepting[] = $stateId;
-
-                continue;
-            }
-
-            $nonAccepting[] = $stateId;
-        }
-
-        /** @var array<int, array<int, int>> $partitions */
-        $partitions = [];
-        if ([] !== $nonAccepting) {
-            $partitions[] = $nonAccepting;
-        }
-        if ([] !== $accepting) {
-            $partitions[] = $accepting;
-        }
-
-        $stateToGroup = $this->buildStateToGroup($partitions);
-
-        $changed = true;
-        while ($changed) {
-            $changed = false;
-            $newPartitions = [];
-
-            foreach ($partitions as $group) {
-                $buckets = [];
-                foreach ($group as $stateId) {
-                    $signature = $this->signature($states[$stateId], $stateToGroup);
-                    $buckets[$signature][] = $stateId;
-                }
-
-                if (\count($buckets) > 1) {
-                    $changed = true;
-                }
-
-                foreach ($buckets as $bucket) {
-                    $newPartitions[] = $bucket;
-                }
-            }
-
-            $partitions = $newPartitions;
-            $stateToGroup = $this->buildStateToGroup($partitions);
-        }
-
-        $newStates = [];
-        foreach ($partitions as $newId => $group) {
-            $representative = $states[$group[0]];
-            $transitions = [];
-
-            for ($char = CharSet::MIN_CODEPOINT; $char <= CharSet::MAX_CODEPOINT; $char++) {
-                $target = $representative->transitions[$char];
-                $transitions[$char] = $stateToGroup[$target];
-            }
-
-            $newStates[$newId] = new DfaState($newId, $transitions, $representative->isAccepting);
-        }
-
-        $startState = $stateToGroup[$dfa->startState];
-
-        return new Dfa($startState, $newStates);
+        return $algorithm->minimize($dfa, $alphabet);
     }
 
     /**
-     * @param array<int, array<int, int>> $partitions
-     *
-     * @return array<int, int>
+     * @return array<int>
      */
-    private function buildStateToGroup(array $partitions): array
+    private function effectiveAlphabet(Dfa $dfa): array
     {
-        $lookup = [];
+        $alphabet = [];
 
-        foreach ($partitions as $groupId => $states) {
-            foreach ($states as $stateId) {
-                $lookup[$stateId] = $groupId;
+        foreach ($dfa->states as $state) {
+            foreach ($state->transitions as $symbol => $target) {
+                $alphabet[(int) $symbol] = true;
             }
         }
 
-        return $lookup;
-    }
+        /** @var array<int> $result */
+        $result = \array_keys($alphabet);
+        \sort($result, \SORT_NUMERIC);
 
-    /**
-     * @param array<int, int> $stateToGroup
-     */
-    private function signature(DfaState $state, array $stateToGroup): string
-    {
-        $parts = [];
-
-        for ($char = CharSet::MIN_CODEPOINT; $char <= CharSet::MAX_CODEPOINT; $char++) {
-            $target = $state->transitions[$char] ?? null;
-            $parts[] = null === $target ? 'x' : (string) $stateToGroup[$target];
-        }
-
-        return implode(',', $parts);
+        return $result;
     }
 }
