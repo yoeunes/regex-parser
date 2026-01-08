@@ -37,14 +37,8 @@ use Symfony\Component\Routing\RouteCollection;
  */
 final readonly class RouteConflictAnalyzer
 {
-    /**
-     * @var array<int, string>
-     */
     private const SUPPORTED_FLAGS = ['i', 's', 'u'];
 
-    /**
-     * @var array<int, string>
-     */
     private const IGNORED_FLAGS = ['D'];
 
     public function __construct(
@@ -157,15 +151,15 @@ final readonly class RouteConflictAnalyzer
             $conflicts,
             $skippedRoutes,
             $stats,
-            $routesWithConditions,
-            $routesWithUnsupportedHosts,
+            array_values(array_unique($routesWithConditions)),
+            array_values(array_unique($routesWithUnsupportedHosts)),
         );
     }
 
     /**
-     * @param array<RouteSkip> $skippedRoutes
-     * @param array<string>    $routesWithConditions
-     * @param array<string>    $routesWithUnsupportedHosts
+     * @param array<RouteSkip>   $skippedRoutes
+     * @param array<int, string> $routesWithConditions
+     * @param array<int, string> $routesWithUnsupportedHosts
      *
      * @phpstan-return RouteDescriptor|null
      */
@@ -190,6 +184,7 @@ final readonly class RouteConflictAnalyzer
         }
 
         $pathRegex = $compiled->getRegex();
+
         try {
             $pathNormalization = $this->normalizePattern($pathRegex);
         } catch (\Throwable $exception) {
@@ -225,7 +220,7 @@ final readonly class RouteConflictAnalyzer
         $hostPattern = null;
         $hostDfa = null;
         $hostValue = $route->getHost();
-        $hasHostRequirement = \is_string($hostValue) && '' !== $hostValue;
+        $hasHostRequirement = '' !== $hostValue;
         $hostUnsupported = false;
 
         if ($hasHostRequirement && null === $hostRegex) {
@@ -255,7 +250,7 @@ final readonly class RouteConflictAnalyzer
         }
 
         $condition = $route->getCondition();
-        $hasCondition = \is_string($condition) && '' !== trim($condition);
+        $hasCondition = '' !== trim($condition);
         if ($hasCondition) {
             $routesWithConditions[] = $name;
         }
@@ -406,6 +401,8 @@ final readonly class RouteConflictAnalyzer
     }
 
     /**
+     * @param array<int|string, string> $methods
+     *
      * @return array<int, string>
      */
     private function normalizeMethods(array $methods): array
@@ -426,6 +423,8 @@ final readonly class RouteConflictAnalyzer
     }
 
     /**
+     * @param array<int|string, string> $schemes
+     *
      * @return array<int, string>
      */
     private function normalizeSchemes(array $schemes): array
@@ -446,6 +445,9 @@ final readonly class RouteConflictAnalyzer
     }
 
     /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     *
      * @return array<int, string>
      */
     private function intersectMethods(array $left, array $right): array
@@ -455,17 +457,20 @@ final readonly class RouteConflictAnalyzer
         }
 
         if ([] === $left) {
-            return $right;
+            return array_values($right);
         }
 
         if ([] === $right) {
-            return $left;
+            return array_values($left);
         }
 
         return array_values(array_intersect($left, $right));
     }
 
     /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     *
      * @return array<int, string>
      */
     private function intersectSchemes(array $left, array $right): array
@@ -475,16 +480,20 @@ final readonly class RouteConflictAnalyzer
         }
 
         if ([] === $left) {
-            return $right;
+            return array_values($right);
         }
 
         if ([] === $right) {
-            return $left;
+            return array_values($left);
         }
 
         return array_values(array_intersect($left, $right));
     }
 
+    /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     */
     private function methodsOverlap(array $left, array $right): bool
     {
         if ([] === $left || [] === $right) {
@@ -494,6 +503,10 @@ final readonly class RouteConflictAnalyzer
         return [] !== array_intersect($left, $right);
     }
 
+    /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     */
     private function schemesOverlap(array $left, array $right): bool
     {
         if ([] === $left || [] === $right) {

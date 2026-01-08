@@ -13,27 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Security;
 
+use RegexParser\Automata\Dfa;
+
 /**
  * @internal
  *
- * @phpstan-type AccessRule array{
- *     index: int,
- *     file: string,
- *     line: int,
- *     path: ?string,
- *     pattern: string,
- *     pathDfa: \RegexParser\Automata\Dfa,
- *     roles: array<int, string>,
- *     methods: array<int, string>,
- *     host: ?string,
- *     hostPattern: ?string,
- *     hostDfa: ?\RegexParser\Automata\Dfa,
- *     ips: array<int, string>,
- *     allowIf: ?string,
- *     requiresChannel: ?string,
- *     accessLevel: string,
- *     notes: array<int, string>,
- * }
+ * @phpstan-type AccessRule array{index: int, file: string, line: int, path: ?string, pattern: string, pathDfa: Dfa, roles: array<int, string>, methods: array<int, string>, host: ?string, hostPattern: ?string, hostDfa: ?Dfa, ips: array<int, string>, allowIf: ?string, requiresChannel: ?string, accessLevel: string, notes: array<int, string>}
  * @phpstan-type AccessConflict array{
  *     rule: AccessRule,
  *     conflict: AccessRule,

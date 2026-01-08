@@ -59,16 +59,19 @@ final readonly class SecurityConfigExtractor
     /**
      * @param array<int, string> $lines
      *
-     * @return array<AccessControlRule>
+     * @return list<AccessControlRule>
      */
     private function extractAccessControl(array $lines, string $path, ?string $environment): array
     {
+        /** @var array<int, AccessControlRule> $rules */
         $rules = [];
         $securityIndent = null;
         $accessIndent = null;
         $currentRuleIndex = null;
         $currentRuleIndent = null;
+        /** @var 'roles'|'methods'|'ips'|null $currentListKey */
         $currentListKey = null;
+        /** @var int|null $currentListIndent */
         $currentListIndent = null;
         $whenIndent = null;
         $skipWhen = false;
@@ -178,8 +181,8 @@ final readonly class SecurityConfigExtractor
                 continue;
             }
 
-            if (null !== $currentListKey) {
-                if ($indent > (int) $currentListIndent && preg_match('/^\s*-\s*(.+)$/', $line, $matches)) {
+            if (null !== $currentListKey && null !== $currentListIndent) {
+                if ($indent > $currentListIndent && preg_match('/^\s*-\s*(.+)$/', $line, $matches)) {
                     $value = $this->stripQuotes(trim($matches[1]));
                     if ('' !== $value) {
                         $rules[$currentRuleIndex][$currentListKey][] = $value;
@@ -188,7 +191,7 @@ final readonly class SecurityConfigExtractor
                     continue;
                 }
 
-                if ($indent <= (int) $currentListIndent) {
+                if ($indent <= $currentListIndent) {
                     $currentListKey = null;
                     $currentListIndent = null;
                 }
@@ -218,16 +221,20 @@ final readonly class SecurityConfigExtractor
             $this->applyRuleValue($rules[$currentRuleIndex], $normalizedKey, $value);
         }
 
-        return array_values($rules);
+        /** @var list<AccessControlRule> $normalizedRules */
+        $normalizedRules = array_values($rules);
+
+        return $normalizedRules;
     }
 
     /**
      * @param array<int, string> $lines
      *
-     * @return array<FirewallRule>
+     * @return list<FirewallRule>
      */
     private function extractFirewalls(array $lines, string $path, ?string $environment): array
     {
+        /** @var array<int, FirewallRule> $firewalls */
         $firewalls = [];
         $securityIndent = null;
         $firewallsIndent = null;
@@ -339,11 +346,14 @@ final readonly class SecurityConfigExtractor
             }
         }
 
-        return array_values($firewalls);
+        /** @var list<FirewallRule> $normalizedFirewalls */
+        $normalizedFirewalls = array_values($firewalls);
+
+        return $normalizedFirewalls;
     }
 
     /**
-     * @param AccessControlRule $rule
+     * @param AccessControlRule     $rule
      * @param array<string, string> $pairs
      */
     private function applyRulePairs(array &$rule, array $pairs): void
@@ -553,7 +563,7 @@ final readonly class SecurityConfigExtractor
             return $matches[2];
         }
 
-        return $matches[3] ?? null;
+        return $matches[3];
     }
 
     /**
@@ -565,11 +575,8 @@ final readonly class SecurityConfigExtractor
             return null;
         }
 
-        $key = $matches[1] !== '' ? $matches[1] : ($matches[2] !== '' ? $matches[2] : ($matches[3] ?? null));
-        if (null === $key) {
-            return null;
-        }
+        $key = '' !== $matches[1] ? $matches[1] : ('' !== $matches[2] ? $matches[2] : $matches[3]);
 
-        return [$key, trim((string) ($matches[4] ?? ''))];
+        return [$key, trim($matches[4])];
     }
 }

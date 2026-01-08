@@ -335,9 +335,6 @@ final class RegexRoutesCommand extends Command
             if (!\is_string($key)) {
                 continue;
             }
-            if (!\is_string($value)) {
-                continue;
-            }
             $variables[$key] = $value;
         }
 

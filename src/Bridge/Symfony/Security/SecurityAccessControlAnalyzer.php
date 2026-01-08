@@ -41,14 +41,8 @@ final readonly class SecurityAccessControlAnalyzer
     private const LEVEL_CONDITIONAL = 'conditional';
     private const LEVEL_UNKNOWN = 'unknown';
 
-    /**
-     * @var array<int, string>
-     */
     private const SUPPORTED_FLAGS = ['i', 's'];
 
-    /**
-     * @var array<int, string>
-     */
     private const IGNORED_FLAGS = ['D'];
 
     public function __construct(
@@ -280,6 +274,9 @@ final readonly class SecurityAccessControlAnalyzer
         ];
     }
 
+    /**
+     * @param array<int, string> $roles
+     */
     private function resolveAccessLevel(array $roles, ?string $allowIf): string
     {
         if (null !== $allowIf) {
@@ -290,7 +287,10 @@ final readonly class SecurityAccessControlAnalyzer
             return self::LEVEL_UNKNOWN;
         }
 
-        $roleLookup = array_fill_keys(array_map('strtoupper', $roles), true);
+        $roleLookup = [];
+        foreach ($roles as $role) {
+            $roleLookup[strtoupper($role)] = true;
+        }
         if (isset($roleLookup['PUBLIC_ACCESS']) || isset($roleLookup['IS_AUTHENTICATED_ANONYMOUSLY'])) {
             return self::LEVEL_PUBLIC;
         }
@@ -298,6 +298,10 @@ final readonly class SecurityAccessControlAnalyzer
         return self::LEVEL_RESTRICTED;
     }
 
+    /**
+     * @phpstan-param AccessRule $left
+     * @phpstan-param AccessRule $right
+     */
     private function resolveSeverity(array $left, array $right, bool $isSubset): string
     {
         if (!$isSubset) {
@@ -312,7 +316,10 @@ final readonly class SecurityAccessControlAnalyzer
     }
 
     /**
-     * @return array<int, string>
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     *
+     * @return list<string>
      */
     private function mergeNotes(array $left, array $right): array
     {
@@ -322,6 +329,8 @@ final readonly class SecurityAccessControlAnalyzer
     }
 
     /**
+     * @param array<int, mixed> $values
+     *
      * @return array<int, string>
      */
     private function normalizeList(array $values): array
@@ -467,14 +476,24 @@ final readonly class SecurityAccessControlAnalyzer
         return null !== $example;
     }
 
+    /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     */
     private function methodsOverlap(array $left, array $right): bool
     {
         if ([] === $left || [] === $right) {
             return true;
         }
 
-        $upperLeft = array_map('strtoupper', $left);
-        $upperRight = array_map('strtoupper', $right);
+        $upperLeft = [];
+        foreach ($left as $value) {
+            $upperLeft[] = strtoupper($value);
+        }
+        $upperRight = [];
+        foreach ($right as $value) {
+            $upperRight[] = strtoupper($value);
+        }
 
         return [] !== array_intersect($upperLeft, $upperRight);
     }

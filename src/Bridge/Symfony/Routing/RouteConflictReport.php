@@ -13,25 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Routing;
 
+use RegexParser\Automata\Dfa;
+
 /**
  * @internal
  *
- * @phpstan-type RouteDescriptor array{
- *     name: string,
- *     path: string,
- *     pathPattern: string,
- *     pathDfa: \RegexParser\Automata\Dfa,
- *     staticPrefix: string,
- *     staticSegments: array<int, string>,
- *     methods: array<int, string>,
- *     schemes: array<int, string>,
- *     hostPattern: ?string,
- *     hostDfa: ?\RegexParser\Automata\Dfa,
- *     hasHostRequirement: bool,
- *     hostUnsupported: bool,
- *     hasCondition: bool,
- *     index: int,
- * }
+ * @phpstan-type RouteDescriptor array{name: string, path: string, pathPattern: string, pathDfa: Dfa, staticPrefix: string, staticSegments: array<int, string>, methods: array<int, string>, schemes: array<int, string>, hostPattern: ?string, hostDfa: ?Dfa, hasHostRequirement: bool, hostUnsupported: bool, hasCondition: bool, index: int}
  * @phpstan-type RouteConflict array{
  *     route: RouteDescriptor,
  *     conflict: RouteDescriptor,

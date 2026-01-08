@@ -44,7 +44,6 @@ final class RegexSecurityCommand extends Command
 {
     private const ARROW_LABEL = "\u{21B3}";
     private const TYPE_SHADOWED = 'shadowed';
-    private const TYPE_OVERLAP = 'overlap';
     private const BADGE_CRIT = '<bg=red;fg=white;options=bold> CRIT </>';
     private const BADGE_FAIL = '<bg=red;fg=white;options=bold> FAIL </>';
     private const BADGE_WARN = '<bg=yellow;fg=black;options=bold> WARN </>';
@@ -113,13 +112,14 @@ final class RegexSecurityCommand extends Command
             return Command::FAILURE;
         }
 
-        $explicitConfigs = $this->normalizeStringList($input->getOption('config'));
+        $configOption = $input->getOption('config');
+        $explicitConfigs = $this->normalizeStringList(\is_array($configOption) ? $configOption : []);
         $configPaths = [] !== $explicitConfigs
             ? $explicitConfigs
             : $this->resolveConfigPaths($projectDir, $environment);
 
         if ([] !== $explicitConfigs) {
-            $existing = array_values(array_filter($configPaths, static fn (string $path): bool => is_file($path)));
+            $existing = array_values(array_filter($configPaths, is_file(...)));
             if ([] === $existing) {
                 $io->error('None of the provided --config files could be found.');
 
@@ -139,11 +139,13 @@ final class RegexSecurityCommand extends Command
         foreach ($configPaths as $path) {
             if (!is_file($path)) {
                 $skippedFiles[] = ['file' => $path, 'reason' => 'File not found.'];
+
                 continue;
             }
 
             if (!$this->isYamlFile($path)) {
                 $skippedFiles[] = ['file' => $path, 'reason' => 'Only YAML security config files are supported.'];
+
                 continue;
             }
 
@@ -289,8 +291,7 @@ final class RegexSecurityCommand extends Command
         SymfonyStyle $io,
         OutputInterface $output,
         SecurityAccessControlReport $report,
-    ): void
-    {
+    ): void {
         if ([] !== $report->skippedRules) {
             $message = \sprintf(
                 '%d access_control rules skipped due to unsupported regex features.',
@@ -350,8 +351,7 @@ final class RegexSecurityCommand extends Command
         SymfonyStyle $io,
         SecurityAccessControlReport $report,
         bool $includeOverlaps,
-    ): void
-    {
+    ): void {
         $mode = $includeOverlaps ? 'Shadowed + overlaps' : 'Shadowed only';
 
         $labels = ['Rules', 'Mode', 'Shadowed', 'Overlaps', 'Critical'];
@@ -368,8 +368,7 @@ final class RegexSecurityCommand extends Command
         SymfonyStyle $io,
         SecurityAccessControlReport $report,
         bool $includeOverlaps,
-    ): void
-    {
+    ): void {
         $shadowed = $report->stats['shadowed'];
         $overlaps = $report->stats['overlaps'];
         $critical = $report->stats['critical'];
@@ -480,8 +479,7 @@ final class RegexSecurityCommand extends Command
         SymfonyStyle $io,
         OutputInterface $output,
         SecurityFirewallReport $report,
-    ): void
-    {
+    ): void {
         if ([] === $report->skippedFirewalls) {
             return;
         }
@@ -504,8 +502,7 @@ final class RegexSecurityCommand extends Command
         SymfonyStyle $io,
         SecurityFirewallReport $report,
         ReDoSSeverity $threshold,
-    ): void
-    {
+    ): void {
         $labels = ['Firewalls', 'ReDoS >=', 'Flagged'];
         $maxLabelLength = max(array_map(strlen(...), $labels));
         $io->writeln($this->formatMetaLine('Firewalls', (string) $report->stats['firewalls'], $maxLabelLength));
@@ -724,7 +721,7 @@ final class RegexSecurityCommand extends Command
     }
 
     /**
-     * @param array<int, mixed> $values
+     * @param array<int|string, mixed> $values
      *
      * @return array<int, string>
      */
