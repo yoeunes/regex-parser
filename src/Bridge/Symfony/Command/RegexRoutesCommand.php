@@ -103,7 +103,7 @@ final class RegexRoutesCommand extends Command
             return Command::SUCCESS;
         }
 
-        $this->renderConflictsTable($io, $report);
+        $this->renderConflictsList($io, $report);
 
         $suggestions = $this->collectSuggestions($report->conflicts);
         if ([] !== $suggestions) {
@@ -209,9 +209,9 @@ final class RegexRoutesCommand extends Command
         $io->newLine();
     }
 
-    private function renderConflictsTable(SymfonyStyle $io, RouteConflictReport $report): void
+    private function renderConflictsList(SymfonyStyle $io, RouteConflictReport $report): void
     {
-        $rows = [];
+        $io->section('Route Conflicts Detected');
         foreach ($report->conflicts as $conflict) {
             $route = $conflict['route'];
             $other = $conflict['conflict'];
@@ -219,18 +219,29 @@ final class RegexRoutesCommand extends Command
             $scope = $this->formatScope($conflict['methods'], $conflict['schemes']);
             $example = $this->formatExample($conflict['example']);
 
-            $rows[] = [
-                $this->formatRouteCell($route),
-                $this->formatRouteCell($other),
+            $header = \sprintf(
+                '  %s <fg=white>%s</> <fg=gray>(#%d)</> <fg=gray>%s</> <fg=white>%s</> <fg=gray>(#%d)</>',
                 $typeLabel,
-                $scope,
-                $example,
-            ];
-        }
+                $route['name'],
+                $route['index'],
+                self::ARROW_LABEL,
+                $other['name'],
+                $other['index'],
+            );
+            $io->writeln($header);
+            $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' '.$route['path'].'</>');
+            $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' '.$other['path'].'</>');
+            $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' Scope:</> '.$scope);
+            $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' Example:</> '.$example);
 
-        $io->section('Route Conflicts Detected');
-        $io->table(['Route', 'Conflict With', 'Type', 'Scope', 'Example'], $rows);
-        $io->newLine();
+            if ([] !== $conflict['notes']) {
+                foreach ($conflict['notes'] as $note) {
+                    $io->writeln('      <fg=gray>'.self::ARROW_LABEL.' Note:</> '.$note);
+                }
+            }
+
+            $io->newLine();
+        }
     }
 
     /**
@@ -375,13 +386,6 @@ final class RegexRoutesCommand extends Command
     /**
      * @phpstan-param RouteDescriptor $route
      */
-    private function formatRouteCell(array $route): string
-    {
-        $label = \sprintf('#%d %s', $route['index'], $route['name']);
-
-        return $label."\n".self::ARROW_LABEL.' '.$route['path'];
-    }
-
     /**
      * @param array<int, string> $methods
      * @param array<int, string> $schemes
@@ -400,7 +404,7 @@ final class RegexRoutesCommand extends Command
             $parts[] = implode('|', $schemes);
         }
 
-        return implode("\n", $parts);
+        return implode(' • ', $parts);
     }
 
     private function formatExample(?string $example): string
