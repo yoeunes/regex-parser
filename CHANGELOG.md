@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Sort Symfony routes by specificity before conflict analysis, reducing false-positive overlaps and only flagging conflicts when a less specific route precedes a more specific one.
+- Sort Symfony routes by specificity before conflict analysis to reduce false-positive overlaps.
 
 ## [1.2.0] - 2026-01-08
 

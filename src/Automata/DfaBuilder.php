@@ -18,8 +18,12 @@ use RegexParser\Exception\ComplexityException;
 /**
  * Determinizes NFAs into DFAs via subset construction.
  */
-final class DfaBuilder
+final readonly class DfaBuilder
 {
+    public function __construct(
+        private ?DfaMinimizer $minimizer = null,
+    ) {}
+
     /**
      * @throws ComplexityException
      */
@@ -86,7 +90,15 @@ final class DfaBuilder
             );
         }
 
-        return new Dfa(0, $states);
+        $dfa = new Dfa(0, $states);
+
+        if (!$options->minimizeDfa) {
+            return $dfa;
+        }
+
+        $minimizer = $this->minimizer ?? new DfaMinimizer();
+
+        return $minimizer->minimize($dfa);
     }
 
     /**

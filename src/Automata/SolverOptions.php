@@ -22,10 +22,12 @@ final readonly class SolverOptions
      * @param MatchMode $matchMode    How to interpret matching semantics
      * @param int       $maxNfaStates Maximum allowed NFA states
      * @param int       $maxDfaStates Maximum allowed DFA states
+     * @param bool      $minimizeDfa  Whether to minimize DFAs after determinization
      */
     public function __construct(
         public MatchMode $matchMode = MatchMode::FULL,
         public int $maxNfaStates = 5000,
         public int $maxDfaStates = 10000,
+        public bool $minimizeDfa = true,
     ) {}
 }
