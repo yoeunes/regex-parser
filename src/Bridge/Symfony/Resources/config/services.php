@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use RegexParser\Bridge\Symfony\Analyzer\BridgeAnalyzerRegistry;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeConsoleFormatter;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeJsonFormatter;
-use RegexParser\Bridge\Symfony\Analyzer\RoutesBridgeAnalyzer;
-use RegexParser\Bridge\Symfony\Analyzer\SecurityBridgeAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\RoutesAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\SecurityAnalyzer;
 use RegexParser\Bridge\Symfony\Command\CompareCommand;
 use RegexParser\Bridge\Symfony\Command\RegexAnalyzeCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
@@ -176,17 +176,17 @@ return static function (ContainerConfigurator $container): void {
         ->tag('console.command')
         ->public();
 
-    $services->set(BridgeConsoleFormatter::class);
+    $services->set(ConsoleReportFormatter::class);
 
-    $services->set(BridgeJsonFormatter::class);
+    $services->set(JsonReportFormatter::class);
 
-    $services->set(RoutesBridgeAnalyzer::class)
+    $services->set(RoutesAnalyzer::class)
         ->arg('$analyzer', service(RouteConflictAnalyzer::class))
         ->arg('$suggestionBuilder', service(RouteConflictSuggestionBuilder::class))
         ->arg('$router', service('router')->nullOnInvalid())
         ->tag('regex_parser.bridge_analyzer');
 
-    $services->set(SecurityBridgeAnalyzer::class)
+    $services->set(SecurityAnalyzer::class)
         ->arg('$extractor', service(SecurityConfigExtractor::class))
         ->arg('$locator', service(SecurityConfigLocator::class))
         ->arg('$accessAnalyzer', service(SecurityAccessControlAnalyzer::class))
@@ -194,13 +194,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$suggestionBuilder', service(SecurityAccessSuggestionBuilder::class))
         ->tag('regex_parser.bridge_analyzer');
 
-    $services->set(BridgeAnalyzerRegistry::class)
+    $services->set(AnalyzerRegistry::class)
         ->arg('$analyzers', tagged_iterator('regex_parser.bridge_analyzer'));
 
     $services->set('regex_parser.command.analyze', RegexAnalyzeCommand::class)
-        ->arg('$registry', service(BridgeAnalyzerRegistry::class))
-        ->arg('$consoleFormatter', service(BridgeConsoleFormatter::class))
-        ->arg('$jsonFormatter', service(BridgeJsonFormatter::class))
+        ->arg('$registry', service(AnalyzerRegistry::class))
+        ->arg('$consoleFormatter', service(ConsoleReportFormatter::class))
+        ->arg('$jsonFormatter', service(JsonReportFormatter::class))
         ->arg('$kernel', service('kernel')->nullOnInvalid())
         ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
         ->tag('console.command')

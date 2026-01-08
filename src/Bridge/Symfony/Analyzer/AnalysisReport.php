@@ -16,10 +16,10 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-final readonly class BridgeReport
+final readonly class AnalysisReport
 {
     /**
-     * @param array<int, BridgeReportSection> $sections
+     * @param array<int, ReportSection> $sections
      */
     public function __construct(
         public array $sections,
@@ -43,7 +43,7 @@ final readonly class BridgeReport
         return false;
     }
 
-    public function hasSeverity(BridgeSeverity $severity): bool
+    public function hasSeverity(Severity $severity): bool
     {
         foreach ($this->sections as $section) {
             foreach ($section->issues as $issue) {

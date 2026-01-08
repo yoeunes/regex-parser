@@ -16,15 +16,15 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-final readonly class BridgeAnalyzerRegistry
+final readonly class AnalyzerRegistry
 {
     /**
-     * @var array<int, BridgeAnalyzerInterface>
+     * @var array<int, AnalyzerInterface>
      */
     private array $analyzers;
 
     /**
-     * @param iterable<BridgeAnalyzerInterface> $analyzers
+     * @param iterable<AnalyzerInterface> $analyzers
      */
     public function __construct(iterable $analyzers)
     {
@@ -33,7 +33,7 @@ final readonly class BridgeAnalyzerRegistry
 
         usort(
             $sorted,
-            static fn (BridgeAnalyzerInterface $left, BridgeAnalyzerInterface $right): int => $left->getPriority()
+            static fn (AnalyzerInterface $left, AnalyzerInterface $right): int => $left->getPriority()
                 <=> $right->getPriority(),
         );
 
@@ -41,7 +41,7 @@ final readonly class BridgeAnalyzerRegistry
     }
 
     /**
-     * @return array<int, BridgeAnalyzerInterface>
+     * @return array<int, AnalyzerInterface>
      */
     public function all(): array
     {
@@ -51,7 +51,7 @@ final readonly class BridgeAnalyzerRegistry
     /**
      * @param array<int, string> $ids
      *
-     * @return array<int, BridgeAnalyzerInterface>
+     * @return array<int, AnalyzerInterface>
      */
     public function filter(array $ids): array
     {

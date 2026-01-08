@@ -29,7 +29,7 @@ use RegexParser\Lint\Formatter\RelativePathHelper;
  * @phpstan-import-type AccessRule from SecurityAccessControlReport
  * @phpstan-import-type FirewallFinding from SecurityFirewallReport
  */
-final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
+final readonly class SecurityAnalyzer implements AnalyzerInterface
 {
     private const ID = 'security';
     private const PRIORITY = 20;
@@ -58,7 +58,7 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         return self::PRIORITY;
     }
 
-    public function analyze(BridgeRunContext $context): array
+    public function analyze(AnalysisContext $context): array
     {
         $paths = $context->securityConfigPaths;
         if ([] === $paths) {
@@ -67,11 +67,11 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
 
         if ([] === $paths) {
             return [
-                new BridgeReportSection(
+                new ReportSection(
                     self::ID.'_access',
                     'Security Access Control',
                     summary: [
-                        new BridgeNotice(BridgeSeverity::WARN, 'No security config files found.'),
+                        new AnalysisNotice(Severity::WARN, 'No security config files found.'),
                     ],
                 ),
             ];
@@ -117,10 +117,10 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
      */
     private function buildAccessSection(
         SecurityAccessControlReport $report,
-        BridgeRunContext $context,
+        AnalysisContext $context,
         RelativePathHelper $pathHelper,
         array $skippedFiles,
-    ): BridgeReportSection {
+    ): ReportSection {
         $meta = [
             'Rules' => $report->stats['rules'],
             'Mode' => $context->includeOverlaps ? 'Shadowed + overlaps' : 'Shadowed only',
@@ -145,7 +145,7 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
             );
         }
 
-        return new BridgeReportSection(
+        return new ReportSection(
             self::ID.'_access',
             'Security Access Control',
             $meta,
@@ -159,22 +159,22 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
     /**
      * @param array<int, array{file: string, reason: string}> $skippedFiles
      *
-     * @return array<int, BridgeNotice>
+     * @return array<int, AnalysisNotice>
      */
     private function buildAccessWarnings(SecurityAccessControlReport $report, array $skippedFiles): array
     {
         $warnings = [];
 
         if ([] !== $skippedFiles) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf('%d security config files were skipped.', \count($skippedFiles)),
             );
         }
 
         if ([] !== $report->skippedRules) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d access_control rules skipped due to unsupported regex features.',
                     \count($report->skippedRules),
@@ -183,8 +183,8 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         if ([] !== $report->rulesWithAllowIf) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d rules use allow_if; conditions are not evaluated during analysis.',
                     \count(array_unique($report->rulesWithAllowIf)),
@@ -193,8 +193,8 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         if ([] !== $report->rulesWithIps) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d rules use IP restrictions; IPs are not evaluated during analysis.',
                     \count(array_unique($report->rulesWithIps)),
@@ -203,8 +203,8 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         if ([] !== $report->rulesWithNoPath) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d rules have no path and match all requests.',
                     \count(array_unique($report->rulesWithNoPath)),
@@ -213,8 +213,8 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         if ([] !== $report->rulesWithUnsupportedHosts) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d rules use host restrictions that could not be analyzed.',
                     \count(array_unique($report->rulesWithUnsupportedHosts)),
@@ -226,7 +226,7 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
     }
 
     /**
-     * @return array<int, BridgeNotice>
+     * @return array<int, AnalysisNotice>
      */
     private function buildAccessSummary(SecurityAccessControlReport $report, bool $includeOverlaps): array
     {
@@ -236,29 +236,29 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         $critical = $report->stats['critical'];
 
         if (0 === $shadowed && 0 === $overlaps) {
-            $summary[] = new BridgeNotice(BridgeSeverity::PASS, 'No access_control conflicts detected.');
+            $summary[] = new AnalysisNotice(Severity::PASS, 'No access_control conflicts detected.');
 
             return $summary;
         }
 
         if ($critical > 0) {
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::CRITICAL,
+            $summary[] = new AnalysisNotice(
+                Severity::CRITICAL,
                 \sprintf('%d critical shadowing conflicts detected.', $critical),
             );
         }
 
         if ($shadowed > 0) {
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::FAIL,
+            $summary[] = new AnalysisNotice(
+                Severity::FAIL,
                 \sprintf('%d shadowed rules detected.', $shadowed),
             );
         }
 
         if ($overlaps > 0) {
             $suffix = $includeOverlaps ? 'Listed below.' : 'Use --show-overlaps to include them.';
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $summary[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf('%d overlapping rules detected. %s', $overlaps, $suffix),
             );
         }
@@ -269,16 +269,16 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
     /**
      * @phpstan-param AccessConflict $conflict
      */
-    private function buildAccessIssue(array $conflict, RelativePathHelper $pathHelper): BridgeIssue
+    private function buildAccessIssue(array $conflict, RelativePathHelper $pathHelper): AnalysisIssue
     {
         $rule = $conflict['rule'];
         $other = $conflict['conflict'];
         $type = $conflict['type'];
 
         $severity = match (true) {
-            'critical' === $conflict['severity'] => BridgeSeverity::CRITICAL,
-            'shadowed' === $type => BridgeSeverity::FAIL,
-            default => BridgeSeverity::WARN,
+            'critical' === $conflict['severity'] => Severity::CRITICAL,
+            'shadowed' === $type => Severity::FAIL,
+            default => Severity::WARN,
         };
 
         $title = \sprintf(
@@ -291,15 +291,15 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
         );
 
         $details = [
-            new BridgeIssueDetail('Rule', $this->formatRuleSummary($rule, $pathHelper)),
-            new BridgeIssueDetail('Conflict', $this->formatRuleSummary($other, $pathHelper)),
+            new IssueDetail('Rule', $this->formatRuleSummary($rule, $pathHelper)),
+            new IssueDetail('Conflict', $this->formatRuleSummary($other, $pathHelper)),
         ];
 
         if (null !== $conflict['example']) {
-            $details[] = new BridgeIssueDetail('Example', $conflict['example'], 'example');
+            $details[] = new IssueDetail('Example', $conflict['example'], 'example');
         }
 
-        return new BridgeIssue(
+        return new AnalysisIssue(
             $type,
             $severity,
             $title,
@@ -310,9 +310,9 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
 
     private function buildFirewallSection(
         SecurityFirewallReport $report,
-        BridgeRunContext $context,
+        AnalysisContext $context,
         RelativePathHelper $pathHelper,
-    ): BridgeReportSection {
+    ): ReportSection {
         $meta = [
             'Firewalls' => $report->stats['firewalls'],
             'ReDoS >=' => $context->redosThreshold->value,
@@ -321,18 +321,18 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
 
         $warnings = [];
         if ([] !== $report->skippedFirewalls) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf('%d firewalls skipped during ReDoS analysis.', \count($report->skippedFirewalls)),
             );
         }
 
         $summary = [];
         if ([] === $report->findings) {
-            $summary[] = new BridgeNotice(BridgeSeverity::PASS, 'No risky firewall regex detected.');
+            $summary[] = new AnalysisNotice(Severity::PASS, 'No risky firewall regex detected.');
         } else {
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::FAIL,
+            $summary[] = new AnalysisNotice(
+                Severity::FAIL,
                 \sprintf('%d firewall regex patterns exceed the ReDoS threshold.', $report->stats['flagged']),
             );
         }
@@ -342,7 +342,7 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
             $issues[] = $this->buildFirewallIssue($finding, $pathHelper);
         }
 
-        return new BridgeReportSection(
+        return new ReportSection(
             self::ID.'_firewall',
             'Security Firewall Regex',
             $meta,
@@ -355,32 +355,32 @@ final readonly class SecurityBridgeAnalyzer implements BridgeAnalyzerInterface
     /**
      * @phpstan-param FirewallFinding $finding
      */
-    private function buildFirewallIssue(array $finding, RelativePathHelper $pathHelper): BridgeIssue
+    private function buildFirewallIssue(array $finding, RelativePathHelper $pathHelper): AnalysisIssue
     {
         $severity = match ($finding['severity']) {
-            'critical' => BridgeSeverity::CRITICAL,
-            'high' => BridgeSeverity::FAIL,
-            default => BridgeSeverity::WARN,
+            'critical' => Severity::CRITICAL,
+            'high' => Severity::FAIL,
+            default => Severity::WARN,
         };
 
         $location = $this->formatLocation($pathHelper, $finding['file'], $finding['line']);
         $title = \sprintf('%s (%s)', $finding['name'], $location);
 
         $details = [
-            new BridgeIssueDetail('Severity', strtoupper($finding['severity'])),
-            new BridgeIssueDetail('Score', (string) $finding['score']),
-            new BridgeIssueDetail('Pattern', $finding['pattern'], 'pattern'),
+            new IssueDetail('Severity', strtoupper($finding['severity'])),
+            new IssueDetail('Score', (string) $finding['score']),
+            new IssueDetail('Pattern', $finding['pattern'], 'pattern'),
         ];
 
         if (null !== $finding['vulnerable'] && '' !== $finding['vulnerable']) {
-            $details[] = new BridgeIssueDetail('Vulnerable', $finding['vulnerable'], 'pattern');
+            $details[] = new IssueDetail('Vulnerable', $finding['vulnerable'], 'pattern');
         }
 
         if (null !== $finding['trigger'] && '' !== $finding['trigger']) {
-            $details[] = new BridgeIssueDetail('Trigger', $finding['trigger'], 'example');
+            $details[] = new IssueDetail('Trigger', $finding['trigger'], 'example');
         }
 
-        return new BridgeIssue('redos', $severity, $title, $details);
+        return new AnalysisIssue('redos', $severity, $title, $details);
     }
 
     /**

@@ -18,7 +18,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
 /**
  * @internal
  */
-final readonly class BridgeRunContext
+final readonly class AnalysisContext
 {
     /**
      * @param array<int, string> $only

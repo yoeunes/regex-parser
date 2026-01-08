@@ -24,7 +24,7 @@ use Symfony\Component\Routing\RouterInterface;
  * @phpstan-import-type RouteConflict from RouteConflictReport
  * @phpstan-import-type RouteDescriptor from RouteConflictReport
  */
-final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
+final readonly class RoutesAnalyzer implements AnalyzerInterface
 {
     private const ID = 'routes';
     private const PRIORITY = 10;
@@ -51,15 +51,15 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
         return self::PRIORITY;
     }
 
-    public function analyze(BridgeRunContext $context): array
+    public function analyze(AnalysisContext $context): array
     {
         if (null === $this->router) {
             return [
-                new BridgeReportSection(
+                new ReportSection(
                     self::ID,
                     'Routes',
                     summary: [
-                        new BridgeNotice(BridgeSeverity::WARN, 'Router service is not available.'),
+                        new AnalysisNotice(Severity::WARN, 'Router service is not available.'),
                     ],
                 ),
             ];
@@ -71,12 +71,12 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
 
         if (0 === $routeCount) {
             return [
-                new BridgeReportSection(
+                new ReportSection(
                     self::ID,
                     'Routes',
                     meta: ['Routes' => 0],
                     summary: [
-                        new BridgeNotice(BridgeSeverity::PASS, 'No routes found.'),
+                        new AnalysisNotice(Severity::PASS, 'No routes found.'),
                     ],
                 ),
             ];
@@ -105,7 +105,7 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         return [
-            new BridgeReportSection(
+            new ReportSection(
                 self::ID,
                 'Routes',
                 $meta,
@@ -118,22 +118,22 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
     }
 
     /**
-     * @return array<int, BridgeNotice>
+     * @return array<int, AnalysisNotice>
      */
     private function buildWarnings(RouteConflictReport $report): array
     {
         $warnings = [];
 
         if ([] !== $report->skippedRoutes) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf('%d routes skipped due to unsupported regex features.', \count($report->skippedRoutes)),
             );
         }
 
         if ([] !== $report->routesWithConditions) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d routes use conditions; conditions are not evaluated during analysis.',
                     \count(array_unique($report->routesWithConditions)),
@@ -142,8 +142,8 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
         }
 
         if ([] !== $report->routesWithUnsupportedHosts) {
-            $warnings[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $warnings[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf(
                     '%d routes use host requirements that could not be analyzed.',
                     \count(array_unique($report->routesWithUnsupportedHosts)),
@@ -155,7 +155,7 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
     }
 
     /**
-     * @return array<int, BridgeNotice>
+     * @return array<int, AnalysisNotice>
      */
     private function buildSummary(RouteConflictReport $report, bool $includeOverlaps): array
     {
@@ -164,22 +164,22 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
         $overlaps = $report->stats['overlaps'];
 
         if (0 === $shadowed && 0 === $overlaps) {
-            $summary[] = new BridgeNotice(BridgeSeverity::PASS, 'No route conflicts detected.');
+            $summary[] = new AnalysisNotice(Severity::PASS, 'No route conflicts detected.');
 
             return $summary;
         }
 
         if ($shadowed > 0) {
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::FAIL,
+            $summary[] = new AnalysisNotice(
+                Severity::FAIL,
                 \sprintf('%d shadowed routes detected.', $shadowed),
             );
         }
 
         if ($overlaps > 0) {
             $suffix = $includeOverlaps ? 'Listed below.' : 'Use --show-overlaps to include them.';
-            $summary[] = new BridgeNotice(
-                BridgeSeverity::WARN,
+            $summary[] = new AnalysisNotice(
+                Severity::WARN,
                 \sprintf('%d overlapping routes detected. %s', $overlaps, $suffix),
             );
         }
@@ -190,13 +190,13 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
     /**
      * @phpstan-param RouteConflict $conflict
      */
-    private function buildIssue(array $conflict): BridgeIssue
+    private function buildIssue(array $conflict): AnalysisIssue
     {
         $route = $conflict['route'];
         $other = $conflict['conflict'];
         $type = $conflict['type'];
 
-        $severity = 'shadowed' === $type ? BridgeSeverity::FAIL : BridgeSeverity::WARN;
+        $severity = 'shadowed' === $type ? Severity::FAIL : Severity::WARN;
         $title = \sprintf(
             '%s (#%d) %s %s (#%d)',
             $route['name'],
@@ -207,16 +207,16 @@ final readonly class RoutesBridgeAnalyzer implements BridgeAnalyzerInterface
         );
 
         $details = [
-            new BridgeIssueDetail('Route', $route['path']),
-            new BridgeIssueDetail('Conflict', $other['path']),
-            new BridgeIssueDetail('Scope', $this->formatScope($conflict['methods'], $conflict['schemes'])),
+            new IssueDetail('Route', $route['path']),
+            new IssueDetail('Conflict', $other['path']),
+            new IssueDetail('Scope', $this->formatScope($conflict['methods'], $conflict['schemes'])),
         ];
 
         if (null !== $conflict['example']) {
-            $details[] = new BridgeIssueDetail('Example', $conflict['example'], 'example');
+            $details[] = new IssueDetail('Example', $conflict['example'], 'example');
         }
 
-        return new BridgeIssue(
+        return new AnalysisIssue(
             $type,
             $severity,
             $title,

@@ -13,18 +13,18 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer\Formatter;
 
-use RegexParser\Bridge\Symfony\Analyzer\BridgeIssueDetail;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeNotice;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeReport;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeReportSection;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeSeverity;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisNotice;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
+use RegexParser\Bridge\Symfony\Analyzer\IssueDetail;
+use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
+use RegexParser\Bridge\Symfony\Analyzer\Severity;
 use RegexParser\Regex;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * @internal
  */
-final readonly class BridgeConsoleFormatter
+final readonly class ConsoleReportFormatter
 {
     private const ARROW_LABEL = "\u{21B3}";
     private const BADGE_CRIT = '<bg=red;fg=white;options=bold> CRIT </>';
@@ -32,7 +32,7 @@ final readonly class BridgeConsoleFormatter
     private const BADGE_WARN = '<bg=yellow;fg=black;options=bold> WARN </>';
     private const BADGE_PASS = '<bg=green;fg=white;options=bold> PASS </>';
 
-    public function render(BridgeReport $report, SymfonyStyle $io, bool $showBanner = true): void
+    public function render(AnalysisReport $report, SymfonyStyle $io, bool $showBanner = true): void
     {
         if ($showBanner) {
             $this->showBanner($io);
@@ -47,7 +47,7 @@ final readonly class BridgeConsoleFormatter
         }
     }
 
-    private function renderSection(SymfonyStyle $io, BridgeReportSection $section): void
+    private function renderSection(SymfonyStyle $io, ReportSection $section): void
     {
         $io->section($section->title);
 
@@ -80,7 +80,7 @@ final readonly class BridgeConsoleFormatter
     }
 
     /**
-     * @param array<int, BridgeNotice> $notices
+     * @param array<int, AnalysisNotice> $notices
      */
     private function renderNotices(SymfonyStyle $io, array $notices): void
     {
@@ -114,17 +114,17 @@ final readonly class BridgeConsoleFormatter
         $io->newLine();
     }
 
-    private function badge(BridgeSeverity $severity): string
+    private function badge(Severity $severity): string
     {
         return match ($severity) {
-            BridgeSeverity::CRITICAL => self::BADGE_CRIT,
-            BridgeSeverity::FAIL => self::BADGE_FAIL,
-            BridgeSeverity::WARN => self::BADGE_WARN,
-            BridgeSeverity::PASS => self::BADGE_PASS,
+            Severity::CRITICAL => self::BADGE_CRIT,
+            Severity::FAIL => self::BADGE_FAIL,
+            Severity::WARN => self::BADGE_WARN,
+            Severity::PASS => self::BADGE_PASS,
         };
     }
 
-    private function formatDetailValue(BridgeIssueDetail $detail): string
+    private function formatDetailValue(IssueDetail $detail): string
     {
         return match ($detail->kind) {
             'example' => $this->formatExample($detail->value),

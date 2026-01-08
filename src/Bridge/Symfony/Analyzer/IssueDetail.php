@@ -16,7 +16,7 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-final readonly class BridgeIssueDetail
+final readonly class IssueDetail
 {
     public function __construct(
         public string $label,

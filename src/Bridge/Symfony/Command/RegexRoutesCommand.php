@@ -51,6 +51,8 @@ final class RegexRoutesCommand extends Command
 
     protected function configure(): void
     {
+        $this->setHidden(true);
+
         $this
             ->addOption('check-conflicts', null, InputOption::VALUE_NONE, 'Check for route conflicts (default).')
             ->addOption('show-overlaps', null, InputOption::VALUE_NONE, 'Include partial overlaps in the report.')

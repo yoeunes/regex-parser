@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Command;
 
-use RegexParser\Bridge\Symfony\Analyzer\BridgeAnalyzerRegistry;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeReport;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeRunContext;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeSeverity;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeConsoleFormatter;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeJsonFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisContext;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
+use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\Severity;
 use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -43,9 +43,9 @@ final class RegexAnalyzeCommand extends Command
     private const DEFAULT_FAIL_ON = ['shadowed', 'redos', 'critical'];
 
     public function __construct(
-        private readonly BridgeAnalyzerRegistry $registry,
-        private readonly BridgeConsoleFormatter $consoleFormatter,
-        private readonly BridgeJsonFormatter $jsonFormatter,
+        private readonly AnalyzerRegistry $registry,
+        private readonly ConsoleReportFormatter $consoleFormatter,
+        private readonly JsonReportFormatter $jsonFormatter,
         private readonly ?KernelInterface $kernel = null,
         private readonly string $defaultRedosThreshold = 'high',
     ) {
@@ -154,7 +154,7 @@ final class RegexAnalyzeCommand extends Command
         $configOption = $input->getOption('config');
         $configPaths = $this->normalizeStringList(\is_array($configOption) ? $configOption : []);
 
-        $context = new BridgeRunContext(
+        $context = new AnalysisContext(
             $projectDir,
             $environment,
             (bool) $input->getOption('show-overlaps'),
@@ -171,7 +171,7 @@ final class RegexAnalyzeCommand extends Command
             }
         }
 
-        $report = new BridgeReport($sections);
+        $report = new AnalysisReport($sections);
 
         if (self::FORMAT_JSON === $format) {
             $output->writeln($this->jsonFormatter->format($report));
@@ -281,7 +281,7 @@ final class RegexAnalyzeCommand extends Command
     /**
      * @param array<int, string> $failOn
      */
-    private function shouldFail(BridgeReport $report, array $failOn): bool
+    private function shouldFail(AnalysisReport $report, array $failOn): bool
     {
         if (\in_array('none', $failOn, true)) {
             return false;
@@ -291,7 +291,7 @@ final class RegexAnalyzeCommand extends Command
             return true;
         }
 
-        if (\in_array('critical', $failOn, true) && $report->hasSeverity(BridgeSeverity::CRITICAL)) {
+        if (\in_array('critical', $failOn, true) && $report->hasSeverity(Severity::CRITICAL)) {
             return true;
         }
 

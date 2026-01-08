@@ -16,10 +16,17 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-final readonly class BridgeNotice
+final readonly class AnalysisIssue
 {
+    /**
+     * @param array<int, IssueDetail> $details
+     * @param array<int, string> $notes
+     */
     public function __construct(
-        public BridgeSeverity $severity,
-        public string $message,
+        public string $kind,
+        public Severity $severity,
+        public string $title,
+        public array $details = [],
+        public array $notes = [],
     ) {}
 }

@@ -15,16 +15,16 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Command;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeAnalyzerInterface;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeAnalyzerRegistry;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeIssue;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeIssueDetail;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeNotice;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeReportSection;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeRunContext;
-use RegexParser\Bridge\Symfony\Analyzer\BridgeSeverity;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeConsoleFormatter;
-use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeJsonFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisContext;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisNotice;
+use RegexParser\Bridge\Symfony\Analyzer\AnalyzerInterface;
+use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\IssueDetail;
+use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
+use RegexParser\Bridge\Symfony\Analyzer\Severity;
 use RegexParser\Bridge\Symfony\Command\RegexAnalyzeCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -33,8 +33,8 @@ final class RegexAnalyzeCommandTest extends TestCase
     #[Test]
     public function test_command_outputs_json_report(): void
     {
-        $registry = new BridgeAnalyzerRegistry([
-            new class implements BridgeAnalyzerInterface {
+        $registry = new AnalyzerRegistry([
+            new class implements AnalyzerInterface {
                 public function getId(): string
                 {
                     return 'routes';
@@ -50,20 +50,20 @@ final class RegexAnalyzeCommandTest extends TestCase
                     return 10;
                 }
 
-                public function analyze(BridgeRunContext $context): array
+                public function analyze(AnalysisContext $context): array
                 {
                     return [
-                        new BridgeReportSection(
+                        new ReportSection(
                             'routes',
                             'Routes',
                             meta: ['Routes' => 1],
-                            summary: [new BridgeNotice(BridgeSeverity::FAIL, '1 shadowed route detected.')],
+                            summary: [new AnalysisNotice(Severity::FAIL, '1 shadowed route detected.')],
                             issues: [
-                                new BridgeIssue(
+                                new AnalysisIssue(
                                     'shadowed',
-                                    BridgeSeverity::FAIL,
+                                    Severity::FAIL,
                                     'demo (#1) -> demo (#2)',
-                                    [new BridgeIssueDetail('Example', '/demo', 'example')],
+                                    [new IssueDetail('Example', '/demo', 'example')],
                                 ),
                             ],
                         ),
@@ -74,8 +74,8 @@ final class RegexAnalyzeCommandTest extends TestCase
 
         $command = new RegexAnalyzeCommand(
             $registry,
-            new BridgeConsoleFormatter(),
-            new BridgeJsonFormatter(),
+            new ConsoleReportFormatter(),
+            new JsonReportFormatter(),
         );
 
         $tester = new CommandTester($command);
@@ -98,8 +98,8 @@ final class RegexAnalyzeCommandTest extends TestCase
     #[Test]
     public function test_command_allows_disabling_fail_on(): void
     {
-        $registry = new BridgeAnalyzerRegistry([
-            new class implements BridgeAnalyzerInterface {
+        $registry = new AnalyzerRegistry([
+            new class implements AnalyzerInterface {
                 public function getId(): string
                 {
                     return 'security';
@@ -115,14 +115,14 @@ final class RegexAnalyzeCommandTest extends TestCase
                     return 10;
                 }
 
-                public function analyze(BridgeRunContext $context): array
+                public function analyze(AnalysisContext $context): array
                 {
                     return [
-                        new BridgeReportSection(
+                        new ReportSection(
                             'security',
                             'Security',
-                            summary: [new BridgeNotice(BridgeSeverity::FAIL, '1 finding.')],
-                            issues: [new BridgeIssue('redos', BridgeSeverity::FAIL, 'Firewall')],
+                            summary: [new AnalysisNotice(Severity::FAIL, '1 finding.')],
+                            issues: [new AnalysisIssue('redos', Severity::FAIL, 'Firewall')],
                         ),
                     ];
                 }
@@ -131,8 +131,8 @@ final class RegexAnalyzeCommandTest extends TestCase
 
         $command = new RegexAnalyzeCommand(
             $registry,
-            new BridgeConsoleFormatter(),
-            new BridgeJsonFormatter(),
+            new ConsoleReportFormatter(),
+            new JsonReportFormatter(),
         );
 
         $tester = new CommandTester($command);
