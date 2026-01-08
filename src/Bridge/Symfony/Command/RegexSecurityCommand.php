@@ -15,7 +15,9 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Security\SecurityAccessControlAnalyzer;
 use RegexParser\Bridge\Symfony\Security\SecurityAccessControlReport;
+use RegexParser\Bridge\Symfony\Security\SecurityAccessSuggestionBuilder;
 use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
+use RegexParser\Bridge\Symfony\Security\SecurityConfigLocator;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallReport;
 use RegexParser\Lint\Formatter\RelativePathHelper;
@@ -55,6 +57,8 @@ final class RegexSecurityCommand extends Command
         private readonly SecurityConfigExtractor $extractor,
         private readonly SecurityAccessControlAnalyzer $accessAnalyzer,
         private readonly SecurityFirewallAnalyzer $firewallAnalyzer,
+        private readonly SecurityConfigLocator $configLocator = new SecurityConfigLocator(),
+        private readonly SecurityAccessSuggestionBuilder $suggestionBuilder = new SecurityAccessSuggestionBuilder(),
         private readonly ?KernelInterface $kernel = null,
         private readonly string $defaultRedosThreshold = 'high',
     ) {
@@ -116,7 +120,7 @@ final class RegexSecurityCommand extends Command
         $explicitConfigs = $this->normalizeStringList(\is_array($configOption) ? $configOption : []);
         $configPaths = [] !== $explicitConfigs
             ? $explicitConfigs
-            : $this->resolveConfigPaths($projectDir, $environment);
+            : $this->configLocator->locate($projectDir, $environment);
 
         if ([] !== $explicitConfigs) {
             $existing = array_values(array_filter($configPaths, is_file(...)));
@@ -174,7 +178,10 @@ final class RegexSecurityCommand extends Command
         if (0 !== $accessReport->stats['conflicts']) {
             $this->renderAccessConflicts($io, $accessReport);
 
-            $suggestions = $this->collectAccessSuggestions($accessReport->conflicts);
+            $suggestions = $this->suggestionBuilder->collect(
+                $accessReport->conflicts,
+                fn (string $file, int $line): string => $this->formatLocation($file, $line),
+            );
             if ([] !== $suggestions) {
                 $io->section('Suggestions');
                 foreach ($suggestions as $suggestion) {
@@ -217,39 +224,6 @@ final class RegexSecurityCommand extends Command
         }
 
         return $severity;
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function resolveConfigPaths(?string $projectDir, ?string $environment): array
-    {
-        $root = $projectDir ?? (getcwd() ?: '');
-        if ('' === $root) {
-            return [];
-        }
-
-        $paths = [
-            $root.'/config/packages/security.yaml',
-            $root.'/config/packages/security.yml',
-        ];
-
-        if (null !== $environment && '' !== $environment) {
-            $paths[] = $root.'/config/packages/'.$environment.'/security.yaml';
-            $paths[] = $root.'/config/packages/'.$environment.'/security.yml';
-        }
-
-        $paths[] = $root.'/config/security.yaml';
-        $paths[] = $root.'/config/security.yml';
-
-        $existing = [];
-        foreach ($paths as $path) {
-            if (is_file($path)) {
-                $existing[] = $path;
-            }
-        }
-
-        return array_values(array_unique($existing));
     }
 
     private function isYamlFile(string $path): bool
@@ -440,39 +414,6 @@ final class RegexSecurityCommand extends Command
 
             $io->newLine();
         }
-    }
-
-    /**
-     * @phpstan-param array<AccessConflict> $conflicts
-     *
-     * @return array<int, string>
-     */
-    private function collectAccessSuggestions(array $conflicts): array
-    {
-        $suggestions = [];
-
-        foreach ($conflicts as $conflict) {
-            if (self::TYPE_SHADOWED !== $conflict['type']) {
-                continue;
-            }
-
-            $rule = $conflict['rule'];
-            $other = $conflict['conflict'];
-
-            $moveSuggestion = \sprintf(
-                'Reorder access_control: move rule #%d (%s) before #%d.',
-                $other['index'],
-                $this->formatLocation($other['file'], $other['line']),
-                $rule['index'],
-            );
-            $suggestions[$moveSuggestion] = true;
-
-            if ('critical' === $conflict['severity']) {
-                $suggestions['Narrow the PUBLIC_ACCESS rule or move the restrictive rule above it.'] = true;
-            }
-        }
-
-        return array_keys($suggestions);
     }
 
     private function renderFirewallWarnings(

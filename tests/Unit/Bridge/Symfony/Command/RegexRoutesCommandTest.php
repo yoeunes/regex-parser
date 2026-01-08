@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Command\RegexRoutesCommand;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
+use RegexParser\Bridge\Symfony\Routing\RouteConflictSuggestionBuilder;
 use RegexParser\Regex;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Routing\Route;
@@ -29,7 +30,7 @@ final class RegexRoutesCommandTest extends TestCase
     public function test_command_fails_without_router(): void
     {
         $analyzer = new RouteConflictAnalyzer(Regex::create());
-        $command = new RegexRoutesCommand($analyzer, null);
+        $command = new RegexRoutesCommand($analyzer, new RouteConflictSuggestionBuilder(), null);
 
         $tester = new CommandTester($command);
         $status = $tester->execute([]);
@@ -49,7 +50,7 @@ final class RegexRoutesCommandTest extends TestCase
         $router->method('getRouteCollection')->willReturn($collection);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());
-        $command = new RegexRoutesCommand($analyzer, $router);
+        $command = new RegexRoutesCommand($analyzer, new RouteConflictSuggestionBuilder(), $router);
 
         $tester = new CommandTester($command);
         $status = $tester->execute([]);
@@ -74,7 +75,7 @@ final class RegexRoutesCommandTest extends TestCase
         $router->method('getRouteCollection')->willReturn($collection);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());
-        $command = new RegexRoutesCommand($analyzer, $router);
+        $command = new RegexRoutesCommand($analyzer, new RouteConflictSuggestionBuilder(), $router);
 
         $tester = new CommandTester($command);
         $status = $tester->execute([]);

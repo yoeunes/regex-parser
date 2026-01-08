@@ -25,6 +25,8 @@ use RegexParser\Automata\Dfa;
  *     type: string,
  *     severity: string,
  *     example: ?string,
+ *     equivalent: bool,
+ *     redundant: bool,
  *     notes: array<int, string>,
  * }
  * @phpstan-type AccessSkip array{index: int, file: string, line: int, reason: string}

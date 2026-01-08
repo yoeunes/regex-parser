@@ -24,6 +24,7 @@ use RegexParser\Automata\Dfa;
  *     conflict: RouteDescriptor,
  *     type: string,
  *     example: ?string,
+ *     equivalent: bool,
  *     methods: array<int, string>,
  *     schemes: array<int, string>,
  *     notes: array<int, string>,

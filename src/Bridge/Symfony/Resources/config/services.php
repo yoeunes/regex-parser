@@ -13,17 +13,26 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use RegexParser\Bridge\Symfony\Analyzer\BridgeAnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeConsoleFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\Formatter\BridgeJsonFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\RoutesBridgeAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\SecurityBridgeAnalyzer;
 use RegexParser\Bridge\Symfony\Command\CompareCommand;
+use RegexParser\Bridge\Symfony\Command\RegexAnalyzeCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Command\RegexRoutesCommand;
 use RegexParser\Bridge\Symfony\Command\RegexSecurityCommand;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
+use RegexParser\Bridge\Symfony\Routing\RouteConflictSuggestionBuilder;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\Bridge\Symfony\Security\SecurityAccessControlAnalyzer;
+use RegexParser\Bridge\Symfony\Security\SecurityAccessSuggestionBuilder;
 use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
+use RegexParser\Bridge\Symfony\Security\SecurityConfigLocator;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
 use RegexParser\Bridge\Symfony\Security\SecurityPatternNormalizer;
 use RegexParser\Lint\ExtractorInterface;
@@ -127,8 +136,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RouteConflictAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'));
 
+    $services->set(RouteConflictSuggestionBuilder::class);
+
     $services->set('regex_parser.command.routes', RegexRoutesCommand::class)
         ->arg('$analyzer', service(RouteConflictAnalyzer::class))
+        ->arg('$suggestionBuilder', service(RouteConflictSuggestionBuilder::class))
         ->arg('$router', service('router')->nullOnInvalid())
         ->tag('console.command')
         ->public();
@@ -140,6 +152,10 @@ return static function (ContainerConfigurator $container): void {
     $services->set(SecurityPatternNormalizer::class);
 
     $services->set(SecurityConfigExtractor::class);
+
+    $services->set(SecurityConfigLocator::class);
+
+    $services->set(SecurityAccessSuggestionBuilder::class);
 
     $services->set(SecurityAccessControlAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
@@ -153,6 +169,38 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$extractor', service(SecurityConfigExtractor::class))
         ->arg('$accessAnalyzer', service(SecurityAccessControlAnalyzer::class))
         ->arg('$firewallAnalyzer', service(SecurityFirewallAnalyzer::class))
+        ->arg('$configLocator', service(SecurityConfigLocator::class))
+        ->arg('$suggestionBuilder', service(SecurityAccessSuggestionBuilder::class))
+        ->arg('$kernel', service('kernel')->nullOnInvalid())
+        ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set(BridgeConsoleFormatter::class);
+
+    $services->set(BridgeJsonFormatter::class);
+
+    $services->set(RoutesBridgeAnalyzer::class)
+        ->arg('$analyzer', service(RouteConflictAnalyzer::class))
+        ->arg('$suggestionBuilder', service(RouteConflictSuggestionBuilder::class))
+        ->arg('$router', service('router')->nullOnInvalid())
+        ->tag('regex_parser.bridge_analyzer');
+
+    $services->set(SecurityBridgeAnalyzer::class)
+        ->arg('$extractor', service(SecurityConfigExtractor::class))
+        ->arg('$locator', service(SecurityConfigLocator::class))
+        ->arg('$accessAnalyzer', service(SecurityAccessControlAnalyzer::class))
+        ->arg('$firewallAnalyzer', service(SecurityFirewallAnalyzer::class))
+        ->arg('$suggestionBuilder', service(SecurityAccessSuggestionBuilder::class))
+        ->tag('regex_parser.bridge_analyzer');
+
+    $services->set(BridgeAnalyzerRegistry::class)
+        ->arg('$analyzers', tagged_iterator('regex_parser.bridge_analyzer'));
+
+    $services->set('regex_parser.command.analyze', RegexAnalyzeCommand::class)
+        ->arg('$registry', service(BridgeAnalyzerRegistry::class))
+        ->arg('$consoleFormatter', service(BridgeConsoleFormatter::class))
+        ->arg('$jsonFormatter', service(BridgeJsonFormatter::class))
         ->arg('$kernel', service('kernel')->nullOnInvalid())
         ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
         ->tag('console.command')

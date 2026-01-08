@@ -89,6 +89,8 @@ final readonly class SecurityAccessControlAnalyzer
         $shadowed = 0;
         $overlaps = 0;
         $critical = 0;
+        $equivalent = 0;
+        $redundant = 0;
         $count = \count($descriptors);
 
         for ($i = 0; $i < $count; $i++) {
@@ -119,6 +121,15 @@ final readonly class SecurityAccessControlAnalyzer
                     $left['pathDfa'],
                     static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
                 );
+                $leftSubset = null === $this->findExample(
+                    $left['pathDfa'],
+                    $right['pathDfa'],
+                    static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
+                );
+                $isEquivalent = $isSubset && $leftSubset;
+                if ($isEquivalent) {
+                    $equivalent++;
+                }
 
                 if ($isSubset) {
                     $shadowed++;
@@ -135,13 +146,28 @@ final readonly class SecurityAccessControlAnalyzer
                     $critical++;
                 }
 
+                $redundantRule = $isSubset && $this->accessRulesEquivalent($left, $right);
+                if ($redundantRule) {
+                    $redundant++;
+                }
+
+                $notes = $this->mergeNotes($left['notes'], $right['notes']);
+                if ($isEquivalent) {
+                    $notes[] = 'Equivalent path patterns.';
+                }
+                if ($redundantRule) {
+                    $notes[] = 'Redundant rule (same access constraints).';
+                }
+
                 $conflicts[] = [
                     'rule' => $left,
                     'conflict' => $right,
                     'type' => $isSubset ? 'shadowed' : 'overlap',
                     'severity' => $severity,
                     'example' => $example,
-                    'notes' => $this->mergeNotes($left['notes'], $right['notes']),
+                    'equivalent' => $isEquivalent,
+                    'redundant' => $redundantRule,
+                    'notes' => $notes,
                 ];
             }
         }
@@ -152,6 +178,8 @@ final readonly class SecurityAccessControlAnalyzer
             'shadowed' => $shadowed,
             'overlaps' => $overlaps,
             'critical' => $critical,
+            'equivalent' => $equivalent,
+            'redundant' => $redundant,
             'skipped_rules' => \count($skippedRules),
         ];
 
@@ -316,6 +344,20 @@ final readonly class SecurityAccessControlAnalyzer
     }
 
     /**
+     * @phpstan-param AccessRule $left
+     * @phpstan-param AccessRule $right
+     */
+    private function accessRulesEquivalent(array $left, array $right): bool
+    {
+        return $this->sameList($left['roles'], $right['roles'], true)
+            && $this->sameList($left['methods'], $right['methods'], true)
+            && $left['hostPattern'] === $right['hostPattern']
+            && $this->sameList($left['ips'], $right['ips'], true)
+            && $left['requiresChannel'] === $right['requiresChannel']
+            && $left['allowIf'] === $right['allowIf'];
+    }
+
+    /**
      * @param array<int, string> $left
      * @param array<int, string> $right
      *
@@ -347,6 +389,31 @@ final readonly class SecurityAccessControlAnalyzer
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    /**
+     * @param array<int, string> $left
+     * @param array<int, string> $right
+     */
+    private function sameList(array $left, array $right, bool $caseInsensitive): bool
+    {
+        if ($caseInsensitive) {
+            $upperLeft = [];
+            foreach ($left as $value) {
+                $upperLeft[] = strtoupper($value);
+            }
+            $upperRight = [];
+            foreach ($right as $value) {
+                $upperRight[] = strtoupper($value);
+            }
+            $left = $upperLeft;
+            $right = $upperRight;
+        }
+
+        sort($left);
+        sort($right);
+
+        return $left === $right;
     }
 
     private function normalizePattern(string $pattern): string

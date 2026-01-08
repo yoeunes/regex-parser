@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictReport;
+use RegexParser\Bridge\Symfony\Routing\RouteConflictSuggestionBuilder;
 use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -42,6 +43,7 @@ final class RegexRoutesCommand extends Command
 
     public function __construct(
         private readonly RouteConflictAnalyzer $analyzer,
+        private readonly RouteConflictSuggestionBuilder $suggestionBuilder = new RouteConflictSuggestionBuilder(),
         private readonly ?RouterInterface $router = null,
     ) {
         parent::__construct();
@@ -105,7 +107,7 @@ final class RegexRoutesCommand extends Command
 
         $this->renderConflictsList($io, $report);
 
-        $suggestions = $this->collectSuggestions($report->conflicts);
+        $suggestions = $this->suggestionBuilder->collect($report->conflicts);
         if ([] !== $suggestions) {
             $io->section('Suggestions');
             foreach ($suggestions as $suggestion) {
@@ -245,126 +247,6 @@ final class RegexRoutesCommand extends Command
     }
 
     /**
-     * @phpstan-param array<RouteConflict> $conflicts
-     *
-     * @return array<int, string>
-     */
-    private function collectSuggestions(array $conflicts): array
-    {
-        $suggestions = [];
-
-        foreach ($conflicts as $conflict) {
-            $route = $conflict['route'];
-            $other = $conflict['conflict'];
-
-            $moveSuggestion = \sprintf(
-                'Reorder routes: move "%s" before "%s".',
-                $other['name'],
-                $route['name'],
-            );
-            $suggestions[$moveSuggestion] = true;
-
-            foreach ($this->suggestRequirementFixes($route, $other, $conflict['example']) as $suggestion) {
-                $suggestions[$suggestion] = true;
-            }
-        }
-
-        return array_keys($suggestions);
-    }
-
-    /**
-     * @phpstan-param RouteDescriptor $route
-     * @phpstan-param RouteDescriptor $other
-     *
-     * @return array<int, string>
-     */
-    private function suggestRequirementFixes(array $route, array $other, ?string $example): array
-    {
-        if (null === $example || '' === $example) {
-            return [];
-        }
-
-        $variables = $this->extractRouteVariables($route['pathPattern'], $example);
-        if ([] === $variables || [] === $other['staticSegments']) {
-            return [];
-        }
-
-        $suggestions = [];
-        $staticLookup = array_fill_keys($other['staticSegments'], true);
-
-        foreach ($variables as $name => $value) {
-            if ('' === $value || !isset($staticLookup[$value])) {
-                continue;
-            }
-
-            $patternExample = $this->suggestRequirementPattern($name);
-            if (null !== $patternExample) {
-                $suggestions[] = \sprintf(
-                    'Add a requirement for {%s} in "%s" (e.g. "%s").',
-                    $name,
-                    $route['name'],
-                    $patternExample,
-                );
-
-                continue;
-            }
-
-            $suggestions[] = \sprintf(
-                'Add a requirement for {%s} in "%s" to avoid matching "%s".',
-                $name,
-                $route['name'],
-                $value,
-            );
-        }
-
-        return $suggestions;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function extractRouteVariables(string $pattern, string $example): array
-    {
-        $matches = [];
-        if (1 !== \preg_match($pattern, $example, $matches)) {
-            return [];
-        }
-
-        $variables = [];
-        foreach ($matches as $key => $value) {
-            if (!\is_string($key)) {
-                continue;
-            }
-            $variables[$key] = $value;
-        }
-
-        return $variables;
-    }
-
-    private function suggestRequirementPattern(string $variable): ?string
-    {
-        $normalized = strtolower($variable);
-
-        if ('uuid' === $normalized || str_contains($normalized, 'uuid')) {
-            return '[0-9a-fA-F-]{36}';
-        }
-
-        if ('id' === $normalized || str_ends_with($normalized, 'id')) {
-            return '\d+';
-        }
-
-        if (str_contains($normalized, 'slug')) {
-            return '[a-z0-9-]+';
-        }
-
-        if (str_contains($normalized, 'locale')) {
-            return '[a-z]{2}';
-        }
-
-        return null;
-    }
-
-    /**
      * @phpstan-param RouteConflict $conflict
      */
     private function formatType(array $conflict): string
@@ -380,9 +262,6 @@ final class RegexRoutesCommand extends Command
         return $type;
     }
 
-    /**
-     * @phpstan-param RouteDescriptor $route
-     */
     /**
      * @param array<int, string> $methods
      * @param array<int, string> $schemes

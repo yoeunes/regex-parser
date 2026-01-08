@@ -76,6 +76,7 @@ final readonly class RouteConflictAnalyzer
         $conflicts = [];
         $shadowed = 0;
         $overlaps = 0;
+        $equivalent = 0;
         $skippedPairs = 0;
         $count = \count($routes);
 
@@ -115,6 +116,15 @@ final readonly class RouteConflictAnalyzer
                     $left['pathDfa'],
                     static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
                 );
+                $leftSubset = null === $this->findExample(
+                    $left['pathDfa'],
+                    $right['pathDfa'],
+                    static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
+                );
+                $isEquivalent = $isSubset && $leftSubset;
+                if ($isEquivalent) {
+                    $equivalent++;
+                }
 
                 if ($isSubset) {
                     $shadowed++;
@@ -126,14 +136,20 @@ final readonly class RouteConflictAnalyzer
                     continue;
                 }
 
+                $notes = $this->buildNotes($left, $right);
+                if ($isEquivalent) {
+                    $notes[] = 'Equivalent route patterns.';
+                }
+
                 $conflicts[] = [
                     'route' => $left,
                     'conflict' => $right,
                     'type' => $isSubset ? 'shadowed' : 'overlap',
                     'example' => $example,
+                    'equivalent' => $isEquivalent,
                     'methods' => $this->intersectMethods($left['methods'], $right['methods']),
                     'schemes' => $this->intersectSchemes($left['schemes'], $right['schemes']),
-                    'notes' => $this->buildNotes($left, $right),
+                    'notes' => $notes,
                 ];
             }
         }
@@ -143,6 +159,7 @@ final readonly class RouteConflictAnalyzer
             'conflicts' => \count($conflicts),
             'shadowed' => $shadowed,
             'overlaps' => $overlaps,
+            'equivalent' => $equivalent,
             'skipped_routes' => \count($skippedRoutes),
             'skipped_pairs' => $skippedPairs,
         ];

@@ -70,6 +70,7 @@ When using the Symfony bundle, you also get these `bin/console` commands:
 | `regex:compare`         | Compare two regex patterns via automata               |
 | `regex:routes`          | Detect route conflicts and overlaps in your router    |
 | `regex:security`        | Analyze access control ordering and firewall regexes  |
+| `regex:analyze`         | Run Symfony bridge analyzers (routes + security)      |
 
 Examples:
 
@@ -78,6 +79,9 @@ bin/console regex:routes
 bin/console regex:routes --show-overlaps
 bin/console regex:security
 bin/console regex:security --show-overlaps
+bin/console regex:analyze
+bin/console regex:analyze --only=routes
+bin/console regex:analyze --fail-on=any --format=json
 ```
 
 ---

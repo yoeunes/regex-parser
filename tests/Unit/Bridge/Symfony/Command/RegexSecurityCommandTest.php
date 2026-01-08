@@ -17,7 +17,9 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Command\RegexSecurityCommand;
 use RegexParser\Bridge\Symfony\Security\SecurityAccessControlAnalyzer;
+use RegexParser\Bridge\Symfony\Security\SecurityAccessSuggestionBuilder;
 use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
+use RegexParser\Bridge\Symfony\Security\SecurityConfigLocator;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
 use RegexParser\Regex;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -33,6 +35,8 @@ final class RegexSecurityCommandTest extends TestCase
             new SecurityConfigExtractor(),
             new SecurityAccessControlAnalyzer(Regex::create()),
             new SecurityFirewallAnalyzer(Regex::create()),
+            new SecurityConfigLocator(),
+            new SecurityAccessSuggestionBuilder(),
             null,
             'high',
         );

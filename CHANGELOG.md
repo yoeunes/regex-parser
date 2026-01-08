@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Symfony `regex:security` command to analyze access_control shadowing and firewall ReDoS risks.
 - Access-control security analyzer with critical shadowing detection.
 - Firewall regex ReDoS checks for Symfony security firewalls.
+- Symfony `regex:analyze` command to run bridge analyzers with JSON output and fail-on controls.
+- Bridge analyzer registry with shared console/JSON formatting for Symfony diagnostics.
+- Equivalence and redundancy detection notes for route and access_control conflicts.
 
 ### Documentation
 - Documented Symfony bundle commands in the CLI guide.
