@@ -20,7 +20,7 @@ final readonly class AnalysisIssue
 {
     /**
      * @param array<int, IssueDetail> $details
-     * @param array<int, string> $notes
+     * @param array<int, string>      $notes
      */
     public function __construct(
         public string $kind,

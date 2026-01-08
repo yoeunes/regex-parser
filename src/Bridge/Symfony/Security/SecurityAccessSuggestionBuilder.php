@@ -21,8 +21,9 @@ namespace RegexParser\Bridge\Symfony\Security;
 final readonly class SecurityAccessSuggestionBuilder
 {
     /**
-     * @phpstan-param array<AccessConflict> $conflicts
      * @param (callable(string, int): string)|null $formatLocation
+     *
+     * @phpstan-param array<AccessConflict> $conflicts
      *
      * @return array<int, string>
      */

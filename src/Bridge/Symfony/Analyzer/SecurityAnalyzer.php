@@ -84,11 +84,13 @@ final readonly class SecurityAnalyzer implements AnalyzerInterface
         foreach ($paths as $path) {
             if (!is_file($path)) {
                 $skippedFiles[] = ['file' => $path, 'reason' => 'File not found.'];
+
                 continue;
             }
 
             if (!$this->isYamlFile($path)) {
                 $skippedFiles[] = ['file' => $path, 'reason' => 'Only YAML security config files are supported.'];
+
                 continue;
             }
 

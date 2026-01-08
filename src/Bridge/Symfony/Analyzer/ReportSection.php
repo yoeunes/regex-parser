@@ -19,11 +19,11 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 final readonly class ReportSection
 {
     /**
-     * @param array<string, int|string> $meta
+     * @param array<string, int|string>  $meta
      * @param array<int, AnalysisNotice> $summary
      * @param array<int, AnalysisNotice> $warnings
-     * @param array<int, AnalysisIssue> $issues
-     * @param array<int, string> $suggestions
+     * @param array<int, AnalysisIssue>  $issues
+     * @param array<int, string>         $suggestions
      */
     public function __construct(
         public string $id,

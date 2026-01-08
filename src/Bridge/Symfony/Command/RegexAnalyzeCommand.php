@@ -37,9 +37,6 @@ final class RegexAnalyzeCommand extends Command
     private const FORMAT_CONSOLE = 'console';
     private const FORMAT_JSON = 'json';
 
-    /**
-     * @var array<int, string>
-     */
     private const DEFAULT_FAIL_ON = ['shadowed', 'redos', 'critical'];
 
     public function __construct(
@@ -273,7 +270,7 @@ final class RegexAnalyzeCommand extends Command
     private function normalizeLowercaseList(array $values): array
     {
         return array_map(
-            static fn (string $value): string => strtolower($value),
+            strtolower(...),
             $this->normalizeStringList($values),
         );
     }
