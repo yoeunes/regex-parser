@@ -1,0 +1,102 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit\Bridge\Symfony\Routing;
+
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
+use RegexParser\Regex;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+
+final class RouteConflictAnalyzerTest extends TestCase
+{
+    #[Test]
+    public function test_detects_shadowed_route(): void
+    {
+        $collection = new RouteCollection();
+
+        $generic = new Route('/users/{id}');
+        $collection->add('api_user_show', $generic);
+
+        $specific = new Route('/users/list');
+        $collection->add('api_user_list', $specific);
+
+        $analyzer = new RouteConflictAnalyzer(Regex::create());
+        $report = $analyzer->analyze($collection, true);
+
+        $this->assertSame(1, $report->stats['conflicts']);
+        $this->assertSame('shadowed', $report->conflicts[0]['type']);
+    }
+
+    #[Test]
+    public function test_ignores_disjoint_methods(): void
+    {
+        $collection = new RouteCollection();
+
+        $getRoute = new Route('/users/{id}');
+        $getRoute->setMethods(['GET']);
+        $collection->add('api_user_get', $getRoute);
+
+        $postRoute = new Route('/users/{id}');
+        $postRoute->setMethods(['POST']);
+        $collection->add('api_user_post', $postRoute);
+
+        $analyzer = new RouteConflictAnalyzer(Regex::create());
+        $report = $analyzer->analyze($collection, true);
+
+        $this->assertSame(0, $report->stats['conflicts']);
+    }
+
+    #[Test]
+    public function test_reports_overlap_when_enabled(): void
+    {
+        $collection = new RouteCollection();
+
+        $digits = new Route('/users/{id}');
+        $digits->setRequirements(['id' => '\d+']);
+        $collection->add('api_user_digits', $digits);
+
+        $alnum = new Route('/users/{slug}');
+        $alnum->setRequirements(['slug' => '[a-z0-9]+']);
+        $collection->add('api_user_alnum', $alnum);
+
+        $analyzer = new RouteConflictAnalyzer(Regex::create());
+        $report = $analyzer->analyze($collection, true);
+
+        $this->assertSame(1, $report->stats['conflicts']);
+        $this->assertSame('overlap', $report->conflicts[0]['type']);
+        $this->assertSame(1, $report->stats['overlaps']);
+    }
+
+    #[Test]
+    public function test_filters_overlaps_when_disabled(): void
+    {
+        $collection = new RouteCollection();
+
+        $digits = new Route('/users/{id}');
+        $digits->setRequirements(['id' => '\d+']);
+        $collection->add('api_user_digits', $digits);
+
+        $alnum = new Route('/users/{slug}');
+        $alnum->setRequirements(['slug' => '[a-z0-9]+']);
+        $collection->add('api_user_alnum', $alnum);
+
+        $analyzer = new RouteConflictAnalyzer(Regex::create());
+        $report = $analyzer->analyze($collection, false);
+
+        $this->assertSame(0, $report->stats['conflicts']);
+        $this->assertSame(1, $report->stats['overlaps']);
+    }
+}

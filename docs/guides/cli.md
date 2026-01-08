@@ -60,6 +60,25 @@ RegexParser CLI provides these commands:
 
 ---
 
+## Symfony Bundle Commands
+
+When using the Symfony bundle, you also get these `bin/console` commands:
+
+| Command                 | Description                                           |
+|-------------------------|-------------------------------------------------------|
+| `regex:lint`            | Lint regex patterns in your PHP code                  |
+| `regex:compare`         | Compare two regex patterns via automata               |
+| `regex:routes`          | Detect route conflicts and overlaps in your router    |
+
+Examples:
+
+```bash
+bin/console regex:routes
+bin/console regex:routes --show-overlaps
+```
+
+---
+
 ## Command Examples
 
 ### 1. Parse a Pattern

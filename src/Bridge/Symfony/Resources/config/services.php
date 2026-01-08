@@ -15,8 +15,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\Bridge\Symfony\Command\CompareCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Bridge\Symfony\Command\RegexRoutesCommand;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
+use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\Lint\ExtractorInterface;
@@ -114,6 +116,15 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.command.compare', CompareCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set(RouteConflictAnalyzer::class)
+        ->arg('$regex', service('regex_parser.regex'));
+
+    $services->set('regex_parser.command.routes', RegexRoutesCommand::class)
+        ->arg('$analyzer', service(RouteConflictAnalyzer::class))
+        ->arg('$router', service('router')->nullOnInvalid())
         ->tag('console.command')
         ->public();
 
