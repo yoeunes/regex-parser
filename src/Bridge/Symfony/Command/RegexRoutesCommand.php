@@ -434,7 +434,8 @@ final class RegexRoutesCommand extends Command
 
     private function showFooter(SymfonyStyle $io): void
     {
-        $io->writeln('  <fg=gray>Found it useful? Consider starring: https://github.com/yoeunes/regex-parser</>');
+        $message = 'If RegexParser helps, a GitHub star is appreciated: ';
+        $io->writeln('  <fg=gray>'.$message.'https://github.com/yoeunes/regex-parser</>');
         $io->newLine();
     }
 

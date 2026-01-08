@@ -91,7 +91,8 @@ final readonly class LintOutputRenderer
     private function showFooter(Output $output): void
     {
         $output->write("\n");
-        $output->write('  '.$output->dim('Found it useful? Consider starring: https://github.com/yoeunes/regex-parser')."\n");
+        $message = 'If RegexParser helps, a GitHub star is appreciated: ';
+        $output->write('  '.$output->dim($message.'https://github.com/yoeunes/regex-parser')."\n");
         $output->write('  '.$output->dim('Cache: 0 hits, 0 misses')."\n\n");
     }
 
