@@ -10,9 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Unicode-aware automata mode for `/u` patterns with code point literals, dot, and character class handling.
 - Effective alphabet optimization in DFA construction plus a new benchmark script for Unicode-heavy ranges.
+- RegexLanguageSolver facade factory plus DFA cache interfaces for reuse across automata comparisons.
+- Work-budget limits for automata processing via SolverOptions `maxTransitionsProcessed`.
 
 ### Changed
 - Automata-based analyzers now generate Unicode-aware examples when working with `/u` patterns.
+- CLI compare and Symfony route/security analyzers now use the facade and shared DFA caching.
+
+### Documentation
+- Documented automata work-budget limits and diagnostic payloads in the logic solver guide.
 
 ### Fixed
 - Sort Symfony routes by specificity before conflict analysis to reduce false-positive overlaps.

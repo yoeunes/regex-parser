@@ -31,6 +31,7 @@ final readonly class RegexSolver implements RegexSolverInterface
         private ?Regex $regex = null,
         private ?RegularSubsetValidator $validator = null,
         private ?DfaBuilder $dfaBuilder = null,
+        private ?DfaCacheInterface $dfaCache = null,
     ) {}
 
     /**
@@ -113,6 +114,15 @@ final readonly class RegexSolver implements RegexSolverInterface
      */
     private function buildDfa(string $pattern, SolverOptions $options): Dfa
     {
+        $cacheKey = null;
+        if (null !== $this->dfaCache) {
+            $cacheKey = $this->cacheKey($pattern, $options);
+            $cached = $this->dfaCache->get($cacheKey);
+            if (null !== $cached) {
+                return $cached;
+            }
+        }
+
         $ast = $this->parser()->parse($pattern);
         $validator = $this->validator ?? new RegularSubsetValidator();
         $validator->assertSupported($ast, $pattern, $options);
@@ -122,7 +132,28 @@ final readonly class RegexSolver implements RegexSolverInterface
 
         $dfaBuilder = $this->dfaBuilder ?? new DfaBuilder();
 
-        return $dfaBuilder->determinize($nfa, $options);
+        $dfa = $dfaBuilder->determinize($nfa, $options);
+
+        if (null !== $this->dfaCache && null !== $cacheKey) {
+            $this->dfaCache->set($cacheKey, $dfa);
+        }
+
+        return $dfa;
+    }
+
+    private function cacheKey(string $pattern, SolverOptions $options): string
+    {
+        $parts = [
+            $pattern,
+            $options->matchMode->value,
+            $options->maxNfaStates,
+            $options->maxDfaStates,
+            $options->minimizeDfa ? '1' : '0',
+            $options->minimizationAlgorithm->value,
+            $options->maxTransitionsProcessed ?? 'null',
+        ];
+
+        return \hash('sha256', \implode('|', $parts));
     }
 
     /**

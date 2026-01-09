@@ -122,6 +122,38 @@ You can also override it per command:
 bin/console regex:compare '/foo/' '/bar/' --minimizer=moore
 ```
 
+## Safety Limits & Work Budget
+
+Large patterns can cause determinization or minimization to grow quickly. You can enforce a hard work budget using
+`SolverOptions::maxTransitionsProcessed`.
+
+```php
+use RegexParser\Automata\Api\RegexLanguageSolver;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Exception\ComplexityException;
+
+$solver = new RegexLanguageSolver();
+$options = new SolverOptions(maxTransitionsProcessed: 200000);
+
+try {
+    $solver->subsetOf('/[a-z]+/', '/[a-z0-9]+/', $options);
+} catch (ComplexityException $exception) {
+    $diagnostic = $exception->getDiagnostic();
+    // ['phase' => 'determinize'|'minimize', 'states' => ..., 'transitions' => ..., 'alphabet' => ..., 'consumed' => ..., 'limit' => ...]
+}
+```
+
+When the budget is exceeded, a `ComplexityException` is thrown with a diagnostic payload:
+
+- `phase`: `determinize` or `minimize`
+- `states`: number of DFA states seen so far
+- `transitions`: NFA/DFA transition count at the time of failure
+- `alphabet`: effective alphabet size
+- `consumed`: work units consumed
+- `limit`: configured budget
+
+Use this to surface safe failure messages in CI or tooling.
+
 ## Limitations
 
 - Supports the **regular subset** of PCRE only (no lookarounds, no backreferences, no recursion).

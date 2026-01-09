@@ -13,14 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Security;
 
+use RegexParser\Automata\Api\RegexLanguageSolver;
 use RegexParser\Automata\Builder\DfaBuilder;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
-use RegexParser\Automata\Model\Dfa;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
-use RegexParser\Automata\Transform\AstToNfaTransformer;
+use RegexParser\Automata\Solver\InMemoryDfaCache;
 use RegexParser\Automata\Transform\RegularSubsetValidator;
-use RegexParser\Automata\Unicode\CodePointHelper;
 use RegexParser\Exception\ComplexityException;
 use RegexParser\Regex;
 use RegexParser\RegexPattern;
@@ -46,13 +45,23 @@ final readonly class SecurityAccessControlAnalyzer
 
     private const IGNORED_FLAGS = ['D'];
 
+    private RegexLanguageSolver $solver;
+
     public function __construct(
         private Regex $regex,
         private SecurityPatternNormalizer $patternNormalizer = new SecurityPatternNormalizer(),
         private ?RegularSubsetValidator $validator = null,
         private ?DfaBuilder $dfaBuilder = null,
         private string $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT->value,
-    ) {}
+        ?RegexLanguageSolver $solver = null,
+    ) {
+        $this->solver = $solver ?? RegexLanguageSolver::forRegex(
+            $this->regex,
+            $this->validator,
+            $this->dfaBuilder,
+            new InMemoryDfaCache(),
+        );
+    }
 
     /**
      * @param array<AccessControlRule> $rules
@@ -107,30 +116,18 @@ final readonly class SecurityAccessControlAnalyzer
                     continue;
                 }
 
-                if (!$this->hostsOverlap($left, $right)) {
+                if (!$this->hostsOverlap($left, $right, $options)) {
                     continue;
                 }
 
-                $example = $this->findExample(
-                    $left['pathDfa'],
-                    $right['pathDfa'],
-                    static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && $rightAccept,
-                );
-
-                if (null === $example) {
+                $intersection = $this->solver->intersectionEmpty($left['pattern'], $right['pattern'], $options);
+                if ($intersection->isEmpty) {
                     continue;
                 }
 
-                $isSubset = null === $this->findExample(
-                    $right['pathDfa'],
-                    $left['pathDfa'],
-                    static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
-                );
-                $leftSubset = null === $this->findExample(
-                    $left['pathDfa'],
-                    $right['pathDfa'],
-                    static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && !$rightAccept,
-                );
+                $example = $intersection->example;
+                $isSubset = $this->solver->subsetOf($right['pattern'], $left['pattern'], $options)->isSubset;
+                $leftSubset = $this->solver->subsetOf($left['pattern'], $right['pattern'], $options)->isSubset;
                 $isEquivalent = $isSubset && $leftSubset;
                 if ($isEquivalent) {
                     $equivalent++;
@@ -254,7 +251,7 @@ final readonly class SecurityAccessControlAnalyzer
 
         try {
             $pathPattern = $this->normalizePattern($path);
-            $pathDfa = $this->buildDfa($pathPattern, $options);
+            $this->primePattern($pathPattern, $options);
         } catch (\Throwable $exception) {
             $reason = $exception instanceof ComplexityException
                 ? $exception->getMessage()
@@ -271,13 +268,15 @@ final readonly class SecurityAccessControlAnalyzer
         }
 
         $hostPattern = null;
-        $hostDfa = null;
+        $hostUnsupported = false;
         $host = $rule['host'];
         if (null !== $host && '' !== trim($host)) {
             try {
                 $hostPattern = $this->normalizePattern($host);
-                $hostDfa = $this->buildDfa($hostPattern, $options);
+                $this->primePattern($hostPattern, $options);
             } catch (\Throwable) {
+                $hostPattern = null;
+                $hostUnsupported = true;
                 $rulesWithUnsupportedHosts[] = $index;
                 $notes[] = 'Host restrictions are not evaluated.';
             }
@@ -293,12 +292,11 @@ final readonly class SecurityAccessControlAnalyzer
             'line' => $rule['line'],
             'path' => '' === $path ? null : $path,
             'pattern' => $pathPattern,
-            'pathDfa' => $pathDfa,
             'roles' => $roles,
             'methods' => $methods,
             'host' => $host,
             'hostPattern' => $hostPattern,
-            'hostDfa' => $hostDfa,
+            'hostUnsupported' => $hostUnsupported,
             'ips' => $ips,
             'allowIf' => $rule['allowIf'],
             'requiresChannel' => $rule['requiresChannel'],
@@ -510,42 +508,28 @@ final readonly class SecurityAccessControlAnalyzer
         return 0 === $backslashes % 2;
     }
 
-    private function buildDfa(string $pattern, SolverOptions $options): Dfa
+    private function primePattern(string $pattern, SolverOptions $options): void
     {
-        $ast = $this->regex->parse($pattern);
-
-        $validator = $this->validator ?? new RegularSubsetValidator();
-        $validator->assertSupported($ast, $pattern, $options);
-
-        $transformer = new AstToNfaTransformer($pattern);
-        $nfa = $transformer->transform($ast, $options);
-
-        $dfaBuilder = $this->dfaBuilder ?? new DfaBuilder();
-
-        return $dfaBuilder->determinize($nfa, $options);
+        $this->solver->intersectionEmpty($pattern, $pattern, $options);
     }
 
     /**
      * @phpstan-param AccessRule $left
      * @phpstan-param AccessRule $right
      */
-    private function hostsOverlap(array $left, array $right): bool
+    private function hostsOverlap(array $left, array $right, SolverOptions $options): bool
     {
         if (null === $left['hostPattern'] || null === $right['hostPattern']) {
             return true;
         }
 
-        if (null === $left['hostDfa'] || null === $right['hostDfa']) {
+        if ($left['hostUnsupported'] || $right['hostUnsupported']) {
             return true;
         }
 
-        $example = $this->findExample(
-            $left['hostDfa'],
-            $right['hostDfa'],
-            static fn (bool $leftAccept, bool $rightAccept): bool => $leftAccept && $rightAccept,
-        );
+        $intersection = $this->solver->intersectionEmpty($left['hostPattern'], $right['hostPattern'], $options);
 
-        return null !== $example;
+        return !$intersection->isEmpty;
     }
 
     /**
@@ -570,146 +554,11 @@ final readonly class SecurityAccessControlAnalyzer
         return [] !== array_intersect($upperLeft, $upperRight);
     }
 
-    /**
-     * @param callable(bool, bool): bool $acceptPredicate
-     */
-    private function findExample(Dfa $left, Dfa $right, callable $acceptPredicate): ?string
-    {
-        $startLeft = $left->startState;
-        $startRight = $right->startState;
-        $startKey = $this->pairKey($startLeft, $startRight);
-        $alphabetRanges = $this->mergeAlphabetRanges($left, $right);
-
-        if ($acceptPredicate($left->getState($startLeft)->isAccepting, $right->getState($startRight)->isAccepting)) {
-            return '';
-        }
-
-        /** @var \SplQueue<array{int, int, string}> $queue */
-        $queue = new \SplQueue();
-        $queue->enqueue([$startLeft, $startRight, $startKey]);
-
-        /** @var array<string, bool> $visited */
-        $visited = [$startKey => true];
-        /** @var array<string, array{0:string, 1:int}|null> $previous */
-        $previous = [$startKey => null];
-
-        while (!$queue->isEmpty()) {
-            [$leftStateId, $rightStateId, $currentKey] = $queue->dequeue();
-            $leftState = $left->getState($leftStateId);
-            $rightState = $right->getState($rightStateId);
-
-            foreach ($alphabetRanges as [$start]) {
-                $symbol = $start;
-                $nextLeft = $leftState->transitionFor($symbol);
-                $nextRight = $rightState->transitionFor($symbol);
-
-                if (null === $nextLeft || null === $nextRight) {
-                    continue;
-                }
-
-                $nextKey = $this->pairKey($nextLeft, $nextRight);
-
-                if (isset($visited[$nextKey])) {
-                    continue;
-                }
-
-                $visited[$nextKey] = true;
-                $previous[$nextKey] = [$currentKey, $symbol];
-
-                $nextLeftState = $left->getState($nextLeft);
-                $nextRightState = $right->getState($nextRight);
-                if ($acceptPredicate($nextLeftState->isAccepting, $nextRightState->isAccepting)) {
-                    return $this->buildExample($nextKey, $previous);
-                }
-
-                $queue->enqueue([$nextLeft, $nextRight, $nextKey]);
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array<string, array{0:string, 1:int}|null> $previous
-     */
-    private function buildExample(string $key, array $previous): string
-    {
-        $chars = [];
-        $current = $key;
-        while (null !== $previous[$current]) {
-            [$prevKey, $char] = $previous[$current];
-            $chars[] = CodePointHelper::toString($char) ?? '';
-            $current = $prevKey;
-        }
-
-        if ([] === $chars) {
-            return '';
-        }
-
-        return implode('', \array_reverse($chars));
-    }
-
     private function resolveMinimizationAlgorithm(): MinimizationAlgorithm
     {
         $normalized = \strtolower(\trim($this->minimizationAlgorithm));
         $algorithm = MinimizationAlgorithm::tryFrom($normalized);
 
         return $algorithm ?? MinimizationAlgorithm::HOPCROFT;
-    }
-
-    private function pairKey(int $leftState, int $rightState): string
-    {
-        return $leftState.':'.$rightState;
-    }
-
-    /**
-     * @return array<int, array{0:int, 1:int}>
-     */
-    private function mergeAlphabetRanges(Dfa $left, Dfa $right): array
-    {
-        $min = \min($left->minCodePoint, $right->minCodePoint);
-        $max = \max($left->maxCodePoint, $right->maxCodePoint);
-
-        $boundaries = [
-            $min => true,
-            $max + 1 => true,
-        ];
-
-        foreach ([$left, $right] as $dfa) {
-            $ranges = $dfa->alphabetRanges;
-            if ([] === $ranges) {
-                $ranges = [[$dfa->minCodePoint, $dfa->maxCodePoint]];
-            }
-
-            foreach ($ranges as [$start, $end]) {
-                $boundaries[$start] = true;
-                if ($end + 1 <= $max + 1) {
-                    $boundaries[$end + 1] = true;
-                }
-            }
-        }
-
-        /** @var array<int> $points */
-        $points = \array_keys($boundaries);
-        \sort($points, \SORT_NUMERIC);
-
-        $ranges = [];
-        $count = \count($points);
-        for ($i = 0; $i < $count - 1; $i++) {
-            $start = $points[$i];
-            $end = $points[$i + 1] - 1;
-
-            if ($start > $max) {
-                break;
-            }
-
-            $ranges[] = [$start, \min($end, $max)];
-        }
-
-        if ([] === $ranges) {
-            $ranges[] = [$min, $max];
-        }
-
-        return $ranges;
     }
 }

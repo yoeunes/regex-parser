@@ -13,13 +13,17 @@ declare(strict_types=1);
 
 namespace RegexParser\Automata\Api;
 
+use RegexParser\Automata\Builder\DfaBuilder;
 use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Solver\DfaCacheInterface;
 use RegexParser\Automata\Solver\EquivalenceResult;
 use RegexParser\Automata\Solver\IntersectionResult;
 use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Automata\Solver\RegexSolverInterface;
 use RegexParser\Automata\Solver\SubsetResult;
+use RegexParser\Automata\Transform\RegularSubsetValidator;
 use RegexParser\Exception\ComplexityException;
+use RegexParser\Regex;
 
 /**
  * Stable facade for language-level regex comparisons.
@@ -29,6 +33,15 @@ final readonly class RegexLanguageSolver
     public function __construct(
         private RegexSolverInterface $solver = new RegexSolver(),
     ) {}
+
+    public static function forRegex(
+        Regex $regex,
+        ?RegularSubsetValidator $validator = null,
+        ?DfaBuilder $dfaBuilder = null,
+        ?DfaCacheInterface $dfaCache = null,
+    ): self {
+        return new self(new RegexSolver($regex, $validator, $dfaBuilder, $dfaCache));
+    }
 
     /**
      * @throws ComplexityException
