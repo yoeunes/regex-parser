@@ -78,6 +78,7 @@ final readonly class SecurityAccessControlAnalyzer
 
         $options = new SolverOptions(
             matchMode: MatchMode::PARTIAL,
+            minimizeDfa: false,
             minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
         );
 
@@ -136,10 +137,11 @@ final readonly class SecurityAccessControlAnalyzer
                 }
 
                 $example = $intersection->example;
-                $pathSubsets += 2;
-                $isSubset = $this->solver->subsetOf($right['pattern'], $left['pattern'], $options)->isSubset;
-                $leftSubset = $this->solver->subsetOf($left['pattern'], $right['pattern'], $options)->isSubset;
-                $isEquivalent = $isSubset && $leftSubset;
+                $pathSubsets++;
+                $equivalence = $this->solver->equivalent($left['pattern'], $right['pattern'], $options);
+                $isEquivalent = $equivalence->isEquivalent;
+                $isSubset = null === $equivalence->rightOnlyExample;
+                $leftSubset = null === $equivalence->leftOnlyExample;
                 if ($isEquivalent) {
                     $equivalent++;
                 }
@@ -268,7 +270,6 @@ final readonly class SecurityAccessControlAnalyzer
 
         try {
             $pathPattern = $this->normalizePattern($path);
-            $this->primePattern($pathPattern, $options);
         } catch (\Throwable $exception) {
             $reason = $exception instanceof ComplexityException
                 ? $exception->getMessage()
@@ -290,7 +291,6 @@ final readonly class SecurityAccessControlAnalyzer
         if (null !== $host && '' !== trim($host)) {
             try {
                 $hostPattern = $this->normalizePattern($host);
-                $this->primePattern($hostPattern, $options);
             } catch (\Throwable) {
                 $hostPattern = null;
                 $hostUnsupported = true;
@@ -523,11 +523,6 @@ final readonly class SecurityAccessControlAnalyzer
         }
 
         return 0 === $backslashes % 2;
-    }
-
-    private function primePattern(string $pattern, SolverOptions $options): void
-    {
-        $this->solver->prepare($pattern, $options);
     }
 
     /**

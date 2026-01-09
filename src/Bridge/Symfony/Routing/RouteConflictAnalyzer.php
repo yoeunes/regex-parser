@@ -69,6 +69,7 @@ final readonly class RouteConflictAnalyzer
 
         $options = new SolverOptions(
             matchMode: MatchMode::FULL,
+            minimizeDfa: false,
             minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
         );
 
@@ -157,10 +158,11 @@ final readonly class RouteConflictAnalyzer
                 }
 
                 $example = $intersection->example;
-                $pathSubsets += 2;
-                $rightSubsetLeft = $this->solver->subsetOf($right['pathPattern'], $left['pathPattern'], $options)->isSubset;
-                $leftSubsetRight = $this->solver->subsetOf($left['pathPattern'], $right['pathPattern'], $options)->isSubset;
-                $isEquivalent = $rightSubsetLeft && $leftSubsetRight;
+                $pathSubsets++;
+                $equivalence = $this->solver->equivalent($left['pathPattern'], $right['pathPattern'], $options);
+                $isEquivalent = $equivalence->isEquivalent;
+                $leftSubsetRight = null === $equivalence->leftOnlyExample;
+                $rightSubsetLeft = null === $equivalence->rightOnlyExample;
                 if ($isEquivalent) {
                     $equivalent++;
                 }
@@ -289,17 +291,6 @@ final readonly class RouteConflictAnalyzer
             return null;
         }
 
-        try {
-            $this->primePattern($pathNormalization['pattern'], $options);
-        } catch (ComplexityException $exception) {
-            $skippedRoutes[] = [
-                'route' => $name,
-                'reason' => $exception->getMessage(),
-            ];
-
-            return null;
-        }
-
         $hostRegex = $this->resolveHostRegex($compiled);
         $hostPattern = null;
         $hostValue = $route->getHost();
@@ -322,14 +313,7 @@ final readonly class RouteConflictAnalyzer
                 $hostUnsupported = true;
                 $routesWithUnsupportedHosts[] = $name;
             } elseif (null !== $hostNormalization) {
-                try {
-                    $hostPattern = $hostNormalization['pattern'];
-                    $this->primePattern($hostPattern, $options);
-                } catch (ComplexityException) {
-                    $hostPattern = null;
-                    $hostUnsupported = true;
-                    $routesWithUnsupportedHosts[] = $name;
-                }
+                $hostPattern = $hostNormalization['pattern'];
             }
         }
 
@@ -415,11 +399,6 @@ final readonly class RouteConflictAnalyzer
             'ignoredFlags' => $ignored,
             'unsupportedFlags' => array_values(array_unique($unsupported)),
         ];
-    }
-
-    private function primePattern(string $pattern, SolverOptions $options): void
-    {
-        $this->solver->prepare($pattern, $options);
     }
 
     /**

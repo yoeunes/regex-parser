@@ -31,12 +31,26 @@ final readonly class DfaState
 
     public function transitionFor(int $codePoint): ?int
     {
-        foreach ($this->ranges as [$start, $end, $target]) {
-            if ($codePoint >= $start && $codePoint <= $end) {
+        if (isset($this->transitions[$codePoint])) {
+            return $this->transitions[$codePoint];
+        }
+
+        $low = 0;
+        $high = count($this->ranges) - 1;
+
+        while ($low <= $high) {
+            $mid = ($low + $high) >> 1;
+            [$start, $end, $target] = $this->ranges[$mid];
+
+            if ($codePoint < $start) {
+                $high = $mid - 1;
+            } elseif ($codePoint > $end) {
+                $low = $mid + 1;
+            } else {
                 return $target;
             }
         }
 
-        return $this->transitions[$codePoint] ?? null;
+        return null;
     }
 }
