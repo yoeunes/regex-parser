@@ -53,6 +53,7 @@ use RegexParser\Cli\Command\HighlightCommand;
 use RegexParser\Cli\Command\ParseCommand;
 use RegexParser\Cli\Command\RedosCommand;
 use RegexParser\Cli\Command\SelfUpdateCommand;
+use RegexParser\Cli\Command\TranspileCommand;
 use RegexParser\Cli\Command\ValidateCommand;
 use RegexParser\Cli\Command\VersionCommand;
 use RegexParser\Cli\GlobalOptionsParser;
@@ -83,6 +84,7 @@ $app->register(new CompareCommand());
 $app->register(new RedosCommand());
 $app->register(new DiagramCommand());
 $app->register(new HighlightCommand());
+$app->register(new TranspileCommand());
 $app->register(new ValidateCommand());
 $app->register(new ClearCacheCommand());
 $app->register(new LintCommand(

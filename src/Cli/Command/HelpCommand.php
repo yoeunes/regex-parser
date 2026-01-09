@@ -69,6 +69,7 @@ final readonly class HelpCommand implements CommandInterface
             ['diagram', 'Render a text or SVG diagram of the AST'],
             ['highlight', 'Highlight a regex for display'],
             ['validate', 'Validate a regex pattern'],
+            ['transpile', 'Transpile PCRE regex to other dialects (js, python)'],
             ['lint', 'Lint regex patterns in PHP source code'],
             ['self-update', 'Update the CLI phar to the latest release'],
             ['help', 'Display this help message'],
@@ -110,6 +111,12 @@ final readonly class HelpCommand implements CommandInterface
             ['--output <file>', 'Write output to file'],
         ];
         $this->renderTableSection($output, 'Diagram Options', $diagramOptions, fn (string $value): string => $this->formatOption($output, $value));
+
+        $transpileOptions = [
+            ['--target <dialect>', 'Target dialect (js, python)'],
+            ['--format <format>', 'Output format (console, json)'],
+        ];
+        $this->renderTableSection($output, 'Transpile Options', $transpileOptions, fn (string $value): string => $this->formatOption($output, $value));
 
         $analyzeOptions = [
             ['--format <format>', 'Output format (console, json)'],
@@ -154,6 +161,7 @@ final readonly class HelpCommand implements CommandInterface
             [[$binary, 'explain', "'/a+/'"], 'Explain a pattern'],
             [[$binary, 'diagram', "'/^a+$/'"], 'Text diagram'],
             [[$binary, 'diagram', "'/^a+$/'", '--format=svg'], 'SVG diagram'],
+            [[$binary, 'transpile', "'/^a+$/'", '--target=python'], 'Transpile to Python'],
             [[$binary, 'debug', "'/(a+)+$/'"], 'Heatmap + ReDoS details'],
             [[$binary, 'redos', "'/(a+)+$/'", '--safe', "'/a+$/'", '--input', "'a'", '--repeat=50000', "--suffix='!'"], 'Benchmark vulnerable vs safe'],
             [[$binary, 'highlight', "'/a+/'", '--format=html'], 'HTML highlight'],
@@ -173,7 +181,7 @@ final readonly class HelpCommand implements CommandInterface
         if (null === $commandData) {
             $output->write($output->error("Unknown command: {$command}\n\n"));
             $this->renderTextSection($output, 'Available Commands', [
-                'parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
+                'parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'transpile', 'lint', 'self-update', 'help',
             ]);
 
             return 1;
@@ -334,6 +342,18 @@ final readonly class HelpCommand implements CommandInterface
                 'examples' => [
                     [[$this->resolveInvocation(), 'validate', "'/a+/'"], 'Validate a pattern'],
                     [[$this->resolveInvocation(), 'validate', "'/a+/'", '--php-version=8.0'], 'Validate for PHP 8.0'],
+                ],
+            ],
+            'transpile' => [
+                'description' => 'Transpile PCRE regex to other dialects',
+                'options' => [
+                    ['--target <dialect>', 'Target dialect (js, python)'],
+                    ['--format <format>', 'Output format (console, json)'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'transpile', "'/a+/'", '--target=js'], 'Transpile to JavaScript'],
+                    [[$this->resolveInvocation(), 'transpile', "'/a+/'", '--target=python'], 'Transpile to Python'],
                 ],
             ],
             'lint' => [
@@ -565,7 +585,7 @@ final readonly class HelpCommand implements CommandInterface
             return $output->color($token, Output::GREEN);
         }
 
-        if (\in_array($token, ['parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
+        if (\in_array($token, ['parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'transpile', 'lint', 'self-update', 'help'], true)) {
             return $output->color($token, Output::YELLOW.Output::BOLD);
         }
 
