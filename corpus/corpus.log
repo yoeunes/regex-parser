@@ -475,6 +475,10 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
 
+  corpus/serializer/src/XmlSerializationVisitor.php:559:68
+      → #^[\pL_][\pL0-9._-]*$#ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/staabm/phpstan-dba/src/QueryReflection/QuerySimulation.php:162:13
       → /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m
      WARN  Flag 'm' is useless: pattern '/("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m' contains no anchors.
@@ -888,6 +892,359 @@
          ↳ Consider tightening the first quantifier to its minimum.
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Nested bounded quantifiers detected. May cause polynomial backtracking. Consider simplifying the pattern or using atomic groups (?>...). Suggested (verify behavior): Flatten nested quantifiers or i...
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:179:17
+      → #{L_([a-z0-9\-_]*?)\}#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #{L_([a-z0-9\-_]*?)\}#is
+         + #{L_([a-z0-9\-_]*?)\}#i
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:180:27
+      → #{L_([a-z0-9\-_]*?)\}#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #{L_([a-z0-9\-_]*?)\}#is
+         + #{L_([a-z0-9\-_]*?)\}#i
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:186:17
+      → #<!-- INCLUDE ([a-zA-Z0-9\_\-\+\.]+?) -->#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #<!-- INCLUDE ([a-zA-Z0-9\_\-\+\.]+?) -->#s
+         + #<!-- INCLUDE ([a-zA-Z0-9\_\-\+\.]+?) -->#
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:193:17
+      → #<!-- [IF]|[ELSEIF] ([a-zA-Z0-9\-_\.]+?) (.*?)?[ ]?-->#
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: 'E' (duplicate)
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:194:27
+      → #<!-- [IF]|[ELSEIF] ([a-zA-Z0-9\-_]) (.*?)?[ ]?-->#s
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: 'E' (duplicate)
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:201:17
+      → #{([a-z0-9\-_\.]*?)\}#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #{([a-z0-9\-_\.]*?)\}#is
+         + #{([a-z0-9\-_\.]*?)\}#i
+
+  corpus/phpbb/phpbb/phpBB/develop/create_variable_overview.php:202:27
+      → #{([a-z0-9\-_]*?)\}#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #{([a-z0-9\-_]*?)\}#is
+         + #{([a-z0-9\-_]*?)\}#i
+
+  corpus/phpbb/phpbb/phpBB/phpbb/install/module/install_database/task/add_default_data.php:95:38
+      → #\{L_([A-Z0-9\-_]*)\}#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\{L_([A-Z0-9\-_]*)\}#s
+         + #\{L_([A-Z0-9\-_]*)\}#
+
+  corpus/phpbb/phpbb/phpBB/phpbb/install/module/install_database/task/add_default_data.php:138:27
+      → #\# MSSQL IDENTITY (phpbb_[a-z_]+) (ON|OFF) \##s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\# MSSQL IDENTITY (phpbb_[a-z_]+) (ON|OFF) \##s
+         + #\# MSSQL IDENTITY (phpbb_[a-z_]+) (ON|OFF) \##
+
+  corpus/phpbb/phpbb/phpBB/phpbb/install/module/install_database/task/add_default_data.php:142:27
+      → #\# POSTGRES (BEGIN|COMMIT) \##s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\# POSTGRES (BEGIN|COMMIT) \##s
+         + #\# POSTGRES (BEGIN|COMMIT) \##
+
+  corpus/phpbb/phpbb/phpBB/phpbb/install/helper/iohandler/ajax_iohandler.php:196:38
+      → #\{L_([A-Z0-9\-_]*)\}#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\{L_([A-Z0-9\-_]*)\}#s
+         + #\{L_([A-Z0-9\-_]*)\}#
+
+  corpus/phpbb/phpbb/phpBB/phpbb/install/helper/database.php:223:29
+      → #/\*(.|[\r\n])*?\*/#
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/phpbb/phpbb/phpBB/phpbb/cache/driver/file.php:313:25
+      → /[\n\r\s\t]+/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/cache/driver/base.php:99:25
+      → /[\n\r\s\t]+/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/cache/driver/memory.php:220:25
+      → /[\n\r\s\t]+/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/composer/io/html_output_formatter.php:53:32
+      → {[\033\033]\[([0-9;]+)m(.*?)[\033\033]\[[0-9;]+m}s
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '\x1B' (duplicate)
+
+  corpus/phpbb/phpbb/phpBB/phpbb/search/backend/fulltext_mysql.php:224:18
+      → #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?:[\p{L}\p{N}*"()]+'?)*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?:[\p{L}\p{N}*"()]+'?)*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+         + #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?>(?:[\p{L}\p{N}*"()]+'?))*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/phpbb/phpbb/phpBB/phpbb/search/backend/fulltext_mysql.php:1131:18
+      → #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?:[\p{L}\p{N}*]+'?)*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?:[\p{L}\p{N}*]+'?)*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+         + #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?>(?:[\p{L}\p{N}*]+'?))*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/phpbb/phpbb/phpBB/phpbb/search/backend/fulltext_postgres.php:187:18
+      → #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?:[\p{L}\p{N}*"()]+'?)*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?:[\p{L}\p{N}*"()]+'?)*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+         + #(?:[^\p{L}\p{N}*"()]|^)([+\-|]?(?>(?:[\p{L}\p{N}*"()]+'?))*[\p{L}\p{N}*"()])(?:[^\p{L}\p{N}*"()]|$)#u
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/phpbb/phpbb/phpBB/phpbb/search/backend/fulltext_postgres.php:1066:18
+      → #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?:[\p{L}\p{N}*]+'?)*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?:[\p{L}\p{N}*]+'?)*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+         + #(?:[^\p{L}\p{N}*]|^)([+\-|]?(?>(?:[\p{L}\p{N}*]+'?))*[\p{L}\p{N}*])(?:[^\p{L}\p{N}*]|$)#u
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/phpbb/phpbb/phpBB/phpbb/feed/helper.php:152:28
+      → #<\!--\[if \!IE\]>-->([^[]+)<\!--<!\[endif\]-->#si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #<\!--\[if \!IE\]>-->([^[]+)<\!--<!\[endif\]-->#si
+         + #<!--\[if !IE\]>-->([^\[]+)<!--<!\[endif\]-->#i
+
+  corpus/phpbb/phpbb/phpBB/phpbb/feed/helper.php:160:28
+      → #<(script|iframe)([^[]+)\1>#siU
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #<(script|iframe)([^[]+)\1>#siU
+         + #<(script|iframe)([^[]+)\1>#iU
+
+  corpus/phpbb/phpbb/phpBB/phpbb/feed/helper.php:189:27
+      → #\<\!\[CDATA\[(.*?)\]\]\>#s
+     TIP 
+         - #\<\!\[CDATA\[(.*?)\]\]\>#s
+         + #<!\[CDATA\[(.*?)\]\]>#s
+
+  corpus/phpbb/phpbb/phpBB/phpbb/files/upload.php:266:18
+      → #[\/:*?"<>|]#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:161:18
+      → /\s*(AND|OR)?\s*([\w_.()]++)\s*(?:(=|<[=>]?|>=?|LIKE)\s*((?>'(?>[^']++|'')*+'|[\d\-.()]+))|((NOT )?IN\s*\((?>'(?>[^']++|'')*+',? ?|[\d\-.]+,? ?)*+\)))/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:354:30
+      → /^(UPDATE [\w_]++\s+SET )([\w_]++\s*=\s*(?:'(?:[^']++|'')*+'|[\d\-.]+)(?:,\s*[\w_]++\s*=\s*(?:'(?:[^']++|'')*+'|[\d\-.]+))*+)\s+(WHERE.*)$/s
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:360:23
+      → /([\w_]++)\s*=\s*('(?:[^']++|'')*+'|[\d\-.]++)/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:386:22
+      → /^(DELETE FROM [\w_]++ WHERE)((?:\s*(?:AND|OR)?\s*[\w_]+\s*(?:(?:=|<>)\s*(?>'(?>[^']++|'')*+'|[\d\-.]+)|(?:NOT )?IN\s*\((?>'(?>[^']++|'')*+',? ?|[\d\-.]+,? ?)*+\)))*+)$/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:394:22
+      → /^(UPDATE [\w_]++\s+SET [\w_]+\s*=\s*(?:'(?:[^']++|'')*+'|[\d\-.]++|:\w++)(?:, [\w_]+\s*=\s*(?:'(?:[^']++|'')*+'|[\d\-.]++|:\w++))*+\s+WHERE)(.*)$/s
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:402:38
+      → /([\w_.]++)\s*(?:(=|<>)\s*(?>'(?>[^']++|'')*+'|[\d\-.]++|([\w_.]++))|(?:NOT )?IN\s*\((?>'(?>[^']++|'')*+',? ?|[\d\-.]++,? ?)*+\))/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/oracle.php:583:19
+      → #^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)#is
+         + #^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)#i
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/postgres.php:348:19
+      → /^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)/is
+         + /^INSERT[\t\n ]+INTO[\t\n ]+([a-z0-9\_\-]+)/i
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/driver.php:1193:186
+      → /[\s]*[\n\r\t]+[\n\r\s\t]*/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/driver.php:1279:206
+      → /[\s]*[\n\r\t]+[\n\r\s\t]*/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/mssqlnative.php:210:27
+      → /SELECT(\s*DISTINCT)?/Dsi
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /SELECT(\s*DISTINCT)?/Dsi
+         + /SELECT(\s*DISTINCT)?/Di
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/driver/mssqlnative.php:215:26
+      → /SELECT(\s*DISTINCT)?/Dsi
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /SELECT(\s*DISTINCT)?/Dsi
+         + /SELECT(\s*DISTINCT)?/Di
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/migration/tool/permission.php:260:31
+      → /ROLE_(?<title>([A-Z]+_?)+)/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /ROLE_(?<title>([A-Z]+_?)+)/
+         + /ROLE_(?<title>(?>([A-Z]+_?))+)/
+
+  corpus/phpbb/phpbb/phpBB/phpbb/event/md_exporter.php:442:19
+      → #^([a-z][a-z0-9]*(?:_[a-z][a-z0-9]*)+)$#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^([a-z][a-z0-9]*(?:_[a-z][a-z0-9]*)+)$#
+         + #^([a-z][a-z0-9]*(?>(?:_[a-z][a-z0-9]*))+)$#
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/phpbb/phpbb/phpBB/includes/functions.php:2868:17
+      → /(?:\d{1,3}\.){3}\d{1,3}$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:437:21
+      → /\<\?.*?\?\>/is
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:782:22
+      → #\[((?:/)?(?:[a-z]+))#i
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - #\[((?:/)?(?:[a-z]+))#i
+         + #\[(/?(?:[a-z]+))#i
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:1098:96
+      → #\[\/?[a-z\*\+\-]+(?:=\S+?)?\]#ius
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\[\/?[a-z\*\+\-]+(?:=\S+?)?\]#ius
+         + #\[\/?[a-z\*\+\-]+(?:=\S+?)?\]#iu
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:1877:33
+      → #\[\/?[a-z\*\+\-]+(=[\S]+)?\]#ius
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\[\/?[a-z\*\+\-]+(=[\S]+)?\]#ius
+         + #\[\/?[a-z\*\+\-]+(=[\S]+)?\]#iu
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:1566:45
+      → #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+     TIP 
+         - #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+         + #\[attachment=([0-9]+)](.*?)\[/attachment\]#
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:1639:45
+      → #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+     TIP 
+         - #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+         + #\[attachment=([0-9]+)](.*?)\[/attachment\]#
+
+  corpus/phpbb/phpbb/phpBB/includes/message_parser.php:1711:46
+      → #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+     TIP 
+         - #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#
+         + #\[attachment=([0-9]+)](.*?)\[/attachment\]#
+
+  corpus/phpbb/phpbb/phpBB/includes/utf/utf_tools.php:204:15
+      → /^(.{1})(.*)$/us
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^(.{1})(.*)$/us
+         + /^(.)(.*)$/us
+
+  corpus/phpbb/phpbb/phpBB/includes/bbcode.php:488:24
+      → /\n[\n\r\s\t]*/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_module.php:402:18
+      → /(?:\n\t\t\t"[^"\\]*(?:\\.[^"\\]*)*"         |\n\t\t\t'[^'\\]*(?:\\.[^'\\]*)*'     |\n\t\t\t[(),]                                  |\n\t\t\t[^\s(),]+)/x
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           /(?:
+         - 			"[^"\\]*(?:\\.[^"\\]*)*"         |
+         ---
+         + 			"[^"\\]*(?>(?:\\.[^"\\]*))*"         |
+           			'[^'\\]*(?:\\.[^'\\]*)*'     |
+           			[(),]                                  |
+           ...
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_user.php:1030:17
+      → #ReferralServer:[\x20]*whois://(.+)#im
+     WARN  Flag 'm' is useless: pattern '#ReferralServer:[\x20]*whois:\/\/(.+)#im' contains no anchors.
+     TIP 
+         - #ReferralServer:[\x20]*whois://(.+)#im
+         + #ReferralServer:[\x20]*whois://(.+)#i
+
+  corpus/phpbb/phpbb/phpBB/includes/acp/acp_attachments.php:1608:25
+      → #^([\w\-_]\.?){2,}$#is
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #^([\w\-_]\.?){2,}$#is
+         + #^([\w\-_]\.?){2,}$#i
+
+  corpus/phpbb/phpbb/phpBB/includes/acp/acp_attachments.php:1612:25
+      → #^([a-z0-9\-\*\._/]+?)$#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #^([a-z0-9\-\*\._/]+?)$#is
+         + #^([a-z0-9\-\*\._/]+?)$#i
 
   corpus/yiisoft/yii2/framework/mail/BaseMailer.php:215:34
       → ~\R\R+~mu
@@ -1677,6 +2034,10 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking. Suggested (verify behavior): Make alternatives mutually exclusive or order ...
 
+  corpus/schmittjoh/serializer/src/XmlSerializationVisitor.php:559:68
+      → #^[\pL_][\pL0-9._-]*$#ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/elementor/core/files/css/base.php:368:52
       → /{{(?:([^.}]+)\.)?([^}| ]*)(?: *\|\| *(?:([^.}]+)\.)?([^}| ]*) *)*}}/
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
@@ -1813,6 +2174,35 @@
      TIP 
          - /\s/s
          + /\s/
+
+  corpus/doctrine/dbal/src/Platforms/SQLite/SQLiteMetadataProvider.php:538:17
+      → #\n                    (?:CONSTRAINT\s+(\S+)\s+)?\n                    (?:FOREIGN\s+KEY[^)]+\)\s*)?\n                    REFERENCES\s+\S+\s*(?:\([^)]+\))?\n                    (?:\n                        [^,]*?\n                        (NOT\s+DEFERRABLE|DEFERRABLE)\n                        (?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\n                    )?#isx
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+                   )
+               )?
+         - )?#isx
+         ---
+         + )?#ix
+
+  corpus/doctrine/dbal/src/Platforms/SQLServerPlatform.php:1313:40
+      → /[\s]+order\s+by\s/im
+     WARN  Flag 'm' is useless: pattern '/[\s]+order\s+by\s/im' contains no anchors.
+     TIP 
+         - /[\s]+order\s+by\s/im
+         + /[\s]+order\s+by\s/i
+
+  corpus/doctrine/dbal/src/Schema/SQLiteSchemaManager.php:330:17
+      → #\n                    (?:CONSTRAINT\s+(\S+)\s+)?\n                    (?:FOREIGN\s+KEY[^)]+\)\s*)?\n                    REFERENCES\s+\S+\s*(?:\([^)]+\))?\n                    (?:\n                        [^,]*?\n                        (NOT\s+DEFERRABLE|DEFERRABLE)\n                        (?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\n                    )?#isx
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+                   )
+               )?
+         - )?#isx
+         ---
+         + )?#ix
 
   corpus/filament/packages/support/src/SupportServiceProvider.php:168:33
       → /\s*@trim\s*/m
@@ -3758,6 +4148,48 @@
      TIP 
          - /\A[-+]?\d{0,}\.?\d+\z/
          + /\A[\-+]?\d*\.?\d+\z/
+
+  corpus/phpbb/phpbb/phpBB/develop/namespacify.php:143:25
+      → #(implements |extends )([a-zA-Z0-9_][a-zA-Z0-9_\\]+)(?=\s*(?:,|\n))#
+     TIP 
+         - #(implements |extends )([a-zA-Z0-9_][a-zA-Z0-9_\\]+)(?=\s*(?:,|\n))#
+         + #(implements |extends )([a-zA-Z0-9_][a-zA-Z0-9_\\]+)(?=\s*[,\n])#
+
+  corpus/phpbb/phpbb/phpBB/phpbb/db/tools/doctrine.php:1025:20
+      → /^([a-zA-Z0-9_]+)(?:(?:\:|\()([0-9]{1,3})\)?)?$/
+     TIP 
+         - /^([a-zA-Z0-9_]+)(?:(?:\:|\()([0-9]{1,3})\)?)?$/
+         + /^([a-zA-Z0-9_]+)(?:(?:[:(])([0-9]{1,3})\)?)?$/
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_convert.php:2105:21
+      → #\[email=([^\]]+)\](.*?)\[/email\]#i
+     TIP 
+         - #\[email=([^\]]+)\](.*?)\[/email\]#i
+         + #\[email=([^\]]+)](.*?)\[/email\]#i
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_convert.php:2120:34
+      → #\[size=[0-9]+\].*?\[/size\]#i
+     TIP 
+         - #\[size=[0-9]+\].*?\[/size\]#i
+         + #\[size=[0-9]+].*?\[/size\]#i
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_convert.php:2123:27
+      → #\[size=([0-9]+)\](.*?)\[/size\]#i
+     TIP 
+         - #\[size=([0-9]+)\](.*?)\[/size\]#i
+         + #\[size=([0-9]+)](.*?)\[/size\]#i
+
+  corpus/phpbb/phpbb/phpBB/includes/functions_convert.php:2124:27
+      → #\[size=[0-9]{2,}\](.*?)\[/size\]#i
+     TIP 
+         - #\[size=[0-9]{2,}\](.*?)\[/size\]#i
+         + #\[size=[0-9]{2,}](.*?)\[/size\]#i
+
+  corpus/phpbb/phpbb/phpBB/posting.php:1752:42
+      → #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#uis
+     TIP 
+         - #\[attachment=([0-9]+)\](.*?)\[\/attachment\]#uis
+         + #\[attachment=([0-9]+)](.*?)\[/attachment\]#uis
 
   corpus/yiisoft/yii2/framework/db/Connection.php:1001:13
       → /(\{\{(%?[\w\-\. ]+%?)\}\}|\[\[([\w\-\. ]+)\]\])/
