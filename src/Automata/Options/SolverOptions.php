@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Automata\Options;
 
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 
 /**
@@ -21,12 +22,13 @@ use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 final readonly class SolverOptions
 {
     /**
-     * @param MatchMode             $matchMode               How to interpret matching semantics
-     * @param int                   $maxNfaStates            Maximum allowed NFA states
-     * @param int                   $maxDfaStates            Maximum allowed DFA states
-     * @param bool                  $minimizeDfa             Whether to minimize DFAs after determinization
-     * @param MinimizationAlgorithm $minimizationAlgorithm   Strategy used for DFA minimization
-     * @param int|null              $maxTransitionsProcessed Hard limit on transition work (determinize/minimize)
+     * @param MatchMode                $matchMode                How to interpret matching semantics
+     * @param int                      $maxNfaStates             Maximum allowed NFA states
+     * @param int                      $maxDfaStates             Maximum allowed DFA states
+     * @param bool                     $minimizeDfa              Whether to minimize DFAs after determinization
+     * @param MinimizationAlgorithm    $minimizationAlgorithm    Strategy used for DFA minimization
+     * @param int|null                 $maxTransitionsProcessed  Hard limit on transition work (determinize/minimize)
+     * @param DeterminizationAlgorithm $determinizationAlgorithm Strategy used for NFA determinization
      */
     public function __construct(
         public MatchMode $matchMode = MatchMode::FULL,
@@ -35,5 +37,6 @@ final readonly class SolverOptions
         public bool $minimizeDfa = true,
         public MinimizationAlgorithm $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT,
         public ?int $maxTransitionsProcessed = null,
+        public DeterminizationAlgorithm $determinizationAlgorithm = DeterminizationAlgorithm::SUBSET_INDEXED,
     ) {}
 }

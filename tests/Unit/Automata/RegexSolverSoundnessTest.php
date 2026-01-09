@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Automata;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
 use RegexParser\Automata\Solver\RegexSolver;
@@ -22,10 +24,14 @@ use RegexParser\Automata\Solver\RegexSolver;
 final class RegexSolverSoundnessTest extends TestCase
 {
     #[Test]
-    public function test_solver_matches_pcre_for_bounded_language(): void
+    #[DataProvider('provideDeterminizationAlgorithms')]
+    public function test_solver_matches_pcre_for_bounded_language(DeterminizationAlgorithm $determinization): void
     {
         $solver = new RegexSolver();
-        $options = new SolverOptions(matchMode: MatchMode::FULL);
+        $options = new SolverOptions(
+            matchMode: MatchMode::FULL,
+            determinizationAlgorithm: $determinization,
+        );
         $patterns = $this->supportedPatterns();
         $strings = $this->generateStrings(['a', 'b'], 4);
 
@@ -56,6 +62,12 @@ final class RegexSolverSoundnessTest extends TestCase
                 );
             }
         }
+    }
+
+    public static function provideDeterminizationAlgorithms(): \Generator
+    {
+        yield 'subset' => [DeterminizationAlgorithm::SUBSET];
+        yield 'subset-indexed' => [DeterminizationAlgorithm::SUBSET_INDEXED];
     }
 
     /**

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Cli\Command;
 
 use RegexParser\Automata\Api\RegexLanguageSolver;
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
@@ -48,7 +49,7 @@ final class CompareCommand extends AbstractCommand
         $parsed = $this->parseArguments($input->args);
         if (null !== $parsed['error']) {
             $output->write($output->error('Error: '.$parsed['error']."\n"));
-            $output->write("Usage: regex compare <pattern1> <pattern2> [--method intersection|subset|equivalence] [--minimizer hopcroft|moore]\n");
+            $output->write("Usage: regex compare <pattern1> <pattern2> [--method intersection|subset|equivalence] [--minimizer hopcroft|moore] [--determinizer subset|subset-indexed]\n");
 
             return 1;
         }
@@ -62,12 +63,14 @@ final class CompareCommand extends AbstractCommand
         $options = new SolverOptions(
             matchMode: MatchMode::FULL,
             minimizationAlgorithm: MinimizationAlgorithm::from($parsed['minimizer']),
+            determinizationAlgorithm: DeterminizationAlgorithm::from($parsed['determinizer']),
         );
 
         $style = new ConsoleStyle($output, $input->globalOptions->visuals);
         $meta = [
             'Method' => $output->warning($parsed['method']),
             'Minimizer' => $output->warning($parsed['minimizer']),
+            'Determinizer' => $output->warning($parsed['determinizer']),
         ];
         if (null !== $input->globalOptions->phpVersion) {
             $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
@@ -97,7 +100,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, determinizer: string, error: ?string} $parsed
      */
     private function handleIntersection(RegexLanguageSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -117,7 +120,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, determinizer: string, error: ?string} $parsed
      */
     private function handleSubset(RegexLanguageSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -137,7 +140,7 @@ final class CompareCommand extends AbstractCommand
     }
 
     /**
-     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string} $parsed
+     * @param array{pattern1: string, pattern2: string, method: string, minimizer: string, determinizer: string, error: ?string} $parsed
      */
     private function handleEquivalence(RegexLanguageSolver $solver, SolverOptions $options, array $parsed, Output $output): int
     {
@@ -199,12 +202,13 @@ final class CompareCommand extends AbstractCommand
     /**
      * @param array<int, string> $args
      *
-     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, error: ?string}
+     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, determinizer: string, error: ?string}
      */
     private function parseArguments(array $args): array
     {
         $method = self::METHOD_INTERSECTION;
         $minimizer = MinimizationAlgorithm::HOPCROFT->value;
+        $determinizer = DeterminizationAlgorithm::SUBSET_INDEXED->value;
         $patterns = [];
         $stopParsing = false;
 
@@ -251,6 +255,23 @@ final class CompareCommand extends AbstractCommand
                 continue;
             }
 
+            if (!$stopParsing && str_starts_with($arg, '--determinizer=')) {
+                $determinizer = \strtolower(substr($arg, \strlen('--determinizer=')));
+
+                continue;
+            }
+
+            if (!$stopParsing && '--determinizer' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return $this->errorResult('Missing value for --determinizer.');
+                }
+                $determinizer = \strtolower($value);
+                $i++;
+
+                continue;
+            }
+
             if (!$stopParsing && str_starts_with($arg, '--')) {
                 return $this->errorResult('Unknown option: '.$arg);
             }
@@ -266,6 +287,10 @@ final class CompareCommand extends AbstractCommand
             return $this->errorResult('Invalid value for --minimizer. Use hopcroft or moore.');
         }
 
+        if (!\in_array($determinizer, [DeterminizationAlgorithm::SUBSET->value, DeterminizationAlgorithm::SUBSET_INDEXED->value], true)) {
+            return $this->errorResult('Invalid value for --determinizer. Use subset or subset-indexed.');
+        }
+
         if (\count($patterns) < 2) {
             return $this->errorResult('Missing required patterns.');
         }
@@ -279,12 +304,13 @@ final class CompareCommand extends AbstractCommand
             'pattern2' => $patterns[1],
             'method' => $method,
             'minimizer' => $minimizer,
+            'determinizer' => $determinizer,
             'error' => null,
         ];
     }
 
     /**
-     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, error: string}
+     * @return array{pattern1: string, pattern2: string, method: string, minimizer: string, determinizer: string, error: string}
      */
     private function errorResult(string $error): array
     {
@@ -293,6 +319,7 @@ final class CompareCommand extends AbstractCommand
             'pattern2' => '',
             'method' => self::METHOD_INTERSECTION,
             'minimizer' => MinimizationAlgorithm::HOPCROFT->value,
+            'determinizer' => DeterminizationAlgorithm::SUBSET_INDEXED->value,
             'error' => $error,
         ];
     }

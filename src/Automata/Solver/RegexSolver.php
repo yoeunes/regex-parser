@@ -113,6 +113,12 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
      */
     private function buildDfas(string $left, string $right, SolverOptions $options): array
     {
+        if ($left === $right) {
+            $dfa = $this->buildDfa($left, $options);
+
+            return [$dfa, $dfa];
+        }
+
         return [
             $this->buildDfa($left, $options),
             $this->buildDfa($right, $options),
@@ -160,6 +166,7 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
             $options->maxDfaStates,
             $options->minimizeDfa ? '1' : '0',
             $options->minimizationAlgorithm->value,
+            $options->determinizationAlgorithm->value,
             $options->maxTransitionsProcessed ?? 'null',
         ];
 

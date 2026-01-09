@@ -40,7 +40,8 @@ final class ConfigurationTest extends TestCase
          *         ignore_patterns: array<int, string>
          *     },
          *     automata: array{
-         *         minimization_algorithm: string
+         *         minimization_algorithm: string,
+         *         determinization_algorithm: string
          *     },
          *     optimizations: array{
          *         digits: bool,
@@ -64,6 +65,7 @@ final class ConfigurationTest extends TestCase
         $this->assertSame(100, $config['analysis']['redos_threshold']);
         $this->assertSame([], $config['analysis']['ignore_patterns']);
         $this->assertSame('hopcroft', $config['automata']['minimization_algorithm']);
+        $this->assertSame('subset-indexed', $config['automata']['determinization_algorithm']);
         $this->assertTrue($config['optimizations']['digits']);
         $this->assertTrue($config['optimizations']['word']);
         $this->assertTrue($config['optimizations']['ranges']);
@@ -93,7 +95,8 @@ final class ConfigurationTest extends TestCase
          *         ignore_patterns: array<int, string>
          *     },
          *     automata: array{
-         *         minimization_algorithm: string
+         *         minimization_algorithm: string,
+         *         determinization_algorithm: string
          *     },
          *     optimizations: array{
          *         digits: bool,
@@ -119,6 +122,7 @@ final class ConfigurationTest extends TestCase
             ],
             'automata' => [
                 'minimization_algorithm' => 'moore',
+                'determinization_algorithm' => 'subset',
             ],
             'optimizations' => [
                 'digits' => false,
@@ -152,6 +156,7 @@ final class ConfigurationTest extends TestCase
         $this->assertSame(1, $config['analysis']['warning_threshold'] ?? 0);
         $this->assertSame(2, $config['analysis']['redos_threshold'] ?? 'high');
         $this->assertSame('moore', $config['automata']['minimization_algorithm'] ?? '');
+        $this->assertSame('subset', $config['automata']['determinization_algorithm'] ?? '');
         $this->assertFalse($config['optimizations']['digits']);
         $this->assertFalse($config['optimizations']['word']);
         $this->assertFalse($config['optimizations']['ranges']);

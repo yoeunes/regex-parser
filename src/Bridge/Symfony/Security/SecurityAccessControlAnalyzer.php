@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Security;
 
 use RegexParser\Automata\Api\RegexLanguageSolver;
 use RegexParser\Automata\Builder\DfaBuilder;
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
@@ -54,6 +55,7 @@ final readonly class SecurityAccessControlAnalyzer
         private ?DfaBuilder $dfaBuilder = null,
         private string $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT->value,
         ?RegexLanguageSolver $solver = null,
+        private string $determinizationAlgorithm = DeterminizationAlgorithm::SUBSET_INDEXED->value,
     ) {
         $this->solver = $solver ?? RegexLanguageSolver::forRegex(
             $this->regex,
@@ -80,6 +82,7 @@ final readonly class SecurityAccessControlAnalyzer
             matchMode: MatchMode::PARTIAL,
             minimizeDfa: false,
             minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
+            determinizationAlgorithm: $this->resolveDeterminizationAlgorithm(),
         );
 
         foreach ($rules as $rule) {
@@ -579,5 +582,13 @@ final readonly class SecurityAccessControlAnalyzer
         $algorithm = MinimizationAlgorithm::tryFrom($normalized);
 
         return $algorithm ?? MinimizationAlgorithm::HOPCROFT;
+    }
+
+    private function resolveDeterminizationAlgorithm(): DeterminizationAlgorithm
+    {
+        $normalized = \strtolower(\trim($this->determinizationAlgorithm));
+        $algorithm = DeterminizationAlgorithm::tryFrom($normalized);
+
+        return $algorithm ?? DeterminizationAlgorithm::SUBSET_INDEXED;
     }
 }

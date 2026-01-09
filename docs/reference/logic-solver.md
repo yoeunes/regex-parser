@@ -88,6 +88,43 @@ RegexParser follows a formal pipeline:
 
 The BFS step guarantees the **shortest possible counter-example** when one exists.
 
+## Determinization Strategies
+
+RegexParser determinizes NFAs using a selectable strategy:
+
+- **subset**: classic powerset construction.
+- **subset-indexed** (default): pre-indexes transition ranges to reduce move checks on large alphabets.
+
+The indexed strategy typically runs faster at the cost of a slightly higher memory footprint.
+
+### Selecting a Strategy
+
+CLI:
+
+```bash
+bin/regex compare '/foo/' '/bar/' --determinizer=subset-indexed
+```
+
+Symfony bundle:
+
+```yaml
+# config/packages/regex_parser.yaml
+regex_parser:
+  automata:
+    determinization_algorithm: subset-indexed
+```
+
+You can also set it programmatically:
+
+```php
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
+use RegexParser\Automata\Options\SolverOptions;
+
+$options = new SolverOptions(
+    determinizationAlgorithm: DeterminizationAlgorithm::SUBSET_INDEXED,
+);
+```
+
 ## Minimization Strategies and Complexity
 
 RegexParser minimizes DFAs before comparison to shrink the product graph and keep searches fast.

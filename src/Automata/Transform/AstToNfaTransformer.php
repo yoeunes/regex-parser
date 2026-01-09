@@ -73,6 +73,21 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
      */
     private static array $digitCharSet = [];
 
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $wordCharSetComplement = [];
+
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $spaceCharSetComplement = [];
+
+    /**
+     * @var array<string, CharSet>
+     */
+    private static array $digitCharSetComplement = [];
+
     private NfaBuilder $builder;
 
     private bool $caseInsensitive = false;
@@ -240,10 +255,6 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         $start = $this->builder->createState();
         $current = $start;
         if ($this->unicode) {
-            if (!CodePointHelper::isValidUtf8($node->value)) {
-                throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
-            }
-
             $codePoints = CodePointHelper::toCodePoints($node->value);
             if ([] === $codePoints) {
                 throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
@@ -293,11 +304,11 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     {
         $charSet = match ($node->value) {
             'd' => $this->digitCharSet(),
-            'D' => $this->digitCharSet()->complement(),
+            'D' => $this->digitCharSetComplement(),
             'w' => $this->wordCharSet(),
-            'W' => $this->wordCharSet()->complement(),
+            'W' => $this->wordCharSetComplement(),
             's' => $this->spaceCharSet(),
-            'S' => $this->spaceCharSet()->complement(),
+            'S' => $this->spaceCharSetComplement(),
             default => throw new ComplexityException('Unsupported character type: '.$node->value.'.', $node->getStartPosition(), $this->pattern),
         };
 
@@ -381,25 +392,24 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             }
 
             if ($this->unicode) {
-                if (!CodePointHelper::isValidUtf8($node->value)) {
-                    throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
-                }
-
                 $codePoints = CodePointHelper::toCodePoints($node->value);
                 if ([] === $codePoints) {
                     throw new ComplexityException('Invalid UTF-8 literal in /u pattern.', $node->getStartPosition(), $this->pattern);
                 }
 
-                $set = CharSet::empty($this->alphabetMax);
+                $ranges = [];
                 foreach ($codePoints as $codePoint) {
-                    $set = $set->union(CharSet::fromCodePoint($codePoint, $this->alphabetMax));
+                    $ranges[] = [$codePoint, $codePoint];
                 }
+                $set = CharSet::fromRanges($ranges, $this->alphabetMax);
             } else {
-                $set = CharSet::empty($this->alphabetMax);
+                $ranges = [];
                 $length = \strlen($node->value);
                 for ($i = 0; $i < $length; $i++) {
-                    $set = $set->union(CharSet::fromCodePoint(\ord($node->value[$i]), $this->alphabetMax));
+                    $codePoint = \ord($node->value[$i]);
+                    $ranges[] = [$codePoint, $codePoint];
                 }
+                $set = CharSet::fromRanges($ranges, $this->alphabetMax);
             }
 
             return $set;
@@ -416,11 +426,11 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         if ($node instanceof CharTypeNode) {
             return match ($node->value) {
                 'd' => $this->digitCharSet(),
-                'D' => $this->digitCharSet()->complement(),
+                'D' => $this->digitCharSetComplement(),
                 'w' => $this->wordCharSet(),
-                'W' => $this->wordCharSet()->complement(),
+                'W' => $this->wordCharSetComplement(),
                 's' => $this->spaceCharSet(),
-                'S' => $this->spaceCharSet()->complement(),
+                'S' => $this->spaceCharSetComplement(),
                 default => throw new ComplexityException('Unsupported character type in class: '.$node->value.'.', $node->getStartPosition(), $this->pattern),
             };
         }
@@ -618,6 +628,45 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         return $set;
     }
 
+    private function wordCharSetComplement(): CharSet
+    {
+        $key = $this->cacheKey();
+        if (isset(self::$wordCharSetComplement[$key])) {
+            return self::$wordCharSetComplement[$key];
+        }
+
+        $set = $this->wordCharSet()->complement();
+        self::$wordCharSetComplement[$key] = $set;
+
+        return $set;
+    }
+
+    private function spaceCharSetComplement(): CharSet
+    {
+        $key = $this->cacheKey();
+        if (isset(self::$spaceCharSetComplement[$key])) {
+            return self::$spaceCharSetComplement[$key];
+        }
+
+        $set = $this->spaceCharSet()->complement();
+        self::$spaceCharSetComplement[$key] = $set;
+
+        return $set;
+    }
+
+    private function digitCharSetComplement(): CharSet
+    {
+        $key = $this->cacheKey();
+        if (isset(self::$digitCharSetComplement[$key])) {
+            return self::$digitCharSetComplement[$key];
+        }
+
+        $set = $this->digitCharSet()->complement();
+        self::$digitCharSetComplement[$key] = $set;
+
+        return $set;
+    }
+
     /**
      * @throws ComplexityException
      */
@@ -681,6 +730,14 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             return $charSet;
         }
 
+        if ($charSet->isEmpty() || $charSet->isFull()) {
+            return $charSet;
+        }
+
+        if ($this->isCaseInvariantCharSet($charSet)) {
+            return $charSet;
+        }
+
         if (!$this->unicode) {
             $expanded = $charSet;
             for ($i = \ord('A'); $i <= \ord('Z'); $i++) {
@@ -694,10 +751,6 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             }
 
             return $expanded;
-        }
-
-        if ($charSet->isEmpty() || $charSet->isFull()) {
-            return $charSet;
         }
 
         if (!\function_exists('mb_strtolower') || !\function_exists('mb_strtoupper')) {
@@ -728,6 +781,18 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         return $expanded;
+    }
+
+    private function isCaseInvariantCharSet(CharSet $charSet): bool
+    {
+        $key = $this->cacheKey();
+
+        return (isset(self::$wordCharSet[$key]) && $charSet === self::$wordCharSet[$key])
+            || (isset(self::$wordCharSetComplement[$key]) && $charSet === self::$wordCharSetComplement[$key])
+            || (isset(self::$spaceCharSet[$key]) && $charSet === self::$spaceCharSet[$key])
+            || (isset(self::$spaceCharSetComplement[$key]) && $charSet === self::$spaceCharSetComplement[$key])
+            || (isset(self::$digitCharSet[$key]) && $charSet === self::$digitCharSet[$key])
+            || (isset(self::$digitCharSetComplement[$key]) && $charSet === self::$digitCharSetComplement[$key]);
     }
 
     private function wrapPartialMatch(

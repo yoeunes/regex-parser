@@ -67,6 +67,7 @@ final class RegexParserExtension extends Extension
          *     },
          *     automata: array{
          *         minimization_algorithm: string,
+         *         determinization_algorithm: string,
          *     },
          *     optimizations: array{
          *         digits: bool,
@@ -99,6 +100,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.automata.minimization_algorithm', $config['automata']['minimization_algorithm']);
+        $container->setParameter('regex_parser.automata.determinization_algorithm', $config['automata']['determinization_algorithm']);
         $container->setParameter('regex_parser.optimizations', [
             'digits' => $config['optimizations']['digits'],
             'word' => $config['optimizations']['word'],

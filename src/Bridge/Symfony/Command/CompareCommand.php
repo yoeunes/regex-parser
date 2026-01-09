@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Automata\Api\RegexLanguageSolver;
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
@@ -40,6 +41,7 @@ final class CompareCommand extends Command
     public function __construct(
         private readonly Regex $regex,
         private readonly string $defaultMinimizer = MinimizationAlgorithm::HOPCROFT->value,
+        private readonly string $defaultDeterminizer = DeterminizationAlgorithm::SUBSET_INDEXED->value,
     ) {
         parent::__construct();
     }
@@ -52,6 +54,7 @@ final class CompareCommand extends Command
             ->addArgument('pattern2', InputArgument::REQUIRED, 'The second regex pattern (with delimiters)')
             ->addOption('method', null, InputOption::VALUE_REQUIRED, 'intersection, subset, or equivalence', self::METHOD_INTERSECTION)
             ->addOption('minimizer', null, InputOption::VALUE_REQUIRED, 'hopcroft or moore', $this->defaultMinimizer)
+            ->addOption('determinizer', null, InputOption::VALUE_REQUIRED, 'subset or subset-indexed', $this->defaultDeterminizer)
             ->setHelp(<<<'EOF'
                 The <info>%command.name%</info> command compares two regex patterns using automata logic.
 
@@ -61,6 +64,7 @@ final class CompareCommand extends Command
                 <info>php %command.full_name% "/[a-z]+/" "/edit/" --method=subset</info>
                 <info>php %command.full_name% "/foo|bar/" "/bar|foo/" --method=equivalence</info>
                 <info>php %command.full_name% "/foo/" "/bar/" --minimizer=moore</info>
+                <info>php %command.full_name% "/foo/" "/bar/" --determinizer=subset-indexed</info>
                 EOF);
     }
 
@@ -72,6 +76,7 @@ final class CompareCommand extends Command
         $pattern2 = $input->getArgument('pattern2');
         $methodOption = $input->getOption('method');
         $minimizerOption = $input->getOption('minimizer');
+        $determinizerOption = $input->getOption('determinizer');
 
         if (!\is_string($pattern1) || '' === $pattern1) {
             $io->error('The first pattern must be a non-empty string.');
@@ -104,10 +109,16 @@ final class CompareCommand extends Command
             return Command::FAILURE;
         }
 
+        $determinizer = $this->resolveDeterminizationAlgorithm($determinizerOption, $io);
+        if (null === $determinizer) {
+            return Command::FAILURE;
+        }
+
         $solver = RegexLanguageSolver::forRegex($this->regex);
         $options = new SolverOptions(
             matchMode: MatchMode::FULL,
             minimizationAlgorithm: $minimizer,
+            determinizationAlgorithm: $determinizer,
         );
 
         try {
@@ -235,6 +246,24 @@ final class CompareCommand extends Command
         $algorithm = MinimizationAlgorithm::tryFrom($normalized);
         if (null === $algorithm) {
             $io->error('Invalid --minimizer. Choose hopcroft or moore.');
+
+            return null;
+        }
+
+        return $algorithm;
+    }
+
+    private function resolveDeterminizationAlgorithm(mixed $value, SymfonyStyle $io): ?DeterminizationAlgorithm
+    {
+        $normalized = \is_string($value) ? strtolower(trim($value)) : '';
+
+        if ('' === $normalized) {
+            $normalized = $this->defaultDeterminizer;
+        }
+
+        $algorithm = DeterminizationAlgorithm::tryFrom($normalized);
+        if (null === $algorithm) {
+            $io->error('Invalid --determinizer. Choose subset or subset-indexed.');
 
             return null;
         }

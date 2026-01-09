@@ -33,5 +33,3 @@ parameters:
     ignoreErrors:
         - identifiers:
             - classConstant.internalClass
-        - '#^Regex pattern is invalid: Unknown modifier .+$#'
-        - '#^Regex syntax error: Unknown regex flag.*$#'

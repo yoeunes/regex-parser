@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Routing;
 
 use RegexParser\Automata\Api\RegexLanguageSolver;
 use RegexParser\Automata\Builder\DfaBuilder;
+use RegexParser\Automata\Determinization\DeterminizationAlgorithm;
 use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 use RegexParser\Automata\Options\MatchMode;
 use RegexParser\Automata\Options\SolverOptions;
@@ -49,6 +50,7 @@ final readonly class RouteConflictAnalyzer
         private ?DfaBuilder $dfaBuilder = null,
         private string $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT->value,
         ?RegexLanguageSolver $solver = null,
+        private string $determinizationAlgorithm = DeterminizationAlgorithm::SUBSET_INDEXED->value,
     ) {
         $this->solver = $solver ?? RegexLanguageSolver::forRegex(
             $this->regex,
@@ -71,6 +73,7 @@ final readonly class RouteConflictAnalyzer
             matchMode: MatchMode::FULL,
             minimizeDfa: false,
             minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
+            determinizationAlgorithm: $this->resolveDeterminizationAlgorithm(),
         );
 
         foreach ($collection as $name => $route) {
@@ -671,5 +674,13 @@ final readonly class RouteConflictAnalyzer
         $algorithm = MinimizationAlgorithm::tryFrom($normalized);
 
         return $algorithm ?? MinimizationAlgorithm::HOPCROFT;
+    }
+
+    private function resolveDeterminizationAlgorithm(): DeterminizationAlgorithm
+    {
+        $normalized = \strtolower(\trim($this->determinizationAlgorithm));
+        $algorithm = DeterminizationAlgorithm::tryFrom($normalized);
+
+        return $algorithm ?? DeterminizationAlgorithm::SUBSET_INDEXED;
     }
 }
