@@ -3733,6 +3733,12 @@
          - /\d+\.\d\d+ \d+\.\d\d+ \d+\.\d\d+ ([\-]{0,1}\d+\.\d\d+) re/
          + /\d+\.\d\d+ \d+\.\d\d+ \d+\.\d\d+ ([\-]?\d+\.\d\d+) re/
 
+  corpus/symfony/maker-bundle/src/Util/ClassSourceManipulator.php:929:33
+      → /(\ |\t)*private\ \$__EXTRA__LINE;/
+     TIP 
+         - /(\ |\t)*private\ \$__EXTRA__LINE;/
+         + /([ \t])*private \$__EXTRA__LINE;/
+
   corpus/symfony/symfony/src/Symfony/Component/VarExporter/ProxyHelper.php:397:40
       → /(?|(,)\n( )       |\n        |,\n    (\]))/
      TIP 
