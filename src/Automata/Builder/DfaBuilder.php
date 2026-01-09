@@ -20,6 +20,7 @@ use RegexParser\Automata\Model\Dfa;
 use RegexParser\Automata\Model\DfaState;
 use RegexParser\Automata\Model\Nfa;
 use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Support\WorkBudget;
 use RegexParser\Exception\ComplexityException;
 
 /**
@@ -39,6 +40,17 @@ final readonly class DfaBuilder
     {
         $startSet = $this->epsilonClosure([$nfa->startState], $nfa);
         $alphabetRanges = $this->buildAlphabetRanges($nfa);
+        $nfaTransitions = $this->countTransitions($nfa);
+        $workBudget = null;
+        if (null !== $options->maxTransitionsProcessed) {
+            $workBudget = new WorkBudget(
+                $options->maxTransitionsProcessed,
+                'determinize',
+                0,
+                $nfaTransitions,
+                \count($alphabetRanges),
+            );
+        }
 
         /** @var array<string, int> $stateMap */
         $stateMap = [];
@@ -52,6 +64,9 @@ final readonly class DfaBuilder
         $stateMap[$startKey] = 0;
         $stateSets[0] = $startSet;
         $queue->enqueue(0);
+        if (null !== $workBudget) {
+            $workBudget->updateStats(\count($stateMap), $nfaTransitions, \count($alphabetRanges));
+        }
 
         /** @var array<int, array{transitions: array<int, int>, ranges: array<int, array{0:int, 1:int, 2:int}>}> $transitions */
         $transitions = [];
@@ -71,7 +86,7 @@ final readonly class DfaBuilder
 
             foreach ($alphabetRanges as [$start, $end]) {
                 $symbol = $start;
-                $moveSet = $this->move($currentSet, $symbol, $nfa);
+                $moveSet = $this->move($currentSet, $symbol, $nfa, $workBudget);
                 $targetSet = $this->epsilonClosure($moveSet, $nfa);
                 $targetKey = $this->setKey($targetSet);
 
@@ -85,6 +100,9 @@ final readonly class DfaBuilder
                     $stateMap[$targetKey] = $newId;
                     $stateSets[$newId] = $targetSet;
                     $queue->enqueue($newId);
+                    if (null !== $workBudget) {
+                        $workBudget->updateStats(\count($stateMap), $nfaTransitions, \count($alphabetRanges));
+                    }
                 }
 
                 $targetId = $stateMap[$targetKey];
@@ -128,7 +146,7 @@ final readonly class DfaBuilder
             $minimizer = new DfaMinimizer($algorithm);
         }
 
-        return $minimizer->minimize($dfa);
+        return $minimizer->minimize($dfa, $options);
     }
 
     /**
@@ -187,12 +205,15 @@ final readonly class DfaBuilder
      *
      * @return array<int>
      */
-    private function move(array $stateIds, int $char, Nfa $nfa): array
+    private function move(array $stateIds, int $char, Nfa $nfa, ?WorkBudget $workBudget): array
     {
         $targets = [];
         foreach ($stateIds as $stateId) {
             $state = $nfa->getState($stateId);
             foreach ($state->transitions as $transition) {
+                if (null !== $workBudget) {
+                    $workBudget->consume();
+                }
                 if ($transition->charSet->contains($char)) {
                     $targets[$transition->target] = true;
                 }
@@ -268,5 +289,15 @@ final readonly class DfaBuilder
         }
 
         return $ranges;
+    }
+
+    private function countTransitions(Nfa $nfa): int
+    {
+        $count = 0;
+        foreach ($nfa->states as $state) {
+            $count += \count($state->transitions);
+        }
+
+        return $count;
     }
 }

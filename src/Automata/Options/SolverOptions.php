@@ -21,11 +21,12 @@ use RegexParser\Automata\Minimization\MinimizationAlgorithm;
 final readonly class SolverOptions
 {
     /**
-     * @param MatchMode             $matchMode             How to interpret matching semantics
-     * @param int                   $maxNfaStates          Maximum allowed NFA states
-     * @param int                   $maxDfaStates          Maximum allowed DFA states
-     * @param bool                  $minimizeDfa           Whether to minimize DFAs after determinization
-     * @param MinimizationAlgorithm $minimizationAlgorithm Strategy used for DFA minimization
+     * @param MatchMode             $matchMode               How to interpret matching semantics
+     * @param int                   $maxNfaStates            Maximum allowed NFA states
+     * @param int                   $maxDfaStates            Maximum allowed DFA states
+     * @param bool                  $minimizeDfa             Whether to minimize DFAs after determinization
+     * @param MinimizationAlgorithm $minimizationAlgorithm   Strategy used for DFA minimization
+     * @param int|null              $maxTransitionsProcessed Hard limit on transition work (determinize/minimize)
      */
     public function __construct(
         public MatchMode $matchMode = MatchMode::FULL,
@@ -33,5 +34,6 @@ final readonly class SolverOptions
         public int $maxDfaStates = 10000,
         public bool $minimizeDfa = true,
         public MinimizationAlgorithm $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT,
+        public ?int $maxTransitionsProcessed = null,
     ) {}
 }

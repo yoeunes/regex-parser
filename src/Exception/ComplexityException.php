@@ -26,9 +26,21 @@ final class ComplexityException extends RegexException implements RegexParserExc
         ?string $pattern = null,
         ?\Throwable $previous = null,
         ?string $errorCode = 'regex.complexity',
+        /**
+         * @var array<string, int|string>|null
+         */
+        private ?array $diagnostic = null,
     ) {
         $this->initializeContext($position, $pattern);
 
         parent::__construct($message, $position, $this->getVisualSnippet(), $errorCode, $previous);
+    }
+
+    /**
+     * @return array<string, int|string>|null
+     */
+    public function getDiagnostic(): ?array
+    {
+        return $this->diagnostic;
     }
 }

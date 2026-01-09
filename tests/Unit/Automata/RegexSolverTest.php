@@ -122,6 +122,44 @@ final class RegexSolverTest extends TestCase
         $solver->intersection('/foo^bar/', '/foobar/', $options);
     }
 
+    #[Test]
+    public function test_partial_match_start_anchor_limits_language(): void
+    {
+        $solver = new RegexSolver();
+        $options = new SolverOptions(matchMode: MatchMode::PARTIAL);
+
+        $anchoredSubset = $solver->subsetOf('/^a/', '/a/', $options);
+        $this->assertTrue($anchoredSubset->isSubset);
+
+        $unanchoredSubset = $solver->subsetOf('/a/', '/^a/', $options);
+        $this->assertFalse($unanchoredSubset->isSubset);
+        $this->assertNotNull($unanchoredSubset->counterExample);
+    }
+
+    #[Test]
+    public function test_partial_match_end_anchor_limits_language(): void
+    {
+        $solver = new RegexSolver();
+        $options = new SolverOptions(matchMode: MatchMode::PARTIAL);
+
+        $anchoredSubset = $solver->subsetOf('/a$/', '/a/', $options);
+        $this->assertTrue($anchoredSubset->isSubset);
+
+        $unanchoredSubset = $solver->subsetOf('/a/', '/a$/', $options);
+        $this->assertFalse($unanchoredSubset->isSubset);
+        $this->assertNotNull($unanchoredSubset->counterExample);
+    }
+
+    #[Test]
+    public function test_partial_match_rejects_nested_anchor_alternation(): void
+    {
+        $solver = new RegexSolver();
+        $options = new SolverOptions(matchMode: MatchMode::PARTIAL);
+
+        $this->expectException(ComplexityException::class);
+        $solver->intersection('/(^a)|(^b)/', '/a|b/', $options);
+    }
+
     public static function provideIntersectionCases(): \Generator
     {
         yield 'disjoint char classes' => ['/[a-z]/', '/[0-9]/', true, null];

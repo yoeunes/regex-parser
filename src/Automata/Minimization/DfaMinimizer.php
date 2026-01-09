@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Automata\Minimization;
 
 use RegexParser\Automata\Model\Dfa;
+use RegexParser\Automata\Options\SolverOptions;
+use RegexParser\Automata\Support\WorkBudget;
 
 /**
  * Deterministic DFA minimizer delegating to a strategy implementation.
@@ -24,7 +26,7 @@ final readonly class DfaMinimizer
         private ?MinimizationAlgorithmInterface $algorithm = null,
     ) {}
 
-    public function minimize(Dfa $dfa): Dfa
+    public function minimize(Dfa $dfa, ?SolverOptions $options = null): Dfa
     {
         $states = $dfa->states;
 
@@ -34,6 +36,19 @@ final readonly class DfaMinimizer
 
         $alphabet = $this->effectiveAlphabet($dfa);
         $algorithm = $this->algorithm ?? new HopcroftWorklist();
+        $budget = null;
+        if (null !== $options?->maxTransitionsProcessed) {
+            $budget = new WorkBudget(
+                $options->maxTransitionsProcessed,
+                'minimize',
+                \count($states),
+                $this->countTransitions($dfa),
+                \count($alphabet),
+            );
+        }
+        if ($algorithm instanceof WorkBudgetAwareMinimizationAlgorithmInterface) {
+            $algorithm->setWorkBudget($budget);
+        }
 
         return $algorithm->minimize($dfa, $alphabet);
     }
@@ -67,5 +82,21 @@ final readonly class DfaMinimizer
         \sort($result, \SORT_NUMERIC);
 
         return $result;
+    }
+
+    private function countTransitions(Dfa $dfa): int
+    {
+        $count = 0;
+        foreach ($dfa->states as $state) {
+            if ([] !== $state->ranges) {
+                $count += \count($state->ranges);
+
+                continue;
+            }
+
+            $count += \count($state->transitions);
+        }
+
+        return $count;
     }
 }

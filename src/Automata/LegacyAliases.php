@@ -67,8 +67,23 @@ namespace {
     ];
 
     foreach ($aliases as $new => $old) {
-        if (!\class_exists($old, false) && !\interface_exists($old, false)) {
-            \class_alias($new, $old);
+        $legacyExists = \class_exists($old, false)
+            || \interface_exists($old, false)
+            || (\function_exists('enum_exists') && \enum_exists($old, false));
+
+        if ($legacyExists) {
+            $legacyReflection = new \ReflectionClass($old);
+            $currentReflection = new \ReflectionClass($new);
+            if ($legacyReflection->getName() !== $currentReflection->getName()) {
+                \trigger_error(
+                    \sprintf('Legacy alias "%s" is already defined and does not match "%s".', $old, $new),
+                    \E_USER_WARNING,
+                );
+            }
+
+            continue;
         }
+
+        \class_alias($new, $old);
     }
 }

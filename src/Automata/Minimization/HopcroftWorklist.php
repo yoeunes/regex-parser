@@ -15,12 +15,20 @@ namespace RegexParser\Automata\Minimization;
 
 use RegexParser\Automata\Model\Dfa;
 use RegexParser\Automata\Model\DfaState;
+use RegexParser\Automata\Support\WorkBudget;
 
 /**
  * Hopcroft's DFA minimization using a worklist and inverse transitions.
  */
-final class HopcroftWorklist implements MinimizationAlgorithmInterface
+final class HopcroftWorklist implements MinimizationAlgorithmInterface, WorkBudgetAwareMinimizationAlgorithmInterface
 {
+    private ?WorkBudget $budget = null;
+
+    public function setWorkBudget(?WorkBudget $budget): void
+    {
+        $this->budget = $budget;
+    }
+
     /**
      * @param array<int> $alphabet
      */
@@ -91,6 +99,9 @@ final class HopcroftWorklist implements MinimizationAlgorithmInterface
 
                 foreach ($currentStates as $targetState) {
                     foreach ($inverse[$symbol][$targetState] ?? [] as $sourceState) {
+                        if (null !== $this->budget) {
+                            $this->budget->consume();
+                        }
                         $predecessors[$sourceState] = true;
                     }
                 }
@@ -184,6 +195,9 @@ final class HopcroftWorklist implements MinimizationAlgorithmInterface
                         continue;
                     }
 
+                    if (null !== $this->budget) {
+                        $this->budget->consume();
+                    }
                     $inverse[$start][$target][] = $stateId;
                 }
             } else {
@@ -193,6 +207,9 @@ final class HopcroftWorklist implements MinimizationAlgorithmInterface
                         continue;
                     }
 
+                    if (null !== $this->budget) {
+                        $this->budget->consume();
+                    }
                     $inverse[$symbol][$target][] = $stateId;
                 }
             }

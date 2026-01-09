@@ -44,8 +44,12 @@ are **sound** (no false negatives), **complete** (no false positives), or **best
 - **Fallbacks:** Unsupported constructs raise `ComplexityException`.
 
 **Match modes**
-- **FULL:** Models exact match language `L`.
-- **PARTIAL:** Models search semantics `Σ* L Σ*` with start/end anchors allowed at the outer boundaries.
+- **FULL:** Models the exact match language `L(P)` (as if the pattern is wrapped in `\A(?:P)\z`). Explicit `^`/`$`
+  anchors are redundant under FULL because the whole string is already constrained.
+- **PARTIAL:** Models search semantics `Σ* L(P) Σ*`. If a pattern is start-anchored (`^`) the leading `Σ*` is removed;
+  if it is end-anchored (`$`) the trailing `Σ*` is removed.
+- **Anchor rules in PARTIAL:** Anchors must appear only at the outer boundary of each alternative (first/last token) and
+  must be consistent across alternatives. Nested anchors (e.g., inside a group) are rejected with `ComplexityException`.
 
 ## Symfony Bridge Analyzers
 

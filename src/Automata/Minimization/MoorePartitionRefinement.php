@@ -15,12 +15,20 @@ namespace RegexParser\Automata\Minimization;
 
 use RegexParser\Automata\Model\Dfa;
 use RegexParser\Automata\Model\DfaState;
+use RegexParser\Automata\Support\WorkBudget;
 
 /**
  * Moore's partition refinement minimization algorithm.
  */
-final class MoorePartitionRefinement implements MinimizationAlgorithmInterface
+final class MoorePartitionRefinement implements MinimizationAlgorithmInterface, WorkBudgetAwareMinimizationAlgorithmInterface
 {
+    private ?WorkBudget $budget = null;
+
+    public function setWorkBudget(?WorkBudget $budget): void
+    {
+        $this->budget = $budget;
+    }
+
     /**
      * @param array<int> $alphabet
      */
@@ -111,6 +119,9 @@ final class MoorePartitionRefinement implements MinimizationAlgorithmInterface
         $parts = [];
 
         foreach ($alphabet as $symbol) {
+            if (null !== $this->budget) {
+                $this->budget->consume();
+            }
             $target = $state->transitionFor($symbol);
             $parts[] = null === $target ? 'x' : (string) $stateToGroup[$target];
         }
