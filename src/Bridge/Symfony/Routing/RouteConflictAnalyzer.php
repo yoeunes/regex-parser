@@ -384,7 +384,7 @@ final readonly class RouteConflictAnalyzer
 
     private function primePattern(string $pattern, SolverOptions $options): void
     {
-        $this->solver->intersectionEmpty($pattern, $pattern, $options);
+        $this->solver->prepare($pattern, $options);
     }
 
     /**

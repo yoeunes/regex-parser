@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Effective alphabet optimization in DFA construction plus a new benchmark script for Unicode-heavy ranges.
 - RegexLanguageSolver facade factory plus DFA cache interfaces for reuse across automata comparisons.
 - Work-budget limits for automata processing via SolverOptions `maxTransitionsProcessed`.
+- Facade precompile hook for warm DFA caching in high-volume analyzers.
 
 ### Changed
 - Automata-based analyzers now generate Unicode-aware examples when working with `/u` patterns.

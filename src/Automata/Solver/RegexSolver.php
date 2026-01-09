@@ -25,7 +25,7 @@ use RegexParser\Regex;
 /**
  * Automata-based solver for regex set operations.
  */
-final readonly class RegexSolver implements RegexSolverInterface
+final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexSolverInterface
 {
     public function __construct(
         private ?Regex $regex = null,
@@ -89,6 +89,16 @@ final readonly class RegexSolver implements RegexSolverInterface
         );
 
         return new EquivalenceResult(null === $leftOnlyExample && null === $rightOnlyExample, $leftOnlyExample, $rightOnlyExample);
+    }
+
+    /**
+     * @throws ComplexityException
+     */
+    public function compile(string $pattern, ?SolverOptions $options = null): Dfa
+    {
+        $options ??= new SolverOptions();
+
+        return $this->buildDfa($pattern, $options);
     }
 
     private function parser(): Regex

@@ -19,6 +19,7 @@ use RegexParser\Automata\Solver\DfaCacheInterface;
 use RegexParser\Automata\Solver\EquivalenceResult;
 use RegexParser\Automata\Solver\IntersectionResult;
 use RegexParser\Automata\Solver\RegexSolver;
+use RegexParser\Automata\Solver\RegexSolverCompilerInterface;
 use RegexParser\Automata\Solver\RegexSolverInterface;
 use RegexParser\Automata\Solver\SubsetResult;
 use RegexParser\Automata\Transform\RegularSubsetValidator;
@@ -41,6 +42,22 @@ final readonly class RegexLanguageSolver
         ?DfaCacheInterface $dfaCache = null,
     ): self {
         return new self(new RegexSolver($regex, $validator, $dfaBuilder, $dfaCache));
+    }
+
+    /**
+     * Compile and cache a DFA for the provided pattern.
+     *
+     * @throws ComplexityException
+     */
+    public function prepare(string $pattern, ?SolverOptions $options = null): void
+    {
+        if ($this->solver instanceof RegexSolverCompilerInterface) {
+            $this->solver->compile($pattern, $options);
+
+            return;
+        }
+
+        $this->solver->intersection($pattern, $pattern, $options);
     }
 
     /**
