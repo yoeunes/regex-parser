@@ -18,6 +18,7 @@ use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
 use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
+use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
 use RegexParser\Bridge\Symfony\Analyzer\Severity;
 use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -80,6 +81,7 @@ final class RegexAnalyzeCommand extends Command
                 'Output format (console, json).',
                 self::FORMAT_CONSOLE,
             )
+            ->addOption('debug', null, InputOption::VALUE_NONE, 'Include diagnostic timing and solver statistics.')
             ->addOption(
                 'fail-on',
                 null,
@@ -94,6 +96,8 @@ final class RegexAnalyzeCommand extends Command
                 <info>php %command.full_name% --only=routes</info>
                 <info>php %command.full_name% --show-overlaps</info>
                 <info>php %command.full_name% --format=json</info>
+                <info>php %command.full_name% --debug</info>
+                <info>php %command.full_name% -vvv</info>
 
                 Control CI failures:
                 <info>php %command.full_name% --fail-on=shadowed --fail-on=redos</info>
@@ -145,6 +149,8 @@ final class RegexAnalyzeCommand extends Command
             return Command::FAILURE;
         }
 
+        $debug = (bool) $input->getOption('debug') || $output->isVerbose();
+
         $projectDir = $this->kernel?->getProjectDir() ?? (getcwd() ?: null);
         $environment = $this->kernel?->getEnvironment();
 
@@ -159,21 +165,34 @@ final class RegexAnalyzeCommand extends Command
             $configPaths,
             $threshold,
             (bool) $input->getOption('skip-firewalls'),
+            $debug,
         );
 
         $sections = [];
         foreach ($analyzers as $analyzer) {
-            foreach ($analyzer->analyze($context) as $section) {
-                $sections[] = $section;
+            $start = microtime(true);
+            $analyzed = $analyzer->analyze($context);
+            $durationMs = (int) round((microtime(true) - $start) * 1000);
+
+            if (!$debug) {
+                foreach ($analyzed as $section) {
+                    $sections[] = $section;
+                }
+
+                continue;
+            }
+
+            foreach ($analyzed as $section) {
+                $sections[] = $this->withDebug($section, $durationMs);
             }
         }
 
         $report = new AnalysisReport($sections);
 
         if (self::FORMAT_JSON === $format) {
-            $output->writeln($this->jsonFormatter->format($report));
+            $output->writeln($this->jsonFormatter->format($report, $debug));
         } else {
-            $this->consoleFormatter->render($report, $io);
+            $this->consoleFormatter->render($report, $io, true, $debug);
         }
 
         return $this->shouldFail($report, $failOn) ? Command::FAILURE : Command::SUCCESS;
@@ -298,5 +317,30 @@ final class RegexAnalyzeCommand extends Command
         }
 
         return $report->hasIssuesOfKind($kinds);
+    }
+
+    private function withDebug(ReportSection $section, int $durationMs): ReportSection
+    {
+        $debug = [
+            'Duration' => $durationMs.' ms',
+            'Issues' => \count($section->issues),
+            'Warnings' => \count($section->warnings),
+            'Suggestions' => \count($section->suggestions),
+        ];
+
+        if ([] !== $section->debug) {
+            $debug = array_merge($debug, $section->debug);
+        }
+
+        return new ReportSection(
+            $section->id,
+            $section->title,
+            $section->meta,
+            $section->summary,
+            $section->warnings,
+            $section->issues,
+            $section->suggestions,
+            $debug,
+        );
     }
 }

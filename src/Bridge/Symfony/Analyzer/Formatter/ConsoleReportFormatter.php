@@ -32,14 +32,14 @@ final readonly class ConsoleReportFormatter
     private const BADGE_WARN = '<bg=yellow;fg=black;options=bold> WARN </>';
     private const BADGE_PASS = '<bg=green;fg=white;options=bold> PASS </>';
 
-    public function render(AnalysisReport $report, SymfonyStyle $io, bool $showBanner = true): void
+    public function render(AnalysisReport $report, SymfonyStyle $io, bool $showBanner = true, bool $debug = false): void
     {
         if ($showBanner) {
             $this->showBanner($io);
         }
 
         foreach ($report->sections as $section) {
-            $this->renderSection($io, $section);
+            $this->renderSection($io, $section, $debug);
         }
 
         if ($showBanner) {
@@ -47,7 +47,7 @@ final readonly class ConsoleReportFormatter
         }
     }
 
-    private function renderSection(SymfonyStyle $io, ReportSection $section): void
+    private function renderSection(SymfonyStyle $io, ReportSection $section, bool $debug): void
     {
         $io->section($section->title);
 
@@ -76,6 +76,11 @@ final readonly class ConsoleReportFormatter
                 $io->writeln('  <fg=gray>'.self::ARROW_LABEL.'</> '.$suggestion);
             }
             $io->newLine();
+        }
+
+        if ($debug && [] !== $section->debug) {
+            $io->section('Debug');
+            $this->renderMeta($io, $section->debug);
         }
     }
 

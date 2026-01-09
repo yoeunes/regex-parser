@@ -104,6 +104,22 @@ final readonly class RoutesAnalyzer implements AnalyzerInterface
             $suggestions = $this->suggestionBuilder->collect($report->conflicts);
         }
 
+        $debug = [];
+        if ($context->debug) {
+            $debug = [
+                'Pairs total' => $report->stats['pairs_total'] ?? 0,
+                'Pairs filtered (methods)' => $report->stats['pairs_filtered_methods'] ?? 0,
+                'Pairs filtered (schemes)' => $report->stats['pairs_filtered_schemes'] ?? 0,
+                'Pairs filtered (prefix)' => $report->stats['pairs_filtered_prefix'] ?? 0,
+                'Host checks' => $report->stats['host_checks'] ?? 0,
+                'Host checks skipped' => $report->stats['host_skipped'] ?? 0,
+                'Host intersections' => $report->stats['host_intersections'] ?? 0,
+                'Path intersections' => $report->stats['path_intersections'] ?? 0,
+                'Path subset checks' => $report->stats['path_subsets'] ?? 0,
+                'Pairs skipped (complexity)' => $report->stats['skipped_pairs'] ?? 0,
+            ];
+        }
+
         return [
             new ReportSection(
                 self::ID,
@@ -113,6 +129,7 @@ final readonly class RoutesAnalyzer implements AnalyzerInterface
                 $warnings,
                 $issues,
                 $suggestions,
+                $debug,
             ),
         ];
     }

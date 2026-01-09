@@ -140,4 +140,55 @@ final class RegexAnalyzeCommandTest extends TestCase
 
         $this->assertSame(0, $status);
     }
+
+    #[Test]
+    public function test_command_includes_debug_payload_when_requested(): void
+    {
+        $registry = new AnalyzerRegistry([
+            new class implements AnalyzerInterface {
+                public function getId(): string
+                {
+                    return 'routes';
+                }
+
+                public function getLabel(): string
+                {
+                    return 'Routes';
+                }
+
+                public function getPriority(): int
+                {
+                    return 10;
+                }
+
+                public function analyze(AnalysisContext $context): array
+                {
+                    return [
+                        new ReportSection(
+                            'routes',
+                            'Routes',
+                            meta: ['Routes' => 1],
+                            debug: ['Pairs total' => 1],
+                        ),
+                    ];
+                }
+            },
+        ]);
+
+        $command = new RegexAnalyzeCommand(
+            $registry,
+            new ConsoleReportFormatter(),
+            new JsonReportFormatter(),
+        );
+
+        $tester = new CommandTester($command);
+        $status = $tester->execute(['--format' => 'json', '--debug' => true]);
+
+        $this->assertSame(0, $status);
+
+        $payload = json_decode((string) $tester->getDisplay(), true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($payload['sections'][0]['debug']);
+        $this->assertArrayHasKey('Duration', $payload['sections'][0]['debug']);
+        $this->assertSame(1, $payload['sections'][0]['debug']['Pairs total']);
+    }
 }

@@ -147,6 +147,18 @@ final readonly class SecurityAnalyzer implements AnalyzerInterface
             );
         }
 
+        $debug = [];
+        if ($context->debug) {
+            $debug = [
+                'Pairs total' => $report->stats['pairs_total'] ?? 0,
+                'Pairs filtered (methods)' => $report->stats['pairs_filtered_methods'] ?? 0,
+                'Host checks' => $report->stats['host_checks'] ?? 0,
+                'Host intersections' => $report->stats['host_intersections'] ?? 0,
+                'Path intersections' => $report->stats['path_intersections'] ?? 0,
+                'Path subset checks' => $report->stats['path_subsets'] ?? 0,
+            ];
+        }
+
         return new ReportSection(
             self::ID.'_access',
             'Security Access Control',
@@ -155,6 +167,7 @@ final readonly class SecurityAnalyzer implements AnalyzerInterface
             $warnings,
             $issues,
             $suggestions,
+            $debug,
         );
     }
 

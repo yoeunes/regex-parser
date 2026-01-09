@@ -32,5 +32,6 @@ final readonly class AnalysisContext
         public array $securityConfigPaths = [],
         public ReDoSSeverity $redosThreshold = ReDoSSeverity::HIGH,
         public bool $skipFirewalls = false,
+        public bool $debug = false,
     ) {}
 }

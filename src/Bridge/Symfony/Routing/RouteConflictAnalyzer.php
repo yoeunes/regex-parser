@@ -96,30 +96,52 @@ final readonly class RouteConflictAnalyzer
         $overlaps = 0;
         $equivalent = 0;
         $skippedPairs = 0;
+        $pairsTotal = 0;
+        $pairsFilteredMethods = 0;
+        $pairsFilteredSchemes = 0;
+        $pairsFilteredPrefix = 0;
+        $hostChecks = 0;
+        $hostSkipped = 0;
+        $hostIntersections = 0;
+        $pathIntersections = 0;
+        $pathSubsets = 0;
         $count = \count($routes);
 
         for ($i = 0; $i < $count; $i++) {
             for ($j = $i + 1; $j < $count; $j++) {
                 $left = $routes[$i];
                 $right = $routes[$j];
+                $pairsTotal++;
 
                 if (!$this->methodsOverlap($left['methods'], $right['methods'])) {
+                    $pairsFilteredMethods++;
                     continue;
                 }
 
                 if (!$this->schemesOverlap($left['schemes'], $right['schemes'])) {
+                    $pairsFilteredSchemes++;
                     continue;
                 }
 
                 if (!$this->prefixOverlaps($left['staticPrefix'], $right['staticPrefix'])) {
+                    $pairsFilteredPrefix++;
                     continue;
                 }
 
-                if (!$this->hostsOverlap($left, $right, $options, $skippedPairs)) {
+                if (!$this->hostsOverlap(
+                    $left,
+                    $right,
+                    $options,
+                    $skippedPairs,
+                    $hostChecks,
+                    $hostIntersections,
+                    $hostSkipped,
+                )) {
                     continue;
                 }
 
                 try {
+                    $pathIntersections++;
                     $intersection = $this->solver->intersectionEmpty($left['pathPattern'], $right['pathPattern'], $options);
                 } catch (ComplexityException) {
                     $skippedPairs++;
@@ -132,6 +154,7 @@ final readonly class RouteConflictAnalyzer
                 }
 
                 $example = $intersection->example;
+                $pathSubsets += 2;
                 $rightSubsetLeft = $this->solver->subsetOf($right['pathPattern'], $left['pathPattern'], $options)->isSubset;
                 $leftSubsetRight = $this->solver->subsetOf($left['pathPattern'], $right['pathPattern'], $options)->isSubset;
                 $isEquivalent = $rightSubsetLeft && $leftSubsetRight;
@@ -194,6 +217,15 @@ final readonly class RouteConflictAnalyzer
             'equivalent' => $equivalent,
             'skipped_routes' => \count($skippedRoutes),
             'skipped_pairs' => $skippedPairs,
+            'pairs_total' => $pairsTotal,
+            'pairs_filtered_methods' => $pairsFilteredMethods,
+            'pairs_filtered_schemes' => $pairsFilteredSchemes,
+            'pairs_filtered_prefix' => $pairsFilteredPrefix,
+            'host_checks' => $hostChecks,
+            'host_skipped' => $hostSkipped,
+            'host_intersections' => $hostIntersections,
+            'path_intersections' => $pathIntersections,
+            'path_subsets' => $pathSubsets,
         ];
 
         return new RouteConflictReport(
@@ -391,26 +423,41 @@ final readonly class RouteConflictAnalyzer
      * @phpstan-param RouteDescriptor $left
      * @phpstan-param RouteDescriptor $right
      */
-    private function hostsOverlap(array $left, array $right, SolverOptions $options, int &$skippedPairs): bool
+    private function hostsOverlap(
+        array $left,
+        array $right,
+        SolverOptions $options,
+        int &$skippedPairs,
+        int &$hostChecks,
+        int &$hostIntersections,
+        int &$hostSkipped,
+    ): bool
     {
         if (!$left['hasHostRequirement'] || !$right['hasHostRequirement']) {
             return true;
         }
 
+        $hostChecks++;
+
         if ($left['hostUnsupported'] || $right['hostUnsupported']) {
+            $hostSkipped++;
+
             return true;
         }
 
         if (null === $left['hostPattern'] || null === $right['hostPattern']) {
             $skippedPairs++;
+            $hostSkipped++;
 
             return true;
         }
 
         try {
+            $hostIntersections++;
             $intersection = $this->solver->intersectionEmpty($left['hostPattern'], $right['hostPattern'], $options);
         } catch (ComplexityException) {
             $skippedPairs++;
+            $hostSkipped++;
 
             return true;
         }

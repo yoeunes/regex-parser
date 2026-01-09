@@ -24,6 +24,7 @@ final readonly class ReportSection
      * @param array<int, AnalysisNotice> $warnings
      * @param array<int, AnalysisIssue>  $issues
      * @param array<int, string>         $suggestions
+     * @param array<string, int|string>  $debug
      */
     public function __construct(
         public string $id,
@@ -33,5 +34,6 @@ final readonly class ReportSection
         public array $warnings = [],
         public array $issues = [],
         public array $suggestions = [],
+        public array $debug = [],
     ) {}
 }

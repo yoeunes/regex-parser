@@ -20,10 +20,10 @@ use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
  */
 final readonly class JsonReportFormatter
 {
-    public function format(AnalysisReport $report): string
+    public function format(AnalysisReport $report, bool $debug = false): string
     {
         $payload = [
-            'sections' => $this->normalizeSections($report),
+            'sections' => $this->normalizeSections($report, $debug),
         ];
 
         return (string) json_encode($payload, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES);
@@ -32,7 +32,7 @@ final readonly class JsonReportFormatter
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeSections(AnalysisReport $report): array
+    private function normalizeSections(AnalysisReport $report, bool $debug): array
     {
         $sections = [];
 
@@ -67,7 +67,7 @@ final readonly class JsonReportFormatter
                 ];
             }
 
-            $sections[] = [
+            $payload = [
                 'id' => $section->id,
                 'title' => $section->title,
                 'meta' => $section->meta,
@@ -76,6 +76,12 @@ final readonly class JsonReportFormatter
                 'issues' => $issues,
                 'suggestions' => $section->suggestions,
             ];
+
+            if ($debug && [] !== $section->debug) {
+                $payload['debug'] = $section->debug;
+            }
+
+            $sections[] = $payload;
         }
 
         return $sections;

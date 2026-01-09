@@ -105,27 +105,37 @@ final readonly class SecurityAccessControlAnalyzer
         $critical = 0;
         $equivalent = 0;
         $redundant = 0;
+        $pairsTotal = 0;
+        $pairsFilteredMethods = 0;
+        $hostChecks = 0;
+        $hostIntersections = 0;
+        $pathIntersections = 0;
+        $pathSubsets = 0;
         $count = \count($descriptors);
 
         for ($i = 0; $i < $count; $i++) {
             for ($j = $i + 1; $j < $count; $j++) {
                 $left = $descriptors[$i];
                 $right = $descriptors[$j];
+                $pairsTotal++;
 
                 if (!$this->methodsOverlap($left['methods'], $right['methods'])) {
+                    $pairsFilteredMethods++;
                     continue;
                 }
 
-                if (!$this->hostsOverlap($left, $right, $options)) {
+                if (!$this->hostsOverlap($left, $right, $options, $hostChecks, $hostIntersections)) {
                     continue;
                 }
 
+                $pathIntersections++;
                 $intersection = $this->solver->intersectionEmpty($left['pattern'], $right['pattern'], $options);
                 if ($intersection->isEmpty) {
                     continue;
                 }
 
                 $example = $intersection->example;
+                $pathSubsets += 2;
                 $isSubset = $this->solver->subsetOf($right['pattern'], $left['pattern'], $options)->isSubset;
                 $leftSubset = $this->solver->subsetOf($left['pattern'], $right['pattern'], $options)->isSubset;
                 $isEquivalent = $isSubset && $leftSubset;
@@ -183,6 +193,12 @@ final readonly class SecurityAccessControlAnalyzer
             'equivalent' => $equivalent,
             'redundant' => $redundant,
             'skipped_rules' => \count($skippedRules),
+            'pairs_total' => $pairsTotal,
+            'pairs_filtered_methods' => $pairsFilteredMethods,
+            'host_checks' => $hostChecks,
+            'host_intersections' => $hostIntersections,
+            'path_intersections' => $pathIntersections,
+            'path_subsets' => $pathSubsets,
         ];
 
         return new SecurityAccessControlReport(
@@ -517,7 +533,13 @@ final readonly class SecurityAccessControlAnalyzer
      * @phpstan-param AccessRule $left
      * @phpstan-param AccessRule $right
      */
-    private function hostsOverlap(array $left, array $right, SolverOptions $options): bool
+    private function hostsOverlap(
+        array $left,
+        array $right,
+        SolverOptions $options,
+        int &$hostChecks,
+        int &$hostIntersections,
+    ): bool
     {
         if (null === $left['hostPattern'] || null === $right['hostPattern']) {
             return true;
@@ -527,6 +549,8 @@ final readonly class SecurityAccessControlAnalyzer
             return true;
         }
 
+        $hostChecks++;
+        $hostIntersections++;
         $intersection = $this->solver->intersectionEmpty($left['hostPattern'], $right['hostPattern'], $options);
 
         return !$intersection->isEmpty;
