@@ -69,6 +69,9 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSConfirmOptions;
 use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\Transpiler\RegexTranspiler;
+use RegexParser\Transpiler\TranspileOptions;
+use RegexParser\Transpiler\TranspileResult;
 
 /**
  * Entry point for the RegexParser library.
@@ -353,6 +356,16 @@ final readonly class Regex
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
 
         return new OptimizationResult($regex, $optimizedPattern, $appliedChanges);
+    }
+
+    /**
+     * Transpile a PCRE regex literal to another regex dialect.
+     */
+    public function transpile(string $regex, string $target, ?TranspileOptions $options = null): TranspileResult
+    {
+        $transpiler = new RegexTranspiler($this);
+
+        return $transpiler->transpile($regex, $target, $options);
     }
 
     /**

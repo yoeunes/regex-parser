@@ -1,0 +1,102 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Transpiler\Target\JavaScript;
+
+use RegexParser\Exception\TranspileException;
+use RegexParser\Node\RegexNode;
+use RegexParser\Transpiler\Target\TranspileTargetInterface;
+use RegexParser\Transpiler\TranspileContext;
+
+/**
+ * Transpile target for JavaScript RegExp.
+ */
+final readonly class JavaScriptTarget implements TranspileTargetInterface
+{
+    private const SUPPORTED_FLAGS = ['i', 'm', 's', 'u'];
+
+    public function getName(): string
+    {
+        return 'javascript';
+    }
+
+    public function getAliases(): array
+    {
+        return ['js'];
+    }
+
+    public function getDefaultDelimiter(): string
+    {
+        return '/';
+    }
+
+    public function compile(RegexNode $ast, TranspileContext $context): string
+    {
+        $visitor = new JavaScriptCompilerVisitor(
+            $context,
+            $context->options->allowLookbehind,
+            $this->getDefaultDelimiter(),
+        );
+
+        return $ast->accept($visitor);
+    }
+
+    public function mapFlags(string $flags, TranspileContext $context): string
+    {
+        $normalized = '';
+        $unsupported = [];
+
+        foreach (str_split($flags) as $flag) {
+            if (\in_array($flag, self::SUPPORTED_FLAGS, true)) {
+                $normalized .= $flag;
+
+                continue;
+            }
+
+            if ('x' === $flag) {
+                $context->addWarning('Dropped /x (extended mode); comments and whitespace were normalized.');
+
+                continue;
+            }
+
+            $unsupported[] = $flag;
+        }
+
+        if ([] !== $unsupported) {
+            throw new TranspileException('Unsupported PCRE flag(s) for JavaScript: '.implode(', ', $unsupported).'.');
+        }
+
+        foreach ($context->getRequiredFlags() as $flag => $reason) {
+            if (!str_contains($normalized, $flag)) {
+                $normalized .= $flag;
+                $context->addWarning($reason);
+            }
+        }
+
+        $normalized = implode('', array_unique(str_split($normalized)));
+
+        return $this->normalizeFlagOrder($normalized);
+    }
+
+    private function normalizeFlagOrder(string $flags): string
+    {
+        $ordered = [];
+        foreach (self::SUPPORTED_FLAGS as $flag) {
+            if (str_contains($flags, $flag)) {
+                $ordered[] = $flag;
+            }
+        }
+
+        return implode('', $ordered);
+    }
+}

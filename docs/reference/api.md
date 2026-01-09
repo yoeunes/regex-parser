@@ -270,6 +270,29 @@ supported regular subset. Unsupported patterns fall back to the original behavio
 
 ---
 
+### transpile(string $regex, string $target, ?TranspileOptions $options = null): TranspileResult
+
+Transpiles a PCRE literal to another regex dialect (starting with JavaScript).
+
+```php
+use RegexParser\Regex;
+
+$result = Regex::create()->transpile('/(?P<word>\\w+)/i', 'javascript');
+
+echo $result->literal;     // '/(?<word>\\w+)/i'
+echo $result->constructor; // 'new RegExp("(?<word>\\w+)", "i")'
+print_r($result->warnings);
+```
+
+Notes:
+- Unsupported PCRE constructs throw `TranspileException`.
+- JavaScript targets may add `/u` when Unicode properties or code point escapes are used.
+- `/x` is dropped after comments/whitespace are normalized.
+- `TranspileOptions` lets you disable JS lookbehind support (`allowLookbehind: false`).
+- Available targets: `javascript` (alias: `js`).
+
+---
+
 ### literals(string $regex): LiteralExtractionResult
 
 Extracts fixed literals and prefix/suffix data for fast prefilters or indexing.
@@ -423,6 +446,25 @@ foreach ($result->changes as $change) {
 
 ---
 
+### TranspileResult
+
+Returned by `transpile()`. Includes JavaScript output and diagnostics.
+
+```php
+$result = Regex::create()->transpile('/(?P<word>\\w+)/i', 'javascript');
+
+echo $result->pattern;     // '(?<word>\\w+)'
+echo $result->flags;       // 'i'
+echo $result->literal;     // '/(?<word>\\w+)/i'
+echo $result->constructor; // 'new RegExp("(?<word>\\w+)", "i")'
+
+foreach ($result->warnings as $warning) {
+    echo "- $warning\n";
+}
+```
+
+---
+
 ### LiteralExtractionResult
 
 Returned by `literals()`. Extracts fixed content.
@@ -456,6 +498,7 @@ Exception hierarchy (simplified):
   - `RecursionLimitException` (max recursion depth)
   - `ResourceLimitException` (resource limits)
   - `RegexException` (base exception with position and error code)
+  - `TranspileException` (unsupported target or feature during transpile)
 
 **Usage Examples:**
 
@@ -500,6 +543,7 @@ try {
 | `analyze($regex)`       | AnalysisReport          | Analysis report   |
 | `redos($regex)`         | ReDoSAnalysis           | ReDoS check       |
 | `optimize($regex)`      | OptimizationResult      | Optimize pattern  |
+| `transpile($regex, $target)` | TranspileResult    | Convert dialects  |
 | `explain($regex)`       | string                  | Human explanation |
 | `highlight($regex)`     | string                  | Syntax highlight  |
 | `generate($regex)`      | string                  | Generate sample   |
