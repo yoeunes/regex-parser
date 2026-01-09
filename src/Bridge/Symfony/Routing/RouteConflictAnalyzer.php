@@ -115,16 +115,19 @@ final readonly class RouteConflictAnalyzer
 
                 if (!$this->methodsOverlap($left['methods'], $right['methods'])) {
                     $pairsFilteredMethods++;
+
                     continue;
                 }
 
                 if (!$this->schemesOverlap($left['schemes'], $right['schemes'])) {
                     $pairsFilteredSchemes++;
+
                     continue;
                 }
 
                 if (!$this->prefixOverlaps($left['staticPrefix'], $right['staticPrefix'])) {
                     $pairsFilteredPrefix++;
+
                     continue;
                 }
 
@@ -431,8 +434,7 @@ final readonly class RouteConflictAnalyzer
         int &$hostChecks,
         int &$hostIntersections,
         int &$hostSkipped,
-    ): bool
-    {
+    ): bool {
         if (!$left['hasHostRequirement'] || !$right['hasHostRequirement']) {
             return true;
         }

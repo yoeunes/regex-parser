@@ -121,6 +121,7 @@ final readonly class SecurityAccessControlAnalyzer
 
                 if (!$this->methodsOverlap($left['methods'], $right['methods'])) {
                     $pairsFilteredMethods++;
+
                     continue;
                 }
 
@@ -539,8 +540,7 @@ final readonly class SecurityAccessControlAnalyzer
         SolverOptions $options,
         int &$hostChecks,
         int &$hostIntersections,
-    ): bool
-    {
+    ): bool {
         if (null === $left['hostPattern'] || null === $right['hostPattern']) {
             return true;
         }

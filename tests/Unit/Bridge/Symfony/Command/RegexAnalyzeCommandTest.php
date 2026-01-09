@@ -187,8 +187,13 @@ final class RegexAnalyzeCommandTest extends TestCase
         $this->assertSame(0, $status);
 
         $payload = json_decode((string) $tester->getDisplay(), true, 512, \JSON_THROW_ON_ERROR);
-        $this->assertIsArray($payload['sections'][0]['debug']);
-        $this->assertArrayHasKey('Duration', $payload['sections'][0]['debug']);
-        $this->assertSame(1, $payload['sections'][0]['debug']['Pairs total']);
+        $this->assertIsArray($payload);
+        $this->assertArrayHasKey('sections', $payload);
+        $sections = $payload['sections'];
+        $this->assertIsArray($sections);
+        $this->assertIsArray($sections[0]);
+        $this->assertIsArray($sections[0]['debug']);
+        $this->assertArrayHasKey('Duration', $sections[0]['debug']);
+        $this->assertSame(1, $sections[0]['debug']['Pairs total']);
     }
 }
