@@ -168,31 +168,59 @@ final class RegexAnalyzeCommand extends Command
             $debug,
         );
 
+        $renderBanner = self::FORMAT_CONSOLE === $format && !$output->isQuiet();
+        $progressBar = null;
+        if ($renderBanner) {
+            $this->consoleFormatter->renderBanner($io);
+            $analyzerCount = \count($analyzers);
+            $message = \sprintf('Analyzing %d analyzer%s...', $analyzerCount, 1 === $analyzerCount ? '' : 's');
+
+            if ($output->isDecorated()) {
+                $io->writeln('<fg=gray>'.$message.'</>');
+                $progressBar = $io->createProgressBar($analyzerCount);
+                $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %message%');
+                $progressBar->setMessage('starting');
+                $progressBar->start();
+            } else {
+                $io->writeln('<fg=gray>'.$message.'</>');
+            }
+        }
+
         $sections = [];
         foreach ($analyzers as $analyzer) {
+            if (null !== $progressBar) {
+                $progressBar->setMessage($analyzer->getLabel());
+            }
+
             $start = microtime(true);
             $analyzed = $analyzer->analyze($context);
             $durationMs = (int) round((microtime(true) - $start) * 1000);
 
-            if (!$debug) {
-                foreach ($analyzed as $section) {
-                    $sections[] = $section;
-                }
-
-                continue;
+            foreach ($analyzed as $section) {
+                $sections[] = $debug ? $this->withDebug($section, $durationMs) : $section;
             }
 
-            foreach ($analyzed as $section) {
-                $sections[] = $this->withDebug($section, $durationMs);
+            if (null !== $progressBar) {
+                $progressBar->advance();
             }
         }
 
         $report = new AnalysisReport($sections);
 
+        if (null !== $progressBar) {
+            $progressBar->finish();
+            $io->newLine(2);
+        } elseif ($renderBanner) {
+            $io->newLine();
+        }
+
         if (self::FORMAT_JSON === $format) {
             $output->writeln($this->jsonFormatter->format($report, $debug));
         } else {
-            $this->consoleFormatter->render($report, $io, true, $debug);
+            $this->consoleFormatter->render($report, $io, !$renderBanner, $debug);
+            if ($renderBanner) {
+                $this->consoleFormatter->renderFooter($io);
+            }
         }
 
         return $this->shouldFail($report, $failOn) ? Command::FAILURE : Command::SUCCESS;

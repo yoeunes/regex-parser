@@ -31,11 +31,13 @@ final readonly class ConsoleReportFormatter
     private const BADGE_FAIL = '<bg=red;fg=white;options=bold> FAIL </>';
     private const BADGE_WARN = '<bg=yellow;fg=black;options=bold> WARN </>';
     private const BADGE_PASS = '<bg=green;fg=white;options=bold> PASS </>';
+    private const SECTION_BADGE = '<bg=blue;fg=white;options=bold> %s </>';
+    private const SUBSECTION_BADGE = '<fg=cyan;options=bold>%s</>';
 
     public function render(AnalysisReport $report, SymfonyStyle $io, bool $showBanner = true, bool $debug = false): void
     {
         if ($showBanner) {
-            $this->showBanner($io);
+            $this->renderBanner($io);
         }
 
         foreach ($report->sections as $section) {
@@ -43,13 +45,27 @@ final readonly class ConsoleReportFormatter
         }
 
         if ($showBanner) {
-            $this->showFooter($io);
+            $this->renderFooter($io);
         }
+    }
+
+    public function renderBanner(SymfonyStyle $io): void
+    {
+        $io->writeln('<fg=cyan;options=bold>RegexParser</> <fg=yellow>'.Regex::VERSION.'</> by Younes ENNAJI');
+        $io->newLine();
+    }
+
+    public function renderFooter(SymfonyStyle $io): void
+    {
+        $message = 'If RegexParser helps, a GitHub star is appreciated: ';
+        $io->writeln('  <fg=gray>'.$message.'https://github.com/yoeunes/regex-parser</>');
+        $io->newLine();
     }
 
     private function renderSection(SymfonyStyle $io, ReportSection $section, bool $debug): void
     {
-        $io->section($section->title);
+        $this->renderSectionHeader($io, $section->title);
+        $io->newLine();
 
         $this->renderNotices($io, $section->warnings);
         $this->renderMeta($io, $section->meta);
@@ -71,7 +87,7 @@ final readonly class ConsoleReportFormatter
         }
 
         if ([] !== $section->suggestions) {
-            $io->section('Suggestions');
+            $this->renderSubsectionHeader($io, 'Suggestions');
             foreach ($section->suggestions as $suggestion) {
                 $io->writeln('  <fg=gray>'.self::ARROW_LABEL.'</> '.$suggestion);
             }
@@ -79,7 +95,7 @@ final readonly class ConsoleReportFormatter
         }
 
         if ($debug && [] !== $section->debug) {
-            $io->section('Debug');
+            $this->renderSubsectionHeader($io, 'Debug');
             $this->renderMeta($io, $section->debug);
         }
     }
@@ -172,17 +188,14 @@ final readonly class ConsoleReportFormatter
         return '<fg=cyan>'.$pattern.'</>';
     }
 
-    private function showBanner(SymfonyStyle $io): void
+    private function renderSectionHeader(SymfonyStyle $io, string $title): void
     {
-        $io->writeln('<fg=cyan;options=bold>RegexParser</> <fg=yellow>'.Regex::VERSION.'</> by Younes ENNAJI');
-        $io->newLine();
+        $io->writeln(\sprintf(self::SECTION_BADGE, $title));
     }
 
-    private function showFooter(SymfonyStyle $io): void
+    private function renderSubsectionHeader(SymfonyStyle $io, string $title): void
     {
-        $message = 'If RegexParser helps, a GitHub star is appreciated: ';
-        $io->writeln('  <fg=gray>'.$message.'https://github.com/yoeunes/regex-parser</>');
-        $io->newLine();
+        $io->writeln(\sprintf(self::SUBSECTION_BADGE, $title));
     }
 
     private function formatMetaLine(string $label, string $value, int $maxLabelLength): string
