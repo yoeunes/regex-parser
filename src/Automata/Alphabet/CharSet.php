@@ -104,6 +104,29 @@ final readonly class CharSet
             && $this->ranges[0][1] === $this->maxCodePoint;
     }
 
+    public function toString(): string
+    {
+        if ($this->isEmpty()) {
+            return '∅';
+        }
+
+        if ($this->isFull()) {
+            return 'Σ';
+        }
+
+        $parts = [];
+        foreach ($this->ranges as [$start, $end]) {
+            if ($start === $end) {
+                $parts[] = $this->formatChar($start);
+
+                continue;
+            }
+            $parts[] = $this->formatChar($start).'-'.$this->formatChar($end);
+        }
+
+        return '['.implode('', $parts).']';
+    }
+
     /**
      * @return array<array{0:int, 1:int}>
      */
@@ -253,6 +276,15 @@ final readonly class CharSet
         }
 
         return CodePointHelper::toString($value);
+    }
+
+    private function formatChar(int $codePoint): string
+    {
+        if ($codePoint >= 32 && $codePoint <= 126) {
+            return \chr($codePoint);
+        }
+
+        return sprintf('\\x%02X', $codePoint);
     }
 
     /**
