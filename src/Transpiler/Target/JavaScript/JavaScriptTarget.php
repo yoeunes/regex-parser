@@ -64,7 +64,7 @@ final readonly class JavaScriptTarget implements TranspileTargetInterface
             }
 
             if ('x' === $flag) {
-                $context->addWarning('Dropped /x (extended mode); comments and whitespace were normalized.');
+                $context->addNote('Applied /x (extended mode): whitespace and comments were removed during compilation.');
 
                 continue;
             }
@@ -86,6 +86,24 @@ final readonly class JavaScriptTarget implements TranspileTargetInterface
         $normalized = implode('', array_unique(str_split($normalized)));
 
         return $this->normalizeFlagOrder($normalized);
+    }
+
+    public function formatLiteral(string $pattern, string $flags, TranspileContext $context): string
+    {
+        $delimiter = $this->getDefaultDelimiter();
+
+        return $delimiter.$pattern.$delimiter.$flags;
+    }
+
+    public function formatConstructor(string $pattern, string $flags, TranspileContext $context): string
+    {
+        $escaped = str_replace(
+            ['\\', '"', "\n", "\r", "\t", "\u{2028}", "\u{2029}"],
+            ['\\\\', '\\"', '\\n', '\\r', '\\t', '\\u2028', '\\u2029'],
+            $pattern,
+        );
+
+        return 'new RegExp("'.$escaped.'", "'.$flags.'")';
     }
 
     private function normalizeFlagOrder(string $flags): string

@@ -23,6 +23,7 @@ use RegexParser\Bridge\Symfony\Command\RegexAnalyzeCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Command\RegexRoutesCommand;
 use RegexParser\Bridge\Symfony\Command\RegexSecurityCommand;
+use RegexParser\Bridge\Symfony\Command\RegexTranspileCommand;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
@@ -206,6 +207,11 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$jsonFormatter', service(JsonReportFormatter::class))
         ->arg('$kernel', service('kernel')->nullOnInvalid())
         ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set('regex_parser.command.transpile', RegexTranspileCommand::class)
+        ->arg('$regex', service('regex_parser.regex'))
         ->tag('console.command')
         ->public();
 };

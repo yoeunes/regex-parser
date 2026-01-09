@@ -33,4 +33,8 @@ interface TranspileTargetInterface
     public function compile(RegexNode $ast, TranspileContext $context): string;
 
     public function mapFlags(string $flags, TranspileContext $context): string;
+
+    public function formatLiteral(string $pattern, string $flags, TranspileContext $context): string;
+
+    public function formatConstructor(string $pattern, string $flags, TranspileContext $context): string;
 }

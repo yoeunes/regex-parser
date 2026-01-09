@@ -15,6 +15,7 @@ namespace RegexParser\Transpiler\Target;
 
 use RegexParser\Exception\TranspileException;
 use RegexParser\Transpiler\Target\JavaScript\JavaScriptTarget;
+use RegexParser\Transpiler\Target\Python\PythonTarget;
 
 /**
  * Registry for available transpilation targets.
@@ -38,6 +39,7 @@ final class TargetRegistry
         }
 
         $this->register(new JavaScriptTarget());
+        $this->register(new PythonTarget());
     }
 
     public function register(TranspileTargetInterface $target): void

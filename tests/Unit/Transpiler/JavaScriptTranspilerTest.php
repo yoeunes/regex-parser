@@ -68,8 +68,8 @@ final class JavaScriptTranspilerTest extends TestCase
         $result = $regex->transpile($pattern, 'javascript');
 
         $this->assertSame('/ab/', $result->literal);
-        $this->assertContains('Dropped /x (extended mode); comments and whitespace were normalized.', $result->warnings);
-        $this->assertContains('Dropped /x comments during transpilation.', $result->warnings);
+        $this->assertContains('Applied /x (extended mode): whitespace and comments were removed during compilation.', $result->notes);
+        $this->assertContains('Dropped /x comments during transpilation.', $result->notes);
     }
 
     #[Test]

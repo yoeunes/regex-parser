@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Transpiler\Target\JavaScript;
+namespace RegexParser\Transpiler\Target\Python;
 
 use RegexParser\Exception\TranspileException;
 use RegexParser\Node\AlternationNode;
@@ -24,7 +24,6 @@ use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\ClassOperationNode;
-use RegexParser\Node\ClassOperationType;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\ControlCharNode;
@@ -52,11 +51,11 @@ use RegexParser\NodeVisitor\AbstractNodeVisitor;
 use RegexParser\Transpiler\TranspileContext;
 
 /**
- * Compiles PCRE AST nodes into JavaScript-compatible regex source.
+ * Compiles PCRE AST nodes into Python 're' compatible regex source.
  *
  * @extends AbstractNodeVisitor<string>
  */
-final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
+final class PythonCompilerVisitor extends AbstractNodeVisitor
 {
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
@@ -72,23 +71,13 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
 
     private bool $inCharClass = false;
 
-    private bool $commentWarningEmitted = false;
-
-    private string $flags;
-
     public function __construct(
         private readonly TranspileContext $context,
-        private readonly bool $allowLookbehind,
-        private readonly string $delimiter,
-    ) {
-        $this->flags = $context->sourceFlags;
-    }
+    ) {}
 
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {
-        $this->flags = $node->flags;
-
         return $node->pattern->accept($this);
     }
 
@@ -101,9 +90,9 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         }
 
         if ($this->inCharClass) {
-            $result = $this->compileCharClassNode($alternatives[0], $alternatives[1] ?? null);
+            $result = $this->compileCharClassNode($alternatives[0]);
             for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
-                $result .= $this->compileCharClassNode($alternatives[$i], $alternatives[$i + 1] ?? null);
+                $result .= $this->compileCharClassNode($alternatives[$i]);
             }
 
             return $result;
@@ -126,9 +115,9 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         }
 
         if ($this->inCharClass) {
-            $result = $this->compileCharClassNode($children[0], $children[1] ?? null);
+            $result = $this->compileCharClassNode($children[0]);
             for ($i = 1, $count = \count($children); $i < $count; $i++) {
-                $result .= $this->compileCharClassNode($children[$i], $children[$i + 1] ?? null);
+                $result .= $this->compileCharClassNode($children[$i]);
             }
 
             return $result;
@@ -150,14 +139,14 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         return match ($node->type) {
             GroupType::T_GROUP_CAPTURING => '('.$child.')',
             GroupType::T_GROUP_NON_CAPTURING => '(?:'.$child.')',
-            GroupType::T_GROUP_NAMED => '(?<'.$node->name.'>'.$child.')',
+            GroupType::T_GROUP_NAMED => '(?P<'.$node->name.'>'.$child.')',
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?='.$child.')',
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!'.$child.')',
-            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => $this->compileLookbehind('(?<=', $child, $node),
-            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => $this->compileLookbehind('(?<!', $child, $node),
-            GroupType::T_GROUP_INLINE_FLAGS => $this->unsupported('Inline flags groups are not supported in JavaScript.', $node),
-            GroupType::T_GROUP_ATOMIC => $this->unsupported('Atomic groups are not supported in JavaScript.', $node),
-            GroupType::T_GROUP_BRANCH_RESET => $this->unsupported('Branch reset groups are not supported in JavaScript.', $node),
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
+            GroupType::T_GROUP_ATOMIC => '(?=(?P<tmp>'.$child.'))(?P=tmp)', // Atomic group emulation in Python
+            GroupType::T_GROUP_INLINE_FLAGS => '(?'.$node->flags.')', // Partially supported if simple
+            GroupType::T_GROUP_BRANCH_RESET => $this->unsupported('Branch reset groups are not supported in Python re.', $node),
         };
     }
 
@@ -165,7 +154,7 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
     public function visitQuantifier(QuantifierNode $node): string
     {
         if (QuantifierType::T_POSSESSIVE === $node->type) {
-            return $this->unsupported('Possessive quantifiers are not supported in JavaScript.', $node);
+            return $this->unsupported('Possessive quantifiers are not supported in Python standard re module.', $node);
         }
 
         $nodeCompiled = $node->node->accept($this);
@@ -203,10 +192,6 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
             $this->context->addWarning('Converted Unicode named character to code point escape.');
         }
 
-        if (CharLiteralType::OCTAL === $node->type || CharLiteralType::OCTAL_LEGACY === $node->type) {
-            $this->context->addWarning('Converted octal escape to hex/Unicode escape for JavaScript.');
-        }
-
         return $this->formatCodePoint($codePoint);
     }
 
@@ -221,34 +206,26 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
             return $this->formatCodePoint($codePoint);
         }
 
-        if (1 === \strlen($code)) {
-            return $this->escapeString($code);
-        }
-
-        return $this->unsupported('Unsupported Unicode escape in JavaScript transpiler.', $node);
+        return $this->unsupported('Unsupported Unicode escape sequence.', $node);
     }
 
     #[\Override]
     public function visitCharType(CharTypeNode $node): string
     {
         if ('h' === $node->value) {
-            $this->context->addNote('Converted \h (horizontal whitespace) to character class.');
+            $this->context->addNote('Converted \h to character class.');
 
             return '[\x09\x20\xA0\u1680\u180e\u2000-\u200a\u202f\u205f\u3000]';
         }
 
         if ('v' === $node->value) {
-            $this->context->addNote('Converted \v (vertical whitespace) to character class.');
+            $this->context->addNote('Converted \v to character class.');
 
             return '[\x0A-\x0D\x85\u2028\u2029]';
         }
 
         if (!\in_array($node->value, self::SUPPORTED_CHAR_TYPES, true)) {
-            return $this->unsupported('Unsupported character type in JavaScript: \\'.$node->value.'.', $node);
-        }
-
-        if ('w' === $node->value || 'W' === $node->value) {
-            $this->noteUnicodeWordBoundary();
+            return $this->unsupported('Unsupported character type in Python: \\'.$node->value.'.', $node);
         }
 
         return '\\'.$node->value;
@@ -269,19 +246,13 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAssertion(AssertionNode $node): string
     {
-        if ('b' === $node->value || 'B' === $node->value) {
-            $this->noteUnicodeWordBoundary();
-
-            return '\\'.$node->value;
-        }
-
-        return $this->unsupported('Unsupported assertion in JavaScript: \\'.$node->value.'.', $node);
+        return '\\'.$node->value;
     }
 
     #[\Override]
     public function visitKeep(KeepNode $node): string
     {
-        return $this->unsupported('\\K is not supported in JavaScript.', $node);
+        return $this->unsupported('\\K is not supported in Python re.', $node);
     }
 
     #[\Override]
@@ -314,109 +285,81 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitClassOperation(ClassOperationNode $node): string
     {
-        $operator = ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
-
-        return $this->unsupported('Character class operation '.$operator.' is not supported in JavaScript.', $node);
+        return $this->unsupported('Character class operations are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitControlChar(ControlCharNode $node): string
     {
-        return '\\c'.$node->char;
+        $ord = \ord(strtoupper($node->char)) - 64;
+
+        return $this->formatCodePoint($ord);
     }
 
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): string
     {
-        return $this->unsupported('Script run annotations are not supported in JavaScript.', $node);
+        return $this->unsupported('Script runs are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitVersionCondition(VersionConditionNode $node): string
     {
-        return $this->unsupported('Version conditions are not supported in JavaScript.', $node);
+        return $this->unsupported('Version conditions are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
-        $isNegated = str_starts_with($prop, '^');
-        $prop = ltrim($prop, '^');
-
-        if ('' === $prop) {
-            return $this->unsupported('Empty Unicode property is not supported in JavaScript.', $node);
-        }
-
-        $this->context->requireFlag('u', 'Added /u for Unicode property escapes.');
-
-        return $isNegated ? '\\P{'.$prop.'}' : '\\p{'.$prop.'}';
+        return $this->unsupported('Unicode properties (\p) are not supported in Python standard re module.', $node);
     }
 
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): string
     {
-        return $this->unsupported('POSIX character classes are not supported in JavaScript.', $node);
+        return $this->unsupported('POSIX character classes are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitComment(CommentNode $node): string
     {
-        if (!str_contains($this->flags, 'x')) {
-            return $this->unsupported('Inline comments are not supported in JavaScript.', $node);
-        }
-
-        if (!$this->commentWarningEmitted) {
-            $this->commentWarningEmitted = true;
-            $this->context->addNote('Dropped /x comments during transpilation.');
-        }
-
-        return '';
+        return '(?#'.$node->comment.')';
     }
 
     #[\Override]
     public function visitConditional(ConditionalNode $node): string
     {
-        return $this->unsupported('Conditional subpatterns are not supported in JavaScript.', $node);
+        return $this->unsupported('Conditional subpatterns are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): string
     {
-        return $this->unsupported('Subroutine calls are not supported in JavaScript.', $node);
+        return $this->unsupported('Subroutine calls are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): string
     {
-        return $this->unsupported('PCRE verbs are not supported in JavaScript.', $node);
+        return $this->unsupported('PCRE verbs are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitDefine(DefineNode $node): string
     {
-        return $this->unsupported('DEFINE subpatterns are not supported in JavaScript.', $node);
+        return $this->unsupported('DEFINE subpatterns are not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitLimitMatch(LimitMatchNode $node): string
     {
-        return $this->unsupported('LIMIT_MATCH is not supported in JavaScript.', $node);
+        return $this->unsupported('LIMIT_MATCH is not supported in Python re.', $node);
     }
 
     #[\Override]
     public function visitCallout(CalloutNode $node): string
     {
-        return $this->unsupported('Callouts are not supported in JavaScript.', $node);
-    }
-
-    private function compileLookbehind(string $prefix, string $child, GroupNode $node): string
-    {
-        if (!$this->allowLookbehind) {
-            return $this->unsupported('Lookbehind is disabled for JavaScript targets.', $node);
-        }
-
-        return $prefix.$child.')';
+        return $this->unsupported('Callouts are not supported in Python re.', $node);
     }
 
     private function normalizeQuantifier(string $quantifier): string
@@ -426,25 +369,14 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
 
     private function escapeString(string $value): string
     {
-        if (!$this->inCharClass && preg_match('/^\\{\\d+(?:,\\d*)?\\}$/', $value)) {
-            return $value;
-        }
-
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
-        $unicodeMode = $this->isUnicodeMode();
         $needsEscape = false;
 
         $len = \strlen($value);
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
             $ord = \ord($char);
-            if (
-                $char === $this->delimiter
-                || isset($meta[$char])
-                || $ord < 32
-                || 127 === $ord
-                || (!$unicodeMode && $ord >= 128)
-            ) {
+            if (isset($meta[$char]) || $ord < 32 || 127 === $ord) {
                 $needsEscape = true;
 
                 break;
@@ -459,16 +391,14 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
             $ord = \ord($char);
-            if ($char === $this->delimiter || isset($meta[$char])) {
+            if (isset($meta[$char])) {
                 $result .= '\\'.$char;
-            } elseif ($ord < 32 || 127 === $ord || (!$unicodeMode && $ord >= 128)) {
+            } elseif ($ord < 32 || 127 === $ord) {
                 $result .= match ($ord) {
-                    8 => $this->inCharClass ? '\\b' : '\\x08',
                     9 => '\\t',
                     10 => '\\n',
                     13 => '\\r',
                     12 => '\\f',
-                    27 => '\\x1B',
                     default => '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT)),
                 };
             } else {
@@ -479,31 +409,9 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         return $result;
     }
 
-    private function compileCharClassNode(NodeInterface $node, ?NodeInterface $next): string
+    private function compileCharClassNode(NodeInterface $node): string
     {
-        if ($node instanceof LiteralNode && '[' === $node->value) {
-            return $this->shouldEscapeCharClassOpen($next) ? '\\[' : '[';
-        }
-
-        if ($node instanceof RangeNode) {
-            $start = $node->start;
-            $startCompiled = $start instanceof LiteralNode && '[' === $start->value
-                ? '['
-                : $start->accept($this);
-
-            return $startCompiled.'-'.$node->end->accept($this);
-        }
-
         return $node->accept($this);
-    }
-
-    private function shouldEscapeCharClassOpen(?NodeInterface $next): bool
-    {
-        if (!$next instanceof LiteralNode) {
-            return false;
-        }
-
-        return \in_array($next->value, [':', '.', '='], true);
     }
 
     private function formatCodePoint(int $codePoint): string
@@ -511,60 +419,32 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         if ($codePoint <= 0xFF) {
             return '\\x'.strtoupper(str_pad(dechex($codePoint), 2, '0', \STR_PAD_LEFT));
         }
-
         if ($codePoint <= 0xFFFF) {
             return '\\u'.strtoupper(str_pad(dechex($codePoint), 4, '0', \STR_PAD_LEFT));
         }
 
-        $this->context->requireFlag('u', 'Added /u for Unicode code point escapes.');
-
-        return '\\u{'.strtoupper(dechex($codePoint)).'}';
+        return '\\U'.strtoupper(str_pad(dechex($codePoint), 8, '0', \STR_PAD_LEFT));
     }
 
     private function normalizeBackreference(string $ref, int $position): string
     {
-        if (
-            preg_match('/^\\\\g([+-]\\d+)$/', $ref, $matches)
-            || preg_match('/^\\\\g\\{([+-]\\d+)\\}$/', $ref, $matches)
-        ) {
-            throw new TranspileException(
-                'Relative backreferences are not supported in JavaScript: '.$matches[0].'.',
-                $position,
-                $this->context->sourcePattern,
-            );
-        }
-
-        if (preg_match('/^\\\\g\\{?([0-9]+)\\}?$/', $ref, $matches)) {
+        if (preg_match('/^\\\\([1-9]\\d*)$/', $ref, $matches)) {
             return '\\'.$matches[1];
         }
 
-        if (preg_match('/^\\\\k\\{([a-zA-Z0-9_]+)\\}$/', $ref, $matches)) {
-            return '\\k<'.$matches[1].'>';
+        if (preg_match('/^\\\\k<([a-zA-Z0-9_]+)>$/', $ref, $matches)) {
+            return '(?P='.$matches[1].')';
         }
 
-        if (preg_match('/^\\\\k<([a-zA-Z0-9_]+)>$/', $ref)) {
-            return $ref;
-        }
-
-        if (preg_match('/^\\\\[1-9]\\d*$/', $ref)) {
-            return $ref;
+        if (preg_match('/^\\\\g\{?([1-9]\\d*)\}?$/', $ref, $matches)) {
+            return '\\'.$matches[1];
         }
 
         throw new TranspileException(
-            'Unsupported backreference syntax for JavaScript: '.$ref.'.',
+            'Unsupported backreference syntax for Python: '.$ref.'.',
             $position,
             $this->context->sourcePattern,
         );
-    }
-
-    private function isUnicodeMode(): bool
-    {
-        return str_contains($this->flags, 'u') || $this->context->requiresFlag('u');
-    }
-
-    private function noteUnicodeWordBoundary(): void
-    {
-        $this->context->addNote('JavaScript \\w and \\b are ASCII-based; Unicode word boundaries may differ.');
     }
 
     private function unsupported(string $message, NodeInterface $node): string
