@@ -408,6 +408,61 @@
          - /\r\n|\r/m
          + /\r\n|\r/
 
+  corpus/tempestphp/highlight/src/Languages/Base/Injections/DeletionInjection.php:24:24
+      → /(\{-)(?!-)((.|\n)*?)(-})/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/tempestphp/highlight/src/Languages/Base/Injections/AdditionInjection.php:24:24
+      → /(\{\+)((.|\n)*?)(\+})/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/tempestphp/highlight/src/Themes/InlineTheme.php:28:24
+      → /(?<selector>[\w,\.\s\-]+){(?<style>(.|\n)*?)}/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/tempestphp/tempest-framework/packages/support/src/Str/functions.php:85:32
+      → #[^(\w|\d|\'|"|\.|\!|\?|;|,|\|\/|\-|:|\&|@)]+#
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '|' (duplicate)
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/tempestphp/tempest-framework/packages/support/src/Str/functions.php:87:32
+      → #\s*[(\'|"|\.|\!|\?|;|,|\|\/|\-|:|\&|@)]\s*#
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '|' (duplicate)
+
+  corpus/tempestphp/tempest-framework/packages/validation/src/Rules/IsTime.php:28:31
+      → /^([0-1][0-9]|2[0-3]):?[0-5][0-9]$|^(([0-1]?[0-9]|2[0-3]):[0-5][0-9])$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/tempestphp/tempest-framework/packages/validation/src/Rules/IsTime.php:31:27
+      → /^([0-1]?[0-9]):[0-5][0-9]\s([aApP].[mM].|[aApP][mM])$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/tempestphp/tempest-framework/packages/generation/src/SimplifiesClassNames.php:152:24
+      → /(?:\\?[A-Za-z_][\w\d_]*\\)+[A-Za-z_][\w\d_]*/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/tempestphp/tempest-framework/src/Tempest/Framework/Commands/MetaViewComponentCommand.php:74:24
+      → /<x-slot\s*(name="(?<name>[\w-]+)")?((\s*\/>)|>(?<default>(.|\n)*?)<\/x-slot>)/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
   corpus/pest/src/Expectation.php:516:71
       → /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -426,6 +481,11 @@
      TIP 
          - /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m
          + /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/
+
+  corpus/protonemedia/laravel-splade/src/Http/BladeDirectives.php:67:20
+      → /('|")([\w\-_\.]+)('|")(,)?(\s*)(.*)/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
 
   corpus/october/modules/system/models/SiteDefinition.php:211:17
       → /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/
@@ -554,6 +614,14 @@
       → /{\s*[^}]*[^}a-z_]+\s*}?/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/cartalyst/stripe/src/AmountConverter.php:33:32
+      → /\,/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/cartalyst/stripe/src/AmountConverter.php:35:32
+      → /([^0-9\.\-])/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/mockery/library/Mockery/Generator/StringManipulation/Pass/RemoveDestructorPass.php:34:33
       → /public function __destruct\(\)\s+\{.*?\}/sm
