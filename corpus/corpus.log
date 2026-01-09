@@ -1534,6 +1534,102 @@
       → #^[ \t\*]*@(\w+)([^\w\r\n].*)?#mi
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
+  corpus/laminas/laminas-code/src/Generator/TypeGenerator/CompositeType.php:36:34
+      → /^(([|]|[^()&]+)+|(\(([&]|[^|()]+)\))+)+$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(([|]|[^()&]+)+|(\(([&]|[^|()]+)\))+)+$/
+         + /^(?>(([|]|[^()&]+)+|(\(([&]|[^|()]+)\))+))+$/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:437:24
+      → #/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#m
+         + #/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:451:28
+      → #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:453:40
+      → #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-DocBlockMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:471:28
+      → #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:473:21
+      → #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-DeclaresMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:489:28
+      → #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:491:21
+      → #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-NamespaceMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:541:28
+      → #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-UseMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#
+
+  corpus/laminas/laminas-code/src/Generator/FileGenerator.php:543:21
+      → #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#m
+     WARN  Flag 'm' is useless: pattern '#\/\* Laminas_Code_Generator_FileGenerator-UseMarker \*\/#m' contains no anchors.
+     TIP 
+         - #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#m
+         + #/\* Laminas_Code_Generator_FileGenerator-UseMarker \*/#
+
+  corpus/laminas/laminas-code/src/Reflection/DocBlock/Tag/MethodTag.php:36:26
+      → #^(static[\s]+)?(.+[\s]+)?(.+\(\))[\s]*(.*)$#m
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/laminas/laminas-code/src/Reflection/DocBlock/Tag/ParamTag.php:32:26
+      → #((?:[\w|\\]+(?:\[\])*\|?)+)(?:\s+(\$\S+))?(?:\s+(.*))?#s
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #((?:[\w|\\]+(?:\[\])*\|?)+)(?:\s+(\$\S+))?(?:\s+(.*))?#s
+         + #((?>(?:[\w|\\]+(?:\[\])*\|?))+)(?:\s+(\$\S+))?(?:\s+(.*))?#s
+
+  corpus/laminas/laminas-code/src/Reflection/DocBlock/Tag/ReturnTag.php:30:26
+      → #((?:[\w|\\]+(?:\[\])*\|?)+)(?:\s+(.*))?#s
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #((?:[\w|\\]+(?:\[\])*\|?)+)(?:\s+(.*))?#s
+         + #((?>(?:[\w|\\]+(?:\[\])*\|?))+)(?:\s+(.*))?#s
+
   corpus/Roave/DocbookTool/src/Writer/ConfluenceWriter.php:317:13
       → /<pre><code(?: class="lang-([^"]+)"|)>([^<]+)<\/code><\/pre>/
      WARN  Alternation contains an empty alternative.
@@ -3502,6 +3598,18 @@
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: ',' (duplicate)
 
+  corpus/laravel/roster/src/Scanners/BunPackageLock.php:25:34
+      → /,\s*([]}])/m
+     WARN  Flag 'm' is useless: pattern '/,\s*([\]}])/m' contains no anchors.
+     TIP 
+         - /,\s*([]}])/m
+         + /,\s*([]}])/
+
+  corpus/laravel/boost/src/Mcp/Tools/DatabaseQuery.php:68:51
+      → /with\s+.*select\b/i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
   corpus/PHP-CSS-Parser/src/Value/CSSString.php:62:31
       → /[\s{}()<>\[\]]/isu
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
@@ -3675,6 +3783,18 @@
          - #&([A-Za-z]{2})(?:lig);#
          + #&([A-Za-z]{2})lig;#
 
+  corpus/laminas/laminas-code/src/Reflection/DocBlockReflection.php:232:36
+      → #[ ]{0,1}\*/$#
+     TIP 
+         - #[ ]{0,1}\*/$#
+         + #[ ]?\*/$#
+
+  corpus/laminas/laminas-code/src/Reflection/DocBlockReflection.php:235:47
+      → #[ \t]*(?:/\*\*|\*/|\*)[ ]{0,1}(.*)?#
+     TIP 
+         - #[ \t]*(?:/\*\*|\*/|\*)[ ]{0,1}(.*)?#
+         + #[ \t]*(?:/\*\*|\*/|\*)[ ]?(.*)?#
+
   corpus/chrome-php/phpseclib/phpseclib/File/SPKAC.php:131:30
       → #(?:SPKAC=)|[ \r\n\\]#
      TIP 
@@ -3842,4 +3962,10 @@
      TIP 
          - /((?:(?![$.]|&(?=\$)).)*)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/
          + /((?:(?![$.]|&(?=\$)).)*)(?:((?:\.\.\.)?[$&][^\s]+)(?:(\s+)(.*))?)?/
+
+  corpus/laravel/roster/src/Roster.php:58:26
+      → /[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}/
+     TIP 
+         - /[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}/
+         + /[0-9]+\.[0-9]+\.[0-9]+/
 
