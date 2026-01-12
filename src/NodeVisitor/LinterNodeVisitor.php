@@ -1513,43 +1513,45 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $redundantOverflow = 0;
 
         foreach ($parts as $part) {
-            if ($part instanceof LiteralNode && 1 === \strlen($part->value)) {
-                $ord = \ord($part->value);
-                if (isset($literals[$ord])) {
-                    $redundant = true;
-                    $this->recordRedundantNote(
-                        $redundantNotes,
-                        $redundantOverflow,
-                        $this->formatCharLiteralForHint($part->value).' (duplicate)',
-                    );
-                } else {
-                    $coveringRange = $this->findCoveringRange($ord, $ranges);
-                    if (null !== $coveringRange) {
+            if (!$part instanceof RangeNode) {
+                $codePoint = $this->codePointFromNode($part);
+                if (null !== $codePoint) {
+                    if (isset($literals[$codePoint])) {
                         $redundant = true;
                         $this->recordRedundantNote(
                             $redundantNotes,
                             $redundantOverflow,
-                            $this->formatCharLiteralForHint($part->value).' (covered by range '.$coveringRange['label'].')',
+                            $this->formatCodePointForHint($codePoint).' (duplicate)',
                         );
+                    } else {
+                        $coveringRange = $this->findCoveringRange($codePoint, $ranges);
+                        if (null !== $coveringRange) {
+                            $redundant = true;
+                            $this->recordRedundantNote(
+                                $redundantNotes,
+                                $redundantOverflow,
+                                $this->formatCodePointForHint($codePoint).' (covered by range '.$coveringRange['label'].')',
+                            );
+                        }
                     }
-                }
-                $literals[$ord] = true;
+                    $literals[$codePoint] = true;
 
-                continue;
+                    continue;
+                }
             }
 
-            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                if (1 !== \strlen($part->start->value) || 1 !== \strlen($part->end->value)) {
+            if ($part instanceof RangeNode) {
+                $start = $this->codePointFromNode($part->start);
+                $end = $this->codePointFromNode($part->end);
+                if (null === $start || null === $end) {
                     continue;
                 }
 
-                $start = \ord($part->start->value);
-                $end = \ord($part->end->value);
                 if ($start > $end) {
                     continue;
                 }
 
-                $rangeLabel = $this->formatRangeForHint($part->start->value, $part->end->value);
+                $rangeLabel = $this->formatRangeForHint($start, $end);
                 foreach ($ranges as $existingRange) {
                     if ($start <= $existingRange['end'] && $end >= $existingRange['start']) {
                         $redundant = true;
@@ -1563,15 +1565,15 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     }
                 }
 
-                foreach ($literals as $ord => $seen) {
-                    if ($ord >= $start && $ord <= $end) {
+                foreach ($literals as $codePoint => $seen) {
+                    if ($codePoint >= $start && $codePoint <= $end) {
                         $redundant = true;
                         $this->recordRedundantNote(
                             $redundantNotes,
                             $redundantOverflow,
-                            $this->formatCharLiteralForHint(\chr($ord)).' (covered by range '.$rangeLabel.')',
+                            $this->formatCodePointForHint($codePoint).' (covered by range '.$rangeLabel.')',
                         );
-                        unset($literals[$ord]);
+                        unset($literals[$codePoint]);
                     }
                 }
 
@@ -2017,9 +2019,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return "'\\x{".strtoupper(dechex($codePoint))."}'";
     }
 
-    private function formatRangeForHint(string $start, string $end): string
+    private function formatRangeForHint(int $start, int $end): string
     {
-        return $this->formatCharLiteralForHint($start).'-'.$this->formatCharLiteralForHint($end);
+        return $this->formatCodePointForHint($start).'-'.$this->formatCodePointForHint($end);
     }
 
     private function isAsciiLetter(int $ord): bool

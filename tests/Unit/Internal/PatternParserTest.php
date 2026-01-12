@@ -179,6 +179,9 @@ final class PatternParserTest extends TestCase
 
     private static function runtimeSupportsModifierR(): bool
     {
-        return false !== @preg_match('/a/r', '');
+        $modifier = \chr(114);
+        $pattern = '/a/'.$modifier;
+
+        return false !== @preg_match($pattern, '');
     }
 }

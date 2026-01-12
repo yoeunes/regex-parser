@@ -135,7 +135,9 @@ final class PatternParser
         }
 
         if (null === $phpVersionId) {
-            $result = @preg_match('/a/r', '');
+            $modifier = \chr(114);
+            $pattern = '/a/'.$modifier;
+            $result = @preg_match($pattern, '');
             self::$supportsModifierR[$key] = false !== $result;
 
             return self::$supportsModifierR[$key];
