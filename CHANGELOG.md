@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-01-12
+
 ### Added
+- Transpiler API (`Regex::transpile`) with JavaScript and Python targets plus CLI/Symfony commands.
+- CLI `graph` command to export NFA diagrams (DOT/Mermaid).
 - Unicode-aware automata mode for `/u` patterns with code point literals, dot, and character class handling.
 - Effective alphabet optimization in DFA construction plus a new benchmark script for Unicode-heavy ranges.
 - RegexLanguageSolver facade factory plus DFA cache interfaces for reuse across automata comparisons.
@@ -17,13 +21,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Automata-based analyzers now generate Unicode-aware examples when working with `/u` patterns.
 - CLI compare and Symfony route/security analyzers now use the facade and shared DFA caching.
+- Optimizer can optionally verify language equivalence with automata via `verifyWithAutomata`.
 
 ### Documentation
 - Documented automata work-budget limits and diagnostic payloads in the logic solver guide.
+- Added correctness contracts and feature support matrix references.
+- API reference now includes transpile and optimize equivalence verification options.
 
 ### Fixed
 - Sort Symfony routes by specificity before conflict analysis to reduce false-positive overlaps.
 - Symfony access_control analysis now uses search semantics to match preg_match behavior and catch prefix shadowing.
+- Redundant character class detection now accounts for escaped literals (e.g. octal sequences).
+- Runtime `/r` modifier probing now avoids static modifier validation failures on PHP 8.2/8.4.
+
+### Benchmarks
+- Added automata transform, DFA minimizer, and effective alphabet benchmark scripts.
+
+### Tests
+- Added unit coverage for automata solver, minimization, Unicode support, and transpiler targets.
 
 ## [1.2.0] - 2026-01-08
 

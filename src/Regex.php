@@ -81,14 +81,14 @@ use RegexParser\Transpiler\TranspileResult;
  */
 final readonly class Regex
 {
-    public const VERSION = '1.2.0';
-    public const VERSION_ID = 10200;
+    public const VERSION = '1.3.0';
+    public const VERSION_ID = 10300;
 
     /**
      * Cache version for AST serialization.
      * Bump this when AST structure changes.
      */
-    public const CACHE_VERSION = '1.2.0';
+    public const CACHE_VERSION = '1.3.0';
 
     /**
      * Default maximum allowed regex pattern length.
