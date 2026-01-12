@@ -91,5 +91,16 @@ final class RealWorldCasesTest extends TestCase
         yield ['/999/i', "Flag 'i' is useless: the pattern contains no case-sensitive characters."];
         yield ['/000/i', "Flag 'i' is useless: the pattern contains no case-sensitive characters."];
         yield ['/111/i', "Flag 'i' is useless: the pattern contains no case-sensitive characters."];
+
+        yield ['/\\r\\n|\\r/m', "Flag 'm' is useless: pattern '/\\r\\n|\\r/m' contains no anchors."];
+
+        $html5Pattern = '/^[a-zA-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}'
+            .'[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD';
+        yield [$html5Pattern, "Flag 's' is useless: the pattern contains no dots."];
+
+        yield [
+            '#^(.*?)[\\\\/]*(([^/\\\\]*?)(\\.([^.\\\\/]+?)|))[\\\\/.]*$#m',
+            'Alternation contains an empty alternative.',
+        ];
     }
 }

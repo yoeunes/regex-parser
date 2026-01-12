@@ -87,6 +87,12 @@ final class OptimizerTest extends TestCase
             '#<esi:comment[^>]+>#',
         ];
 
+        // Case 4b: Useless flag removal - 'm' flag is useless when no anchors are present
+        yield 'useless multiline flag removal' => [
+            '/\r\n|\r/m',
+            '/\r\n|\r/',
+        ];
+
         // Case 5: Python syntax preservation - (?P<name>) is preserved
         yield 'structure optimization - named groups' => [
             '/^(?P<year>\d{4})-W(?P<week>\d{2})$/',

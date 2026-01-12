@@ -2218,6 +2218,8 @@
 
   corpus/phpactor/lib/Completion/Core/Util/OffsetHelper.php:12:32
       → /[ \t\x0d\n\r\f]+$/u
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '\x0D' (duplicate)
      WARN  Character class contains duplicate elements that do not add new matches.
          ↳ Remove the redundant character class element.
 
@@ -2237,7 +2239,7 @@
   corpus/phpactor/lib/Indexer/Util/PhpNameMatcher.php:15:33
       → {^[a-zA-Z_\x80-\xff\][\a-zA-Z0-9_\x80-\xff]*$}
      WARN  Redundant elements detected in character class.
-         ↳ Redundant elements: range '\x07'-'z' (overlaps 'a'-'z'), '_' (covered by range '\x07'-'z'), ']' (covered by range '\x07'-'z'), '[' (covered by range '\x07'-'z') (and 2 more).
+         ↳ Redundant elements: range '\x07'-'z' (overlaps 'a'-'z'), '_' (covered by range '\x07'-'z'), ']' (covered by range '\x07'-'z'), '[' (covered by range '\x07'-'z') (and 3 more).
 
   corpus/phpunit/phpunit/src/Framework/Constraint/Operator/LogicalNot.php:52:20
       → /('[\w\W]*')([\w\W]*)("[\w\W]*")/i
