@@ -350,7 +350,7 @@
          - /\r\n|\r/m
          + /\r\n|\r/
 
-  corpus/PHPMailer/src/PHPMailer.php:1494:21
+  corpus/PHPMailer/src/PHPMailer.php:1540:21
       → /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?:.*[a-f0-9][:\]]){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -360,7 +360,7 @@
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
 
-  corpus/PHPMailer/src/PHPMailer.php:1512:21
+  corpus/PHPMailer/src/PHPMailer.php:1558:21
       → /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -372,7 +372,7 @@
          - /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
          + /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/D
 
-  corpus/PHPMailer/src/PHPMailer.php:1529:21
+  corpus/PHPMailer/src/PHPMailer.php:1575:21
       → /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -384,7 +384,7 @@
          - /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
          + /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/uD
 
-  corpus/PHPMailer/src/PHPMailer.php:2546:29
+  corpus/PHPMailer/src/PHPMailer.php:2595:29
       → /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -396,7 +396,7 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
-  corpus/PHPMailer/src/PHPMailer.php:4916:24
+  corpus/PHPMailer/src/PHPMailer.php:4965:24
       → #^(.*?)[\\/]*(([^/\\]*?)(\.([^.\\/]+?)|))[\\/.]*$#m
      WARN  Alternation contains an empty alternative.
          ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
@@ -463,7 +463,7 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
-  corpus/pest/src/Expectation.php:516:71
+  corpus/pest/src/Expectation.php:518:71
       → /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -709,7 +709,7 @@
          - /\d+\.\d{6}/s
          + /\d+\.\d{6}/
 
-  corpus/cakephp/src/Database/Driver/Mysql.php:286:28
+  corpus/cakephp/src/Database/Driver/Mysql.php:290:28
       → /^(?:5\.5\.5-)?(\d+\.\d+\.\d+.*-MariaDB[^:]*)/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
@@ -742,14 +742,14 @@
          - /^0+[^0]{1}/
          + /^0+[^0]/
 
-  corpus/cakephp/src/TestSuite/TestCase.php:709:45
+  corpus/cakephp/src/TestSuite/TestCase.php:784:45
       → /\s+/m
      WARN  Flag 'm' is useless: pattern '/\s+/m' contains no anchors.
      TIP 
          - /\s+/m
          + /\s+/
 
-  corpus/cakephp/src/Mailer/Message.php:1636:29
+  corpus/cakephp/src/Mailer/Message.php:1665:29
       → /<[a-z]+.*>/i
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
@@ -774,7 +774,7 @@
      WARN  Character class contains duplicate elements that do not add new matches.
          ↳ Remove the redundant character class element.
 
-  corpus/cakephp/src/Console/ConsoleOutput.php:243:17
+  corpus/cakephp/src/Console/ConsoleOutput.php:242:17
       → /<(?P<tag>[a-z0-9-_.]+)>(?P<text>.*?)<\/(\1)>/ims
      WARN  Flag 'm' is useless: pattern '/<(?P<tag>[a-z0-9\-_.]+)>(?P<text>.*?)<\/(\1)>/ims' contains no anchors.
      TIP 
@@ -785,7 +785,7 @@
       → /^[^\s]+(?:(?: [^\s]+){1,2})?$/ui
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
-  corpus/cakephp/src/Utility/Text.php:616:40
+  corpus/cakephp/src/Utility/Text.php:634:40
       → /<[\w]+[^>]*>/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
@@ -1797,7 +1797,7 @@
          - /^## (?:\[)?(?:v)?(\d+\.\d+(\.\d+)?)/m
          + /^## \[?v?(\d+\.\d+(\.\d+)?)/m
 
-  corpus/server/apps/theming/lib/Controller/ThemingController.php:430:19
+  corpus/server/apps/theming/lib/Controller/ThemingController.php:432:19
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1807,7 +1807,7 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
-  corpus/server/apps/theming/lib/Controller/ThemingController.php:432:30
+  corpus/server/apps/theming/lib/Controller/ThemingController.php:434:30
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1900,8 +1900,7 @@
          + /^(?>(([|]|[^()&]+)+|(\(([&]|[^|()]+)\))+))+$/
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/laminas/laminas-code/src/Generator/FileGenerator.php:437:24
       → #/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#m
@@ -2204,7 +2203,7 @@
          ---
          + )?#ix
 
-  corpus/filament/packages/support/src/SupportServiceProvider.php:168:33
+  corpus/filament/packages/support/src/SupportServiceProvider.php:169:33
       → /\s*@trim\s*/m
      WARN  Flag 'm' is useless: pattern '/\s*@trim\s*/m' contains no anchors.
      TIP 
@@ -2380,8 +2379,7 @@
      TIP 
          - /^[a-zA-Z_\x80-\xff](?:[\\]?[a-zA-Z0-9_\x80-\xff]+)*$/
          + /^[a-zA-Z_\x80-\xff](?>(?:[\\]?[a-zA-Z0-9_\x80-\xff]+))*$/
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/psalm/src/Psalm/Internal/PhpVisitor/Reflector/FunctionLikeDocblockParser.php:125:33
       → /\n \*\s+/um
@@ -3343,7 +3341,7 @@
          - #<esi\:comment[^>]+>#s
          + #<esi\:comment[^>]+>#
 
-  corpus/symfony/symfony/src/Symfony/Component/HttpClient/HttpClientTrait.php:372:28
+  corpus/symfony/symfony/src/Symfony/Component/HttpClient/HttpClientTrait.php:373:28
       → {multipart/form-data; boundary=(?|"([^"\r\n]++)"|([-!#$%&'*+.^_`|~_A-Za-z0-9]++))}
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: '_' (duplicate)
@@ -3396,16 +3394,6 @@
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
 
-  corpus/symfony/symfony/src/Symfony/Component/ExpressionLanguage/Lexer.php:68:34
-      → /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
-     WARN  Nested quantifiers can cause catastrophic backtracking.
-         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
-     TIP 
-         - /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
-         + /"([^"\\]*(?>(?:\\.[^"\\]*))*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
-
   corpus/symfony/symfony/src/Symfony/Component/Ldap/Adapter/ExtLdap/EntryManager.php:183:25
       → /(^[^,\\]*(?:\\.[^,\\]*)*),/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -3438,8 +3426,7 @@
      TIP 
          - /^(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)+$/
          + /^(?>(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*))+$/
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/symfony/symfony/src/Symfony/Component/Finder/Gitignore.php:83:31
       → ~(?:(?:\\\*){2,}(/?))+~
@@ -3454,18 +3441,6 @@
      TIP 
          - ~\\\[((?:\\!)?)([^\[\]]*)\\\]~
          + ~\\\[((?:\\!)?)([^[\]]*)\\\]~
-
-  corpus/symfony/symfony/src/Symfony/Component/Yaml/Parser.php:998:38
-      → #^(\#.*?\n)+#s
-     WARN  Nested quantifiers can cause catastrophic backtracking.
-         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
-     TIP 
-         - #^(\#.*?\n)+#s
-         + #^(?>(\#.*?\n))+#s
-     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
-         ↳ Refactor with atomic groups or a more specific character class.
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
   corpus/symfony/symfony/src/Symfony/Component/Routing/RouteCompiler.php:182:53
       → /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})/
@@ -3499,8 +3474,7 @@
      TIP 
          - /^(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)+$/
          + /^(?>(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*))+$/
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/GraphvizDumper.php:235:29
       → /\W/i
@@ -3537,7 +3511,7 @@
          - {private const KNOWN_TAGS = \[(.+?)\];}sm
          + {private const KNOWN_TAGS = \[(.+?)\];}s
 
-  corpus/symfony/symfony/src/Symfony/Bundle/FrameworkBundle/Console/Descriptor/Descriptor.php:143:29
+  corpus/symfony/symfony/src/Symfony/Bundle/FrameworkBundle/Console/Descriptor/Descriptor.php:144:29
       → /\n\s*/s
      WARN  Flag 's' is useless: the pattern contains no dots.
      TIP 
@@ -3667,7 +3641,7 @@
          - /([^$&.]+)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/
          + /([^$&.]+)(?:((?:\.\.\.)?[$&][^\s]+)(?:(\s+)(.*))?)?/
 
-  corpus/php-debugbar/src/DebugBar/DataFormatter/QueryFormatter.php:17:29
+  corpus/php-debugbar/src/DataFormatter/QueryFormatter.php:17:29
       → /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: '\'' (duplicate)
@@ -3939,8 +3913,7 @@
      TIP 
          - /^(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?)+(?<!\\)$/i
          + /^(?>(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?))+(?<!\\)$/i
-     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
-         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/janephp/src/Component/JsonSchema/Registry/Schema.php:190:30
       → #([^:]){1}/{2,}#
@@ -4253,19 +4226,19 @@
          - /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
          + /^({0}.+\|)?({1}.+\|)(\[0,inf\[.+)/i
 
-  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:253:32
+  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:255:32
       → /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-\w+)?\n\n/
      TIP 
          - /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-\w+)?\n\n/
          + /^Processes: {5}\d+\nRuntime: {7}PHP \d+\.\d+\.\w+(-\w+)?\n\n/
 
-  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:274:32
+  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:276:32
       → /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-.+)?\n\n/
      TIP 
          - /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-.+)?\n\n/
          + /^Processes: {5}\d+\nRuntime: {7}PHP \d+\.\d+\.\w+(-.+)?\n\n/
 
-  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:296:32
+  corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:298:32
       → /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-.+)?\n\n/
      TIP 
          - /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-.+)?\n\n/
