@@ -23,6 +23,144 @@
           }
         }
       ]
+    },
+    "optimizationOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "digits": {
+          "type": "boolean",
+          "description": "Optimize digit character classes like [0-9] to \\d.",
+          "default": true
+        },
+        "word": {
+          "type": "boolean",
+          "description": "Optimize word character classes like [A-Za-z0-9_] to \\w.",
+          "default": true
+        },
+        "ranges": {
+          "type": "boolean",
+          "description": "Optimize consecutive character ranges.",
+          "default": true
+        },
+        "canonicalizeCharClasses": {
+          "type": "boolean",
+          "description": "Canonicalize character classes (sort ranges, remove duplicates).",
+          "default": true
+        },
+        "possessive": {
+          "type": "boolean",
+          "description": "Suggest possessive quantifiers (*+, ++, {m,n}+) to prevent ReDoS.",
+          "default": false
+        },
+        "factorize": {
+          "type": "boolean",
+          "description": "Factorize common prefixes/suffixes in alternations.",
+          "default": false
+        },
+        "minQuantifierCount": {
+          "type": "integer",
+          "description": "Minimum quantifier count required to suggest optimizations (min: 2).",
+          "minimum": 2,
+          "default": 4
+        },
+        "verifyWithAutomata": {
+          "type": "boolean",
+          "description": "Verify optimization suggestions with the automata solver when possible.",
+          "default": true
+        }
+      }
+    },
+    "checksRedos": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable ReDoS vulnerability analysis.",
+          "default": true
+        },
+        "mode": {
+          "type": "string",
+          "description": "ReDoS analysis mode.",
+          "enum": ["off", "theoretical", "confirmed"],
+          "enumDescriptions": [
+            "Disable ReDoS analysis.",
+            "Report theoretical ReDoS risks.",
+            "Only report confirmed ReDoS risks."
+          ],
+          "x-intellij-enum-metadata": [
+            {
+              "value": "off",
+              "description": "Disable ReDoS analysis."
+            },
+            {
+              "value": "theoretical",
+              "description": "Report theoretical ReDoS risks."
+            },
+            {
+              "value": "confirmed",
+              "description": "Only report confirmed ReDoS risks."
+            }
+          ],
+          "default": "theoretical"
+        },
+        "threshold": {
+          "type": "string",
+          "description": "Minimum severity threshold for reporting ReDoS issues.",
+          "enum": ["low", "medium", "high", "critical"],
+          "enumDescriptions": [
+            "Report low and higher.",
+            "Report medium and higher.",
+            "Report high and higher.",
+            "Report only critical."
+          ],
+          "x-intellij-enum-metadata": [
+            {
+              "value": "low",
+              "description": "Report low and higher."
+            },
+            {
+              "value": "medium",
+              "description": "Report medium and higher."
+            },
+            {
+              "value": "high",
+              "description": "Report high and higher."
+            },
+            {
+              "value": "critical",
+              "description": "Report only critical."
+            }
+          ],
+          "default": "high"
+        },
+        "noJit": {
+          "type": "boolean",
+          "description": "Disable PHP JIT when running ReDoS analysis (prevents false positives).",
+          "default": false
+        }
+      }
+    },
+    "checksOptimizations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable regex optimization suggestions.",
+          "default": true
+        },
+        "minSavings": {
+          "type": "integer",
+          "description": "Minimum character savings threshold to report optimization suggestions.",
+          "minimum": 1,
+          "default": 1
+        },
+        "options": {
+          "$ref": "#/$defs/optimizationOptions"
+        }
+      }
     }
   },
   "properties": {
@@ -63,10 +201,11 @@
     },
     "minSavings": {
       "type": "integer",
-      "description": "Minimum character savings threshold to report optimization suggestions.",
+      "description": "Deprecated. Use checks.optimizations.minSavings.",
       "minimum": 1,
       "default": 1,
-      "examples": [2]
+      "examples": [2],
+      "deprecated": true
     },
     "format": {
       "type": "string",
@@ -148,10 +287,47 @@
       ],
       "examples": ["phpstorm", "vscode", "vscode://file/%f:%l"]
     },
+    "checks": {
+      "type": "object",
+      "description": "Enable or configure lint checks (preferred).",
+      "additionalProperties": false,
+      "properties": {
+        "validation": {
+          "type": "boolean",
+          "description": "Enable regex syntax validation.",
+          "default": true
+        },
+        "redos": {
+          "description": "ReDoS analysis settings or toggle.",
+          "anyOf": [
+            {
+              "type": "boolean",
+              "description": "Enable or disable ReDoS analysis."
+            },
+            {
+              "$ref": "#/$defs/checksRedos"
+            }
+          ]
+        },
+        "optimizations": {
+          "description": "Optimization suggestion settings or toggle.",
+          "anyOf": [
+            {
+              "type": "boolean",
+              "description": "Enable or disable optimization suggestions."
+            },
+            {
+              "$ref": "#/$defs/checksOptimizations"
+            }
+          ]
+        }
+      }
+    },
     "rules": {
       "type": "object",
-      "description": "Enable or disable high-level rule categories.",
+      "description": "Deprecated. Use checks instead.",
       "additionalProperties": false,
+      "deprecated": true,
       "properties": {
         "redos": {
           "type": "boolean",
@@ -172,7 +348,7 @@
     },
     "redosMode": {
       "type": "string",
-      "description": "ReDoS analysis mode.",
+      "description": "Deprecated. Use checks.redos.mode.",
       "enum": ["off", "theoretical", "confirmed"],
       "enumDescriptions": [
         "Disable ReDoS analysis.",
@@ -193,11 +369,12 @@
           "description": "Only report confirmed ReDoS risks."
         }
       ],
-      "default": "theoretical"
+      "default": "theoretical",
+      "deprecated": true
     },
     "redosThreshold": {
       "type": "string",
-      "description": "Minimum severity threshold for reporting ReDoS issues.",
+      "description": "Deprecated. Use checks.redos.threshold.",
       "enum": ["low", "medium", "high", "critical"],
       "enumDescriptions": [
         "Report low and higher.",
@@ -223,60 +400,23 @@
           "description": "Report only critical."
         }
       ],
-      "default": "high"
+      "default": "high",
+      "deprecated": true
     },
     "redosNoJit": {
       "type": "boolean",
-      "description": "Disable PHP JIT when running ReDoS analysis (prevents false positives).",
-      "default": false
+      "description": "Deprecated. Use checks.redos.noJit.",
+      "default": false,
+      "deprecated": true
     },
     "optimizations": {
-      "type": "object",
-      "description": "Regex optimization settings (applies when optimization rules are enabled).",
-      "additionalProperties": false,
-      "properties": {
-        "digits": {
-          "type": "boolean",
-          "description": "Optimize digit character classes like [0-9] to \\d.",
-          "default": true
-        },
-        "word": {
-          "type": "boolean",
-          "description": "Optimize word character classes like [A-Za-z0-9_] to \\w.",
-          "default": true
-        },
-        "ranges": {
-          "type": "boolean",
-          "description": "Optimize consecutive character ranges.",
-          "default": true
-        },
-        "canonicalizeCharClasses": {
-          "type": "boolean",
-          "description": "Canonicalize character classes (sort ranges, remove duplicates).",
-          "default": true
-        },
-        "possessive": {
-          "type": "boolean",
-          "description": "Suggest possessive quantifiers (*+, ++, {m,n}+) to prevent ReDoS.",
-          "default": false
-        },
-        "factorize": {
-          "type": "boolean",
-          "description": "Factorize common prefixes/suffixes in alternations.",
-          "default": false
-        },
-        "minQuantifierCount": {
-          "type": "integer",
-          "description": "Minimum quantifier count required to suggest optimizations (min: 2).",
-          "minimum": 2,
-          "default": 4
-        },
-        "verifyWithAutomata": {
-          "type": "boolean",
-          "description": "Verify optimization suggestions with the automata solver when possible.",
-          "default": true
+      "allOf": [
+        {
+          "$ref": "#/$defs/optimizationOptions"
         }
-      }
+      ],
+      "description": "Deprecated. Use checks.optimizations.options.",
+      "deprecated": true
     }
   },
   "examples": [
@@ -285,25 +425,27 @@
       "paths": ["src"],
       "exclude": ["vendor", "tests"],
       "format": "console",
-      "minSavings": 2,
       "jobs": 4,
       "ide": "phpstorm",
-      "rules": {
-        "redos": true,
+      "checks": {
         "validation": true,
-        "optimization": true
-      },
-      "redosMode": "theoretical",
-      "redosThreshold": "high",
-      "optimizations": {
-        "digits": true,
-        "word": true,
-        "ranges": true,
-        "canonicalizeCharClasses": true,
-        "possessive": false,
-        "factorize": false,
-        "minQuantifierCount": 4,
-        "verifyWithAutomata": true
+        "redos": {
+          "mode": "theoretical",
+          "threshold": "high"
+        },
+        "optimizations": {
+          "minSavings": 2,
+          "options": {
+            "digits": true,
+            "word": true,
+            "ranges": true,
+            "canonicalizeCharClasses": true,
+            "possessive": false,
+            "factorize": false,
+            "minQuantifierCount": 4,
+            "verifyWithAutomata": true
+          }
+        }
       }
     }
   ]

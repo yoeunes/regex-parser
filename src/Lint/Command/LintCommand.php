@@ -121,12 +121,14 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             return 1;
         }
 
-        $config = match ($verbosity) {
-            OutputConfiguration::VERBOSITY_QUIET => OutputConfiguration::quiet(),
-            OutputConfiguration::VERBOSITY_VERBOSE => OutputConfiguration::verbose(),
-            OutputConfiguration::VERBOSITY_DEBUG => OutputConfiguration::debug(),
-            default => new OutputConfiguration(ansi: $output->isAnsi()),
-        };
+        // Always respect configuration values regardless of verbosity
+        $config = new OutputConfiguration(
+            verbosity: $verbosity,
+            ansi: $output->isAnsi(),
+            showProgress: OutputConfiguration::VERBOSITY_QUIET !== $verbosity,
+            showHints: OutputConfiguration::VERBOSITY_QUIET !== $verbosity,
+            showOptimizations: $checkOptimizations,
+        );
 
         $confirmOptions = $arguments->redosNoJit ? new ReDoSConfirmOptions(disableJit: true) : null;
         $analysis = new RegexAnalysisService(

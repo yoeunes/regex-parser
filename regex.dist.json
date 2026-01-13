@@ -9,14 +9,26 @@
         "Tests",
         "Fixtures"
     ],
-    "optimizations": {
-        "digits": false,
-        "word": false,
-        "ranges": false,
-        "canonicalizeCharClasses": false,
-        "possessive": false,
-        "factorize": false,
-        "minQuantifierCount": 4,
-        "verifyWithAutomata": true
+    "checks": {
+        "validation": true,
+        "redos": {
+            "enabled": true,
+            "mode": "confirmed",
+            "threshold": "high",
+            "noJit": false
+        },
+        "optimizations": {
+            "enabled": true,
+            "options": {
+                "digits": false,
+                "word": false,
+                "ranges": false,
+                "canonicalizeCharClasses": false,
+                "possessive": false,
+                "factorize": false,
+                "minQuantifierCount": 4,
+                "verifyWithAutomata": true
+            }
+        }
     }
 }

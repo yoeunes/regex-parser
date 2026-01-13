@@ -326,31 +326,44 @@ Create `regex.json` or `regex.dist.json` in your project root:
 ```json
 {
   "format": "console",
-  "minSavings": 2,
   "jobs": 4,
   "exclude": ["vendor", "var", "tests"],
   "ide": "phpstorm",
-  "optimizations": {
-    "digits": true,
-    "word": true,
-    "ranges": true,
-    "canonicalizeCharClasses": true,
-    "minQuantifierCount": 4,
-    "verifyWithAutomata": true
+  "checks": {
+    "validation": true,
+    "redos": {
+      "mode": "theoretical",
+      "threshold": "high"
+    },
+    "optimizations": {
+      "minSavings": 2,
+      "options": {
+        "digits": true,
+        "word": true,
+        "ranges": true,
+        "canonicalizeCharClasses": true,
+        "minQuantifierCount": 4,
+        "verifyWithAutomata": true
+      }
+    }
   }
 }
 ```
 
 ### Configuration Options
 
-| Option          | Type   | Description                                              |
-|-----------------|--------|----------------------------------------------------------|
-| `format`        | string | Output format (console, json, github, checkstyle, junit) |
-| `minSavings`    | int    | Minimum optimization savings threshold                   |
-| `jobs`          | int    | Number of parallel workers                               |
-| `exclude`       | array  | Paths to exclude                                         |
-| `ide`           | string | IDE for clickable links                                  |
-| `optimizations` | object | Optimization options (digits/word/ranges/canonicalizeCharClasses/possessive/factorize/minQuantifierCount/verifyWithAutomata) |
+| Option                          | Type           | Description                                              |
+|---------------------------------|----------------|----------------------------------------------------------|
+| `format`                        | string         | Output format (console, json, github, checkstyle, junit) |
+| `jobs`                          | int            | Number of parallel workers                               |
+| `exclude`                       | array          | Paths to exclude                                         |
+| `ide`                           | string         | IDE for clickable links                                  |
+| `checks`                        | object         | Enable or configure lint checks (validation, redos, optimizations) |
+| `checks.redos`                  | boolean or object | ReDoS analysis toggle or settings (mode, threshold, noJit) |
+| `checks.optimizations`          | boolean or object | Optimization suggestions toggle or settings (minSavings, options) |
+| `checks.optimizations.options`  | object         | Optimization options (digits/word/ranges/canonicalizeCharClasses/possessive/factorize/minQuantifierCount/verifyWithAutomata) |
+
+Legacy keys (`rules`, `redosMode`, `redosThreshold`, `redosNoJit`, `optimizations`, `minSavings`) are still supported but deprecated.
 
 ### IDE Integration
 

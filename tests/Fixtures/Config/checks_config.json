@@ -1,0 +1,25 @@
+{
+    "checks": {
+        "validation": false,
+        "redos": {
+            "enabled": true,
+            "mode": "confirmed",
+            "threshold": "critical",
+            "noJit": true
+        },
+        "optimizations": {
+            "enabled": false,
+            "minSavings": 3,
+            "options": {
+                "digits": false,
+                "word": true,
+                "ranges": false,
+                "canonicalizeCharClasses": true,
+                "possessive": true,
+                "factorize": true,
+                "minQuantifierCount": 5,
+                "verifyWithAutomata": false
+            }
+        }
+    }
+}

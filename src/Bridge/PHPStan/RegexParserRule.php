@@ -27,6 +27,7 @@ use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
@@ -108,23 +109,102 @@ final class RegexParserRule implements Rule
         'regex.lint.quantifier.concatenation' => self::DOC_BASE_URL.'#optimal-quantifier-concatenation',
     ];
 
+    private readonly bool $ignoreParseErrors;
+
+    private readonly bool $reportRedos;
+
+    private readonly string $redosThreshold;
+
+    private readonly string $redosMode;
+
+    private readonly bool $suggestOptimizations;
+
+    /**
+     * @var array<string, bool|int>
+     */
+    private readonly array $optimizationConfig;
+
+    private readonly int $optimizationMinSavings;
+
     private ?RegexAnalysisService $analysis = null;
 
     /**
-     * @param bool                                                                                                    $ignoreParseErrors  Ignore parse errors for partial regex strings
-     * @param bool                                                                                                    $reportRedos        Report ReDoS risk analysis
-     * @param string                                                                                                  $redosThreshold     Minimum ReDoS severity level to report
-     * @param string                                                                                                  $redosMode          ReDoS reporting mode (off|theoretical|confirmed)
-     * @param array{digits: bool, word: bool, ranges: bool, canonicalizeCharClasses?: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param bool   $ignoreParseErrors Ignore parse errors for partial regex strings
+     * @param bool   $reportRedos       Report ReDoS risk analysis
+     * @param string $redosThreshold    Minimum ReDoS severity level to report
+     * @param string $redosMode         ReDoS reporting mode (off|theoretical|confirmed)
+     * @param array{
+     *     digits: bool,
+     *     word: bool,
+     *     ranges: bool,
+     *     canonicalizeCharClasses?: bool,
+     *     autoPossessify?: bool,
+     *     allowAlternationFactorization?: bool,
+     *     minQuantifierCount?: int,
+     *     verifyWithAutomata?: bool
+     * } $optimizationConfig
+     * @param array<string, mixed> $config
      */
     public function __construct(
-        private readonly bool $ignoreParseErrors = true,
-        private readonly bool $reportRedos = true,
-        private readonly string $redosThreshold = 'high',
-        private readonly string $redosMode = 'theoretical',
-        private readonly bool $suggestOptimizations = false,
-        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'ranges' => true, 'canonicalizeCharClasses' => true],
-    ) {}
+        bool $ignoreParseErrors = true,
+        bool $reportRedos = true,
+        string $redosThreshold = 'high',
+        string $redosMode = 'theoretical',
+        bool $suggestOptimizations = false,
+        array $optimizationConfig = [
+            'digits' => true,
+            'word' => true,
+            'ranges' => true,
+            'canonicalizeCharClasses' => true,
+        ],
+        array $config = [],
+    ) {
+        $overrides = $this->normalizeConfigOverrides($config);
+
+        $ignoreParseErrorsOverride = $overrides['ignoreParseErrors'] ?? null;
+        if (\is_bool($ignoreParseErrorsOverride)) {
+            $ignoreParseErrors = $ignoreParseErrorsOverride;
+        }
+        $this->ignoreParseErrors = $ignoreParseErrors;
+
+        $reportRedosOverride = $overrides['reportRedos'] ?? null;
+        if (\is_bool($reportRedosOverride)) {
+            $reportRedos = $reportRedosOverride;
+        }
+        $this->reportRedos = $reportRedos;
+
+        $redosThresholdOverride = $overrides['redosThreshold'] ?? null;
+        if (\is_string($redosThresholdOverride) && '' !== $redosThresholdOverride) {
+            $redosThreshold = $redosThresholdOverride;
+        }
+        $this->redosThreshold = $redosThreshold;
+
+        $redosModeOverride = $overrides['redosMode'] ?? null;
+        if (\is_string($redosModeOverride) && '' !== $redosModeOverride) {
+            $redosMode = $redosModeOverride;
+        }
+        $this->redosMode = $redosMode;
+
+        $suggestOptimizationsOverride = $overrides['suggestOptimizations'] ?? null;
+        if (\is_bool($suggestOptimizationsOverride)) {
+            $suggestOptimizations = $suggestOptimizationsOverride;
+        }
+        $this->suggestOptimizations = $suggestOptimizations;
+
+        $optimizationMinSavings = 1;
+        $optimizationMinSavingsOverride = $overrides['optimizationMinSavings'] ?? null;
+        if (\is_int($optimizationMinSavingsOverride)) {
+            $optimizationMinSavings = $optimizationMinSavingsOverride;
+        }
+        $this->optimizationMinSavings = $optimizationMinSavings;
+
+        /** @var array<string, bool|int> $optimizationOverrides */
+        $optimizationOverrides = $overrides['optimizationConfig'] ?? null;
+        if (\is_array($optimizationOverrides)) {
+            $optimizationConfig = $this->mergeOptimizationConfig($optimizationConfig, $optimizationOverrides);
+        }
+        $this->optimizationConfig = $optimizationConfig;
+    }
 
     public function getNodeType(): string
     {
@@ -324,11 +404,25 @@ final class RegexParserRule implements Rule
         }
 
         if ($this->suggestOptimizations) {
+            /**
+             * @var array{
+             *     digits?: bool,
+             *     word?: bool,
+             *     ranges?: bool,
+             *     canonicalizeCharClasses?: bool,
+             *     autoPossessify?: bool,
+             *     allowAlternationFactorization?: bool,
+             *     minQuantifierCount?: int,
+             *     verifyWithAutomata?: bool
+             * } $optimizationConfig
+             */
+            $optimizationConfig = $this->optimizationConfig;
+
             /** @var array<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
             $optimizations = $this->getAnalysisService()->suggestOptimizations(
                 [$occurrence],
-                1,
-                $this->optimizationConfig,
+                $this->optimizationMinSavings,
+                $optimizationConfig,
             );
 
             foreach ($optimizations as $optimizationEntry) {
@@ -396,6 +490,234 @@ final class RegexParserRule implements Rule
     private function formatSource(string $functionName): string
     {
         return 'php:'.$functionName.'()';
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeConfigOverrides(array $config): array
+    {
+        /** @var array<string, mixed> $overrides */
+        $overrides = [];
+
+        if (\array_key_exists('ignoreParseErrors', $config) && \is_bool($config['ignoreParseErrors'])) {
+            $overrides['ignoreParseErrors'] = $config['ignoreParseErrors'];
+        }
+
+        if (\array_key_exists('reportRedos', $config) && \is_bool($config['reportRedos'])) {
+            $overrides['reportRedos'] = $config['reportRedos'];
+        }
+
+        if (
+            \array_key_exists('redosMode', $config)
+            && \is_string($config['redosMode'])
+            && '' !== $config['redosMode']
+        ) {
+            $mode = ReDoSMode::tryFrom(strtolower($config['redosMode']));
+            if (null !== $mode) {
+                $overrides['redosMode'] = $mode->value;
+            }
+        }
+
+        if (
+            \array_key_exists('redosThreshold', $config)
+            && \is_string($config['redosThreshold'])
+            && '' !== $config['redosThreshold']
+        ) {
+            $threshold = ReDoSSeverity::tryFrom(strtolower($config['redosThreshold']));
+            if (null !== $threshold) {
+                $overrides['redosThreshold'] = $threshold->value;
+            }
+        }
+
+        if (\array_key_exists('suggestOptimizations', $config) && \is_bool($config['suggestOptimizations'])) {
+            $overrides['suggestOptimizations'] = $config['suggestOptimizations'];
+        }
+
+        if (\array_key_exists('optimizationConfig', $config) && \is_array($config['optimizationConfig'])) {
+            /** @var array<string, mixed> $optionsConfig */
+            $optionsConfig = $config['optimizationConfig'];
+            $options = $this->normalizeOptimizationOptions($optionsConfig);
+            if ([] !== $options) {
+                $overrides['optimizationConfig'] = $options;
+            }
+        }
+
+        if (\array_key_exists('minSavings', $config) && \is_int($config['minSavings'])) {
+            $overrides['optimizationMinSavings'] = max(1, $config['minSavings']);
+        }
+
+        if (\array_key_exists('rules', $config) && \is_array($config['rules'])) {
+            $rules = $config['rules'];
+            if (\array_key_exists('redos', $rules) && \is_bool($rules['redos'])) {
+                $overrides['reportRedos'] = $rules['redos'];
+            }
+            if (\array_key_exists('optimization', $rules) && \is_bool($rules['optimization'])) {
+                $overrides['suggestOptimizations'] = $rules['optimization'];
+            }
+        }
+
+        if (\array_key_exists('checks', $config) && \is_array($config['checks'])) {
+            $checks = $config['checks'];
+            if (\array_key_exists('redos', $checks)) {
+                $overrides = $this->normalizeRedosOverrides($checks['redos'], $overrides);
+            }
+            if (\array_key_exists('optimizations', $checks)) {
+                $overrides = $this->normalizeOptimizationOverrides($checks['optimizations'], $overrides);
+            }
+        }
+
+        return $overrides;
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeRedosOverrides(mixed $redos, array $overrides): array
+    {
+        if (\is_bool($redos)) {
+            $overrides['reportRedos'] = $redos;
+
+            return $overrides;
+        }
+
+        if (!\is_array($redos)) {
+            return $overrides;
+        }
+
+        $enabled = null;
+
+        if (\array_key_exists('enabled', $redos) && \is_bool($redos['enabled'])) {
+            $enabled = $redos['enabled'];
+        }
+
+        if (\array_key_exists('mode', $redos) && \is_string($redos['mode']) && '' !== $redos['mode']) {
+            $mode = ReDoSMode::tryFrom(strtolower($redos['mode']));
+            if (null !== $mode) {
+                $overrides['redosMode'] = $mode->value;
+                if (ReDoSMode::OFF === $mode) {
+                    $enabled = false;
+                }
+            }
+        }
+
+        if (\array_key_exists('threshold', $redos) && \is_string($redos['threshold']) && '' !== $redos['threshold']) {
+            $threshold = ReDoSSeverity::tryFrom(strtolower($redos['threshold']));
+            if (null !== $threshold) {
+                $overrides['redosThreshold'] = $threshold->value;
+            }
+        }
+
+        if (null !== $enabled) {
+            $overrides['reportRedos'] = $enabled;
+        }
+
+        return $overrides;
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeOptimizationOverrides(mixed $optimizations, array $overrides): array
+    {
+        if (\is_bool($optimizations)) {
+            $overrides['suggestOptimizations'] = $optimizations;
+
+            return $overrides;
+        }
+
+        if (!\is_array($optimizations)) {
+            return $overrides;
+        }
+
+        if (\array_key_exists('enabled', $optimizations) && \is_bool($optimizations['enabled'])) {
+            $overrides['suggestOptimizations'] = $optimizations['enabled'];
+        }
+
+        if (\array_key_exists('minSavings', $optimizations) && \is_int($optimizations['minSavings'])) {
+            $overrides['optimizationMinSavings'] = max(1, $optimizations['minSavings']);
+        }
+
+        if (\array_key_exists('options', $optimizations) && \is_array($optimizations['options'])) {
+            /** @var array<string, mixed> $optionsConfig */
+            $optionsConfig = $optimizations['options'];
+            $options = $this->normalizeOptimizationOptions($optionsConfig);
+            if ([] !== $options) {
+                $overrides['optimizationConfig'] = $options;
+            }
+        }
+
+        return $overrides;
+    }
+
+    /**
+     * @param array<string, bool|int> $base
+     * @param array<string, bool|int> $overrides
+     *
+     * @return array<string, bool|int>
+     */
+    private function mergeOptimizationConfig(array $base, array $overrides): array
+    {
+        $merged = $base;
+
+        foreach ([
+            'digits',
+            'word',
+            'ranges',
+            'canonicalizeCharClasses',
+            'autoPossessify',
+            'allowAlternationFactorization',
+            'verifyWithAutomata',
+        ] as $key) {
+            if (\array_key_exists($key, $overrides) && \is_bool($overrides[$key])) {
+                $merged[$key] = $overrides[$key];
+            }
+        }
+
+        if (\array_key_exists('minQuantifierCount', $overrides) && \is_int($overrides['minQuantifierCount'])) {
+            $merged['minQuantifierCount'] = $overrides['minQuantifierCount'];
+        }
+
+        return $merged;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, bool|int>
+     */
+    private function normalizeOptimizationOptions(array $options): array
+    {
+        $normalized = [];
+        $booleanMapping = [
+            'digits' => 'digits',
+            'word' => 'word',
+            'ranges' => 'ranges',
+            'canonicalizeCharClasses' => 'canonicalizeCharClasses',
+            'possessive' => 'autoPossessify',
+            'autoPossessify' => 'autoPossessify',
+            'factorize' => 'allowAlternationFactorization',
+            'allowAlternationFactorization' => 'allowAlternationFactorization',
+            'verifyWithAutomata' => 'verifyWithAutomata',
+        ];
+
+        foreach ($booleanMapping as $inputKey => $targetKey) {
+            if (\array_key_exists($inputKey, $options) && \is_bool($options[$inputKey])) {
+                $normalized[$targetKey] = $options[$inputKey];
+            }
+        }
+
+        if (\array_key_exists('minQuantifierCount', $options) && \is_int($options['minQuantifierCount'])) {
+            $normalized['minQuantifierCount'] = $options['minQuantifierCount'];
+        }
+
+        return $normalized;
     }
 
     private function getAnalysisService(): RegexAnalysisService

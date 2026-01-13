@@ -18,9 +18,10 @@ use RegexParser\Lint\Formatter\OutputConfiguration;
 final readonly class LintArguments
 {
     /**
-     * @param array<int, string>      $paths
-     * @param array<int, string>      $exclude
-     * @param array<string, bool|int> $optimizations
+     * @param array<int, string>                 $paths
+     * @param array<int, string>                 $exclude
+     * @param "debug"|"normal"|"quiet"|"verbose" $verbosity
+     * @param array<string, bool|int>            $optimizations
      */
     public function __construct(
         public array $paths,
@@ -65,6 +66,8 @@ final readonly class LintArguments
 
         $verbosity = $defaults['verbosity'] ?? OutputConfiguration::VERBOSITY_NORMAL;
         if (!\is_string($verbosity) || '' === $verbosity) {
+            $verbosity = OutputConfiguration::VERBOSITY_NORMAL;
+        } elseif (!\in_array($verbosity, [OutputConfiguration::VERBOSITY_QUIET, OutputConfiguration::VERBOSITY_NORMAL, OutputConfiguration::VERBOSITY_VERBOSE, OutputConfiguration::VERBOSITY_DEBUG], true)) {
             $verbosity = OutputConfiguration::VERBOSITY_NORMAL;
         }
 

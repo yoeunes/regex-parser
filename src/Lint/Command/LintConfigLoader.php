@@ -93,6 +93,7 @@ final class LintConfigLoader
      */
     private function normalizeLintConfig(array $config, string $path): LintConfigResult
     {
+        /** @var array<string, mixed> $normalized */
         $normalized = [];
 
         if (\array_key_exists('paths', $config)) {
@@ -196,44 +197,248 @@ final class LintConfigLoader
         }
 
         if (\array_key_exists('optimizations', $config)) {
-            if (!\is_array($config['optimizations'])) {
-                return new LintConfigResult([], [], 'Invalid "optimizations" in '.$path.': expected an object.');
+            $options = $this->normalizeOptimizationOptions($config['optimizations'], $path, 'optimizations');
+            if (null !== $options->error) {
+                return $options;
+            }
+            if (isset($options->config['optimizations'])) {
+                $normalized['optimizations'] = $options->config['optimizations'];
+            }
+        }
+
+        if (\array_key_exists('checks', $config)) {
+            if (!\is_array($config['checks'])) {
+                return new LintConfigResult([], [], 'Invalid "checks" in '.$path.': expected an object.');
             }
 
-            $optConfig = [];
-            $keyMapping = [
-                'digits' => 'digits',
-                'word' => 'word',
-                'ranges' => 'ranges',
-                'canonicalizeCharClasses' => 'canonicalizeCharClasses',
-                'possessive' => 'autoPossessify',
-                'factorize' => 'allowAlternationFactorization',
-            ];
-            foreach ($keyMapping as $jsonKey => $internalKey) {
-                if (\array_key_exists($jsonKey, $config['optimizations'])) {
-                    if (!\is_bool($config['optimizations'][$jsonKey])) {
-                        return new LintConfigResult([], [], 'Invalid "optimizations.'.$jsonKey.'" in '.$path.': expected a boolean.');
-                    }
-                    $optConfig[$internalKey] = $config['optimizations'][$jsonKey];
+            $checksConfig = [];
+            foreach ($config['checks'] as $key => $value) {
+                if (!\is_string($key)) {
+                    return new LintConfigResult([], [], 'Invalid "checks" in '.$path.': expected an object.');
                 }
+                $checksConfig[$key] = $value;
             }
 
-            if (\array_key_exists('minQuantifierCount', $config['optimizations'])) {
-                if (!\is_int($config['optimizations']['minQuantifierCount'])) {
-                    return new LintConfigResult([], [], 'Invalid "optimizations.minQuantifierCount" in '.$path.': expected an integer.');
-                }
-                if ($config['optimizations']['minQuantifierCount'] < 2) {
-                    return new LintConfigResult([], [], 'Invalid "optimizations.minQuantifierCount" in '.$path.': value must be >= 2.');
-                }
-                $optConfig['minQuantifierCount'] = $config['optimizations']['minQuantifierCount'];
+            $checks = $this->normalizeChecksConfig($checksConfig, $path);
+            if (null !== $checks->error) {
+                return $checks;
             }
-
-            if ([] !== $optConfig) {
-                $normalized['optimizations'] = $optConfig;
+            if ([] !== $checks->config) {
+                $normalized = $this->mergeConfig($normalized, $checks->config);
             }
         }
 
         return new LintConfigResult($normalized, []);
+    }
+
+    /**
+     * @param array<string, mixed> $checks
+     */
+    private function normalizeChecksConfig(array $checks, string $path): LintConfigResult
+    {
+        /** @var array<string, mixed> $normalized */
+        $normalized = [];
+
+        if (\array_key_exists('validation', $checks)) {
+            if (!\is_bool($checks['validation'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.validation" in '.$path.': expected a boolean.');
+            }
+            $rules = $normalized['rules'] ?? [];
+            if (!\is_array($rules)) {
+                $rules = [];
+            }
+            $rules['validation'] = $checks['validation'];
+            $normalized['rules'] = $rules;
+        }
+
+        if (\array_key_exists('redos', $checks)) {
+            $redos = $this->normalizeRedosCheck($checks['redos'], $path);
+            if (null !== $redos->error) {
+                return $redos;
+            }
+            if ([] !== $redos->config) {
+                $normalized = $this->mergeConfig($normalized, $redos->config);
+            }
+        }
+
+        if (\array_key_exists('optimizations', $checks)) {
+            $optimizations = $this->normalizeOptimizationsCheck($checks['optimizations'], $path);
+            if (null !== $optimizations->error) {
+                return $optimizations;
+            }
+            if ([] !== $optimizations->config) {
+                $normalized = $this->mergeConfig($normalized, $optimizations->config);
+            }
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    private function normalizeRedosCheck(mixed $value, string $path): LintConfigResult
+    {
+        if (\is_bool($value)) {
+            return new LintConfigResult(['rules' => ['redos' => $value]], []);
+        }
+
+        if (!\is_array($value)) {
+            return new LintConfigResult([], [], 'Invalid "checks.redos" in '.$path.': expected a boolean or object.');
+        }
+
+        /** @var array<string, mixed> $normalized */
+        $normalized = [];
+        $enabled = null;
+        $hasSettings = false;
+
+        if (\array_key_exists('enabled', $value)) {
+            if (!\is_bool($value['enabled'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.enabled" in '.$path.': expected a boolean.');
+            }
+            $enabled = $value['enabled'];
+        }
+
+        if (\array_key_exists('mode', $value)) {
+            if (!\is_string($value['mode']) || '' === $value['mode']) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.mode" in '.$path.': expected a non-empty string.');
+            }
+            $mode = ReDoSMode::tryFrom(strtolower($value['mode']));
+            if (null === $mode) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.mode" in '.$path.': expected off, theoretical, or confirmed.');
+            }
+            $normalized['redosMode'] = $mode->value;
+            $hasSettings = true;
+            if (ReDoSMode::OFF === $mode) {
+                $enabled = false;
+            }
+        }
+
+        if (\array_key_exists('threshold', $value)) {
+            if (!\is_string($value['threshold']) || '' === $value['threshold']) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.threshold" in '.$path.': expected a non-empty string.');
+            }
+            $threshold = ReDoSSeverity::tryFrom(strtolower($value['threshold']));
+            if (null === $threshold) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.threshold" in '.$path.': expected low, medium, high, or critical.');
+            }
+            $normalized['redosThreshold'] = $threshold->value;
+            $hasSettings = true;
+        }
+
+        if (\array_key_exists('noJit', $value)) {
+            if (!\is_bool($value['noJit'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.redos.noJit" in '.$path.': expected a boolean.');
+            }
+            $normalized['redosNoJit'] = $value['noJit'];
+            $hasSettings = true;
+        }
+
+        if (null !== $enabled || $hasSettings) {
+            $rules = $normalized['rules'] ?? [];
+            if (!\is_array($rules)) {
+                $rules = [];
+            }
+            $rules['redos'] = $enabled ?? true;
+            $normalized['rules'] = $rules;
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    private function normalizeOptimizationsCheck(mixed $value, string $path): LintConfigResult
+    {
+        if (\is_bool($value)) {
+            return new LintConfigResult(['rules' => ['optimization' => $value]], []);
+        }
+
+        if (!\is_array($value)) {
+            return new LintConfigResult([], [], 'Invalid "checks.optimizations" in '.$path.': expected a boolean or object.');
+        }
+
+        /** @var array<string, mixed> $normalized */
+        $normalized = [];
+        $enabled = null;
+        $hasSettings = false;
+
+        if (\array_key_exists('enabled', $value)) {
+            if (!\is_bool($value['enabled'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.optimizations.enabled" in '.$path.': expected a boolean.');
+            }
+            $enabled = $value['enabled'];
+        }
+
+        if (\array_key_exists('minSavings', $value)) {
+            if (!\is_int($value['minSavings'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.optimizations.minSavings" in '.$path.': expected an integer.');
+            }
+            if ($value['minSavings'] < 1) {
+                return new LintConfigResult([], [], 'Invalid "checks.optimizations.minSavings" in '.$path.': value must be >= 1.');
+            }
+            $normalized['minSavings'] = $value['minSavings'];
+            $hasSettings = true;
+        }
+
+        if (\array_key_exists('options', $value)) {
+            $options = $this->normalizeOptimizationOptions($value['options'], $path, 'checks.optimizations.options');
+            if (null !== $options->error) {
+                return $options;
+            }
+            if (isset($options->config['optimizations'])) {
+                $normalized['optimizations'] = $options->config['optimizations'];
+            }
+            $hasSettings = true;
+        }
+
+        if (null !== $enabled || $hasSettings) {
+            $rules = $normalized['rules'] ?? [];
+            if (!\is_array($rules)) {
+                $rules = [];
+            }
+            $rules['optimization'] = $enabled ?? true;
+            $normalized['rules'] = $rules;
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    private function normalizeOptimizationOptions(mixed $options, string $path, string $prefix): LintConfigResult
+    {
+        if (!\is_array($options)) {
+            return new LintConfigResult([], [], 'Invalid "'.$prefix.'" in '.$path.': expected an object.');
+        }
+
+        $optConfig = [];
+        $keyMapping = [
+            'digits' => 'digits',
+            'word' => 'word',
+            'ranges' => 'ranges',
+            'canonicalizeCharClasses' => 'canonicalizeCharClasses',
+            'possessive' => 'autoPossessify',
+            'factorize' => 'allowAlternationFactorization',
+            'verifyWithAutomata' => 'verifyWithAutomata',
+        ];
+        foreach ($keyMapping as $jsonKey => $internalKey) {
+            if (\array_key_exists($jsonKey, $options)) {
+                if (!\is_bool($options[$jsonKey])) {
+                    return new LintConfigResult([], [], 'Invalid "'.$prefix.'.'.$jsonKey.'" in '.$path.': expected a boolean.');
+                }
+                $optConfig[$internalKey] = $options[$jsonKey];
+            }
+        }
+
+        if (\array_key_exists('minQuantifierCount', $options)) {
+            if (!\is_int($options['minQuantifierCount'])) {
+                return new LintConfigResult([], [], 'Invalid "'.$prefix.'.minQuantifierCount" in '.$path.': expected an integer.');
+            }
+            if ($options['minQuantifierCount'] < 2) {
+                return new LintConfigResult([], [], 'Invalid "'.$prefix.'.minQuantifierCount" in '.$path.': value must be >= 2.');
+            }
+            $optConfig['minQuantifierCount'] = $options['minQuantifierCount'];
+        }
+
+        if ([] !== $optConfig) {
+            return new LintConfigResult(['optimizations' => $optConfig], []);
+        }
+
+        return new LintConfigResult([], []);
     }
 
     private function normalizeStringList(mixed $value, string $path, string $key): LintConfigResult
@@ -255,5 +460,19 @@ final class LintConfigLoader
         }
 
         return new LintConfigResult([$key => $normalized], []);
+    }
+
+    /**
+     * @param array<string, mixed> $base
+     * @param array<string, mixed> $overrides
+     *
+     * @return array<string, mixed>
+     */
+    private function mergeConfig(array $base, array $overrides): array
+    {
+        /** @var array<string, mixed> $merged */
+        $merged = array_replace_recursive($base, $overrides);
+
+        return $merged;
     }
 }

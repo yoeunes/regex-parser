@@ -2,6 +2,32 @@ parametersSchema:
     regexParser: structure([
         # Whether to ignore regex parsing errors (e.g., missing delimiters)
         ignoreParseErrors: bool(),
+        # Preferred: configure checks in one place
+        checks: structure([
+            redos: structure([
+                enabled: bool(),
+                # ReDoS reporting mode: 'off', 'theoretical', 'confirmed'
+                mode: string(),
+                # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
+                threshold: string(),
+                noJit: bool()
+            ]),
+            optimizations: structure([
+                enabled: bool(),
+                minSavings: int(),
+                options: structure([
+                    digits: bool(),
+                    word: bool(),
+                    ranges: bool(),
+                    canonicalizeCharClasses: bool(),
+                    possessive: bool(),
+                    factorize: bool(),
+                    minQuantifierCount: int(),
+                    verifyWithAutomata: bool()
+                ])
+            ])
+        ]),
+        # Deprecated: use checks.* instead
         # Enable/disable ReDoS risk detection
         reportRedos: bool(),
         # ReDoS reporting mode: 'off', 'theoretical', 'confirmed'
@@ -24,6 +50,7 @@ parameters:
         # Ignore parsing errors like missing delimiters (common in dynamic regex)
         ignoreParseErrors: true
 
+        # Deprecated: use checks.* instead
         # Enable comprehensive ReDoS risk detection
         reportRedos: true
 
@@ -44,6 +71,26 @@ parameters:
             ranges: true
             canonicalizeCharClasses: true
 
+        # Preferred configuration (kept in sync with legacy defaults)
+        checks:
+            redos:
+                enabled: %regexParser.reportRedos%
+                mode: %regexParser.redosMode%
+                threshold: %regexParser.redosThreshold%
+                noJit: false
+            optimizations:
+                enabled: %regexParser.suggestOptimizations%
+                minSavings: 1
+                options:
+                    digits: %regexParser.optimizationConfig.digits%
+                    word: %regexParser.optimizationConfig.word%
+                    ranges: %regexParser.optimizationConfig.ranges%
+                    canonicalizeCharClasses: %regexParser.optimizationConfig.canonicalizeCharClasses%
+                    possessive: false
+                    factorize: false
+                    minQuantifierCount: 4
+                    verifyWithAutomata: true
+
 services:
     # Main regex validation rule for PHPStan
     -
@@ -55,5 +102,6 @@ services:
             redosMode: %regexParser.redosMode%
             suggestOptimizations: %regexParser.suggestOptimizations%
             optimizationConfig: %regexParser.optimizationConfig%
+            config: %regexParser%
         tags:
             - phpstan.rules.rule

@@ -182,6 +182,58 @@ final class RegexParserRuleCoverageTest extends TestCase
         $this->assertFalse($hasOptimization);
     }
 
+    public function test_checks_config_overrides_legacy_flags(): void
+    {
+        $rule = new RegexParserRule(
+            reportRedos: false,
+            suggestOptimizations: false,
+            config: [
+                'checks' => [
+                    'redos' => [
+                        'enabled' => true,
+                        'mode' => 'confirmed',
+                        'threshold' => 'low',
+                    ],
+                    'optimizations' => [
+                        'enabled' => true,
+                        'minSavings' => 1,
+                        'options' => [
+                            'digits' => true,
+                            'word' => true,
+                            'ranges' => true,
+                            'canonicalizeCharClasses' => true,
+                        ],
+                    ],
+                ],
+            ],
+        );
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $redosErrors = $this->invokePrivate($rule, 'validatePattern', ['/(a+)+$/', 5, $scope, 'preg_match']);
+        $hasRedos = false;
+        foreach ($redosErrors as $error) {
+            if (str_starts_with($error->getIdentifier(), 'regex.redos')) {
+                $hasRedos = true;
+
+                break;
+            }
+        }
+        $this->assertTrue($hasRedos);
+
+        $optimizationErrors = $this->invokePrivate($rule, 'validatePattern', ['/[0-9]+/', 6, $scope, 'preg_match']);
+        $hasOptimization = false;
+        foreach ($optimizationErrors as $error) {
+            if ('regex.optimization' === $error->getIdentifier()) {
+                $hasOptimization = true;
+
+                break;
+            }
+        }
+        $this->assertTrue($hasOptimization);
+    }
+
     public function test_default_optimization_config_enables_word_optimization(): void
     {
         $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);

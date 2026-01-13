@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Lint configuration `checks` section with nested ReDoS and optimization settings (schema + defaults).
+- PHPStan extension support for `checks` configuration overrides.
+
+### Changed
+- Deprecated legacy lint config keys (`rules`, `redosMode`, `redosThreshold`, `redosNoJit`, `optimizations`, `minSavings`) in favor of `checks.*`.
+
+### Fixed
+- CLI lint config now honors `verifyWithAutomata` when provided in optimization settings.
+
+### Documentation
+- Updated CLI configuration examples to use `checks` and note deprecated keys.
+
+### Tests
+- Added coverage for `checks` normalization and PHPStan `checks` overrides.
+
 ## [1.3.0] - 2026-01-12
 
 ### Added

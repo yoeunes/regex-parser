@@ -144,4 +144,50 @@ final class LintConfigLoaderTest extends TestCase
             @rmdir($tempDir);
         }
     }
+
+    public function test_load_normalizes_checks_config(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        copy(__DIR__.'/../../../Fixtures/Config/checks_config.json', $configPath);
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNull($result->error);
+            $this->assertSame([
+                'rules' => [
+                    'validation' => false,
+                    'redos' => true,
+                    'optimization' => false,
+                ],
+                'redosMode' => 'confirmed',
+                'redosThreshold' => 'critical',
+                'redosNoJit' => true,
+                'minSavings' => 3,
+                'optimizations' => [
+                    'digits' => false,
+                    'word' => true,
+                    'ranges' => false,
+                    'canonicalizeCharClasses' => true,
+                    'autoPossessify' => true,
+                    'allowAlternationFactorization' => true,
+                    'verifyWithAutomata' => false,
+                    'minQuantifierCount' => 5,
+                ],
+            ], $result->config);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
 }
