@@ -19,15 +19,18 @@ namespace RegexParser\Exception;
  * This trait provides methods to construct error messages that not only
  * describe the problem but also explain how to fix it, similar to
  * how modern IDEs provide fix suggestions.
+ *
+ * @phpstan-ignore trait.unused
  */
 trait HelpfulExceptionTrait
 {
     /**
      * Build a helpful error message with problem description and fix suggestion.
      *
-     * @param string $problem    Description of what went wrong
-     * @param string $suggestion Suggested fix or solution
-     * @param string|null $docsLink  Optional link to documentation
+     * @param string      $problem    Description of what went wrong
+     * @param string      $suggestion Suggested fix or solution
+     * @param string|null $docsLink   Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildSuggestion(
@@ -38,7 +41,7 @@ trait HelpfulExceptionTrait
         $message = "Problem: {$problem}\n";
         $message .= "\nFix: {$suggestion}\n";
 
-        if ($docsLink !== null) {
+        if (null !== $docsLink) {
             $message .= "\nLearn more: {$docsLink}\n";
         }
 
@@ -48,11 +51,12 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message with code examples.
      *
-     * @param string $problem     Description of what went wrong
-     * @param string $before      Problematic code example
-     * @param string $after       Corrected code example
+     * @param string      $problem     Description of what went wrong
+     * @param string      $before      Problematic code example
+     * @param string      $after       Corrected code example
      * @param string|null $explanation Optional explanation of why the fix works
      * @param string|null $docsLink    Optional link to documentation
+     *
      * @return string Formatted help message with code examples
      */
     private static function buildCodeExampleSuggestion(
@@ -66,11 +70,11 @@ trait HelpfulExceptionTrait
         $message .= "\nBefore:\n  {$before}\n";
         $message .= "\nAfter:\n  {$after}\n";
 
-        if ($explanation !== null) {
+        if (null !== $explanation) {
             $message .= "\nWhy: {$explanation}\n";
         }
 
-        if ($docsLink !== null) {
+        if (null !== $docsLink) {
             $message .= "\nLearn more: {$docsLink}\n";
         }
 
@@ -80,9 +84,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for quantifier issues.
      *
-     * @param string $position    Position where quantifier appears
-     * @param string $quantifier The quantifier (+, *, ?, {n,m})
-     * @param string|null $docsLink Optional link to documentation
+     * @param string      $position   Position where quantifier appears
+     * @param string      $quantifier The quantifier (+, *, ?, {n,m})
+     * @param string|null $docsLink   Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildQuantifierSuggestion(
@@ -91,9 +96,9 @@ trait HelpfulExceptionTrait
         ?string $docsLink = null,
     ): string {
         $problem = "Quantifier '{$quantifier}' without target at {$position}";
-        $suggestion = "Remove quantifier or add an atom before it";
+        $suggestion = 'Remove quantifier or add an atom before it';
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/concepts/quantifiers';
         }
 
@@ -103,9 +108,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for invalid escape sequences.
      *
-     * @param string $escape      The invalid escape sequence
-     * @param string $position    Where it was found
+     * @param string      $escape   The invalid escape sequence
+     * @param string      $position Where it was found
      * @param string|null $docsLink Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildEscapeSuggestion(
@@ -115,7 +121,7 @@ trait HelpfulExceptionTrait
     ): string {
         $problem = "Invalid escape sequence '{$escape}' at {$position}";
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/concepts/escape-sequences';
         }
 
@@ -128,6 +134,7 @@ trait HelpfulExceptionTrait
      * Get appropriate fix for an invalid escape sequence.
      *
      * @param string $escape The invalid escape sequence
+     *
      * @return string Suggested fix
      */
     private static function getEscapeFix(string $escape): string
@@ -145,9 +152,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for character class issues.
      *
-     * @param string $className     Name of character class issue
-     * @param string $position      Where it was found
-     * @param string|null $docsLink Optional link to documentation
+     * @param string      $className Name of character class issue
+     * @param string      $position  Where it was found
+     * @param string|null $docsLink  Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildCharacterClassSuggestion(
@@ -167,7 +175,7 @@ trait HelpfulExceptionTrait
                 'docs' => 'https://yoeunes.github.io/regex-parser/docs/lint/redundant-character-class',
             ],
             'invalidRange' => [
-                'problem' => 'Invalid character class range at position ' . $position,
+                'problem' => 'Invalid character class range at position '.$position,
                 'suggestion' => 'Ensure range start code point is less than or equal to end code point',
                 'docs' => 'https://yoeunes.github.io/regex-parser/docs/concepts/character-classes#ranges',
             ],
@@ -189,10 +197,11 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for backreference issues.
      *
-     * @param string $referenceNumber  The backreference number
-     * @param string $position        Where it was found
-     * @param int|null $groupCount    Total number of capturing groups
-     * @param string|null $docsLink Optional link to documentation
+     * @param string      $referenceNumber The backreference number
+     * @param string      $position        Where it was found
+     * @param int|null    $groupCount      Total number of capturing groups
+     * @param string|null $docsLink        Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildBackreferenceSuggestion(
@@ -203,11 +212,11 @@ trait HelpfulExceptionTrait
     ): string {
         $problem = "Backreference '\\{$referenceNumber}' references a non-existent group at {$position}";
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/concepts/backreferences';
         }
 
-        if ($groupCount !== null && (int) $referenceNumber > $groupCount) {
+        if (null !== $groupCount && (int) $referenceNumber > $groupCount) {
             $suggestion = "Only {$groupCount} group(s) exist, use backreference \\{$groupCount} or lower";
         } else {
             $suggestion = 'Check that the referenced capturing group exists before this backreference';
@@ -219,10 +228,11 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for lookbehind issues.
      *
-     * @param string $issueType  Type of lookbehind issue
-     * @param string $position    Where it was found
-     * @param int|null $maxLength   Maximum lookbehind length (if applicable)
-     * @param string|null $docsLink Optional link to documentation
+     * @param string      $issueType Type of lookbehind issue
+     * @param string      $position  Where it was found
+     * @param int|null    $maxLength Maximum lookbehind length (if applicable)
+     * @param string|null $docsLink  Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildLookbehindSuggestion(
@@ -233,7 +243,7 @@ trait HelpfulExceptionTrait
     ): string {
         $issues = [
             'variableLength' => [
-                'problem' => 'Variable-length lookbehind is not supported at position ' . $position,
+                'problem' => 'Variable-length lookbehind is not supported at position '.$position,
                 'suggestion' => 'Use fixed-length pattern or replace with lookahead assertion if possible',
                 'docs' => 'https://yoeunes.github.io/regex-parser/docs/concepts/lookarounds#lookbehind',
             ],
@@ -260,9 +270,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for flag issues.
      *
-     * @param string $flag        The invalid flag
-     * @param string $position    Where it was found
+     * @param string      $flag     The invalid flag
+     * @param string      $position Where it was found
      * @param string|null $docsLink Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildFlagSuggestion(
@@ -272,7 +283,7 @@ trait HelpfulExceptionTrait
     ): string {
         $problem = "Invalid flag '{$flag}' at position {$position}";
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/concepts/flags';
         }
 
@@ -281,7 +292,7 @@ trait HelpfulExceptionTrait
             'Inline' => ['i', 'm', 's', 'x', 'u', 'A', 'D', 'S', 'U', 'X', 'J', 'r', '-', '^'],
         ];
 
-        $suggestion = "Valid flags are: " . implode(', ', $validFlags['PCRE']) . "";
+        $suggestion = 'Valid flags are: '.implode(', ', $validFlags['PCRE']).'';
 
         return self::buildSuggestion($problem, $suggestion, $docsLink);
     }
@@ -289,9 +300,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for anchor issues.
      *
-     * @param string $anchor      The anchor that caused the issue
-     * @param string $position    Where it was found
+     * @param string      $anchor   The anchor that caused the issue
+     * @param string      $position Where it was found
      * @param string|null $docsLink Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildAnchorSuggestion(
@@ -328,9 +340,10 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for ReDoS issues.
      *
-     * @param string $pattern     The pattern with ReDoS risk
-     * @param string $position    Where risk was detected
+     * @param string      $pattern  The pattern with ReDoS risk
+     * @param string      $position Where risk was detected
      * @param string|null $docsLink Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildRedoSuggestion(
@@ -340,17 +353,17 @@ trait HelpfulExceptionTrait
     ): string {
         $problem = "Catastrophic backtracking (ReDoS) risk detected at {$position}";
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/redos-guide';
         }
 
-        $suggestion = "Consider using possessive quantifiers (++), atomic groups (?>), or anchors to limit backtracking";
+        $suggestion = 'Consider using possessive quantifiers (++), atomic groups (?>), or anchors to limit backtracking';
 
         $codeExample = self::buildCodeExampleSuggestion(
             $problem,
-            "/(a+)+\$/",
-            "/a++\$/",
-            "Possessive quantifier (++) prevents backtracking into the repeated group",
+            '/(a+)+$/',
+            '/a++$/',
+            'Possessive quantifier (++) prevents backtracking into the repeated group',
             $docsLink,
         );
 
@@ -360,10 +373,11 @@ trait HelpfulExceptionTrait
     /**
      * Build a helpful error message for nested quantifiers.
      *
-     * @param string $outerQuantifier  Outer quantifier (e.g., +, *)
-     * @param string $innerQuantifier  Inner quantifier (e.g., +, *)
-     * @param string $position         Where it was found
-     * @param string|null $docsLink Optional link to documentation
+     * @param string      $outerQuantifier Outer quantifier (e.g., +, *)
+     * @param string      $innerQuantifier Inner quantifier (e.g., +, *)
+     * @param string      $position        Where it was found
+     * @param string|null $docsLink        Optional link to documentation
+     *
      * @return string Formatted help message
      */
     private static function buildNestedQuantifierSuggestion(
@@ -374,7 +388,7 @@ trait HelpfulExceptionTrait
     ): string {
         $problem = "Nested quantifiers ({$outerQuantifier} contains {$innerQuantifier}) at {$position}";
 
-        if ($docsLink === null) {
+        if (null === $docsLink) {
             $docsLink = 'https://yoeunes.github.io/regex-parser/docs/redos-guide#nested-quantifiers';
         }
 
@@ -398,18 +412,19 @@ trait HelpfulExceptionTrait
      * Get base documentation URL.
      *
      * @param string|null $specificPath Optional specific path for documentation
+     *
      * @return string Full documentation URL
      */
     private static function getDocsUrl(?string $specificPath = null): string
     {
         $baseUrl = 'https://yoeunes.github.io/regex-parser/docs/';
 
-        if ($specificPath === null) {
+        if (null === $specificPath) {
             return $baseUrl;
         }
 
         $trimmedPath = ltrim($specificPath, '/');
 
-        return $baseUrl . $trimmedPath;
+        return $baseUrl.$trimmedPath;
     }
 }
