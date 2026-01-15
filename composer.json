@@ -59,7 +59,12 @@
             "@phplint",
             "@phpunit",
             "@phpstan"
-        ]
+        ],
+        "regex:validate": "@php -r \"require 'vendor/autoload.php'; \\\\RegexParser\\\\Regex::create()->validate(file_get_contents('php://stdin'));\"",
+        "regex:test": "@php -r \"require 'vendor/autoload.php'; \\\\RegexParser\\\\Regex::create()->redos(file_get_contents('php://stdin'));\"",
+        "regex:explain": "@php -r \"require 'vendor/autoload.php'; \\\\RegexParser\\\\Regex::create()->explain(file_get_contents('php://stdin'));\"",
+        "regex:highlight": "@php -r \"require 'vendor/autoload.php'; \\\\RegexParser\\\\Regex::create()->highlight(file_get_contents('php://stdin'), 'console'));\"",
+        "regex:analyze": "@php -r \"require 'vendor/autoload.php'; \\\\RegexParser\\\\Regex::create()->analyze(file_get_contents('php://stdin'));\""
     },
     "config": {
         "optimize-autoloader": true,

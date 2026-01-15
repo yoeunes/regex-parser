@@ -1,0 +1,57 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Example: Validate a regex pattern with RegexParser
+ *
+ * This example demonstrates:
+ * - Basic pattern validation
+ * - Error handling with user-friendly messages
+ * - Complexity scoring
+ * - ReDoS risk checking
+ */
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSSeverity;
+
+$pattern = '/\d{4}-\d{2}-\d{2}/';
+
+echo "=== Pattern Validation ===\n";
+echo "Pattern: {$pattern}\n\n";
+
+$regex = Regex::create();
+$result = $regex->validate($pattern);
+
+if ($result->isValid) {
+    echo "✓ Pattern is valid\n";
+    echo "Complexity Score: {$result->complexityScore}\n";
+    echo "\n";
+} else {
+    echo "✗ Pattern is invalid\n";
+    echo "Error: {$result->error}\n";
+    if ($result->hint !== null && $result->hint !== '') {
+        echo "Hint: {$result->hint}\n";
+    }
+    echo "\n";
+    exit(1);
+}
+
+$redosResult = $regex->redos($pattern);
+
+$severityOrder = [ReDoSSeverity::SAFE, ReDoSSeverity::LOW, ReDoSSeverity::MEDIUM, ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL];
+$riskLevel = array_search($redosResult->severity, $severityOrder, true);
+
+if ($riskLevel >= 2) {  // MEDIUM or worse
+    echo "⚠️  ReDoS Risk: {$redosResult->severity->value}\n";
+    echo "Consider using possessive quantifiers or atomic groups.\n";
+} else {
+    echo "✓ ReDoS Risk: {$redosResult->severity->value}\n";
+}
+
+echo "\n";
+echo "=== Pattern Details ===\n";
+$explanation = $regex->explain($pattern);
+echo $explanation;
