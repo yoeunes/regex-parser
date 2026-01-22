@@ -303,7 +303,7 @@ final class DebugCommand extends AbstractCommand
     }
 
     /**
-     * @param array<int, string> $args
+     * @param array<int, string>   $args
      * @param array<string, mixed> $defaults
      *
      * @return array{pattern: string, inputValue: ?string, format: string, redosMode: ReDoSMode, redosThreshold: ?ReDoSSeverity, confirmOptions: ?ReDoSConfirmOptions, error: ?string}
