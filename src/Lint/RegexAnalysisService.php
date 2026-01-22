@@ -288,7 +288,12 @@ final readonly class RegexAnalysisService
                     $this->redosMode,
                     $this->redosConfirmOptions,
                 );
-                if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
+
+                // When mode is CONFIRMED, only report findings that were actually confirmed
+                $shouldReport = $redos->exceedsThreshold($this->redosSeverityThreshold)
+                    && (ReDoSMode::CONFIRMED !== $this->redosMode || $redos->isConfirmed());
+
+                if ($shouldReport) {
                     $issues[] = [
                         'type' => $this->resolveRedosIssueType($redos),
                         'file' => $occurrence->file,
@@ -465,7 +470,12 @@ final readonly class RegexAnalysisService
                 $this->redosMode,
                 $this->redosConfirmOptions,
             );
-            if (!$analysis->exceedsThreshold($threshold)) {
+
+            // When mode is CONFIRMED, only report findings that were actually confirmed
+            $shouldReport = $analysis->exceedsThreshold($threshold)
+                && (ReDoSMode::CONFIRMED !== $this->redosMode || $analysis->isConfirmed());
+
+            if (!$shouldReport) {
                 continue;
             }
 
