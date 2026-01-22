@@ -35,4 +35,5 @@
 !/corpus/
 !/corpus/.gitkeep
 !/corpus/corpus.log
+!/corpus/corpus-redos.log
 !/corpus/update
