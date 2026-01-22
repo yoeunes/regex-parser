@@ -14,7 +14,7 @@
         "redos": {
             "enabled": true,
             "mode": "confirmed",
-            "threshold": "high",
+            "threshold": "critical",
             "noJit": false
         },
         "optimizations": {
