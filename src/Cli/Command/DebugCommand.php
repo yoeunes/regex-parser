@@ -18,6 +18,8 @@ use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Lint\Command\LintConfigLoader;
+use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSConfirmOptions;
@@ -32,6 +34,11 @@ use RegexParser\Runtime\PcreRuntimeInfo;
 
 final class DebugCommand extends AbstractCommand
 {
+    public function __construct(
+        private readonly ?LintConfigLoader $configLoader = null,
+        private readonly ?LintDefaultsBuilder $defaultsBuilder = null,
+    ) {}
+
     public function getName(): string
     {
         return 'debug';
@@ -49,7 +56,16 @@ final class DebugCommand extends AbstractCommand
 
     public function run(Input $input, Output $output): int
     {
-        $parsed = $this->parseArguments($input->args);
+        // Load config file defaults if available
+        $defaults = [];
+        if (null !== $this->configLoader && null !== $this->defaultsBuilder) {
+            $configResult = $this->configLoader->load();
+            if (null === $configResult->error) {
+                $defaults = $this->defaultsBuilder->build($configResult->config ?? []);
+            }
+        }
+
+        $parsed = $this->parseArguments($input->args, $defaults);
         if (null !== $parsed['error']) {
             $output->write($output->error('Error: '.$parsed['error']."\n"));
             $output->write("Usage: regex debug <pattern> [--input <string>] [--format=json] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit]\n");
@@ -288,18 +304,34 @@ final class DebugCommand extends AbstractCommand
 
     /**
      * @param array<int, string> $args
+     * @param array<string, mixed> $defaults
      *
      * @return array{pattern: string, inputValue: ?string, format: string, redosMode: ReDoSMode, redosThreshold: ?ReDoSSeverity, confirmOptions: ?ReDoSConfirmOptions, error: ?string}
      */
-    private function parseArguments(array $args): array
+    private function parseArguments(array $args, array $defaults = []): array
     {
         $pattern = '';
         $inputValue = null;
         $format = 'console';
-        $redosMode = ReDoSMode::THEORETICAL;
+
+        // Use config defaults for redosMode, falling back to THEORETICAL
+        $defaultMode = ReDoSMode::THEORETICAL;
+        if (isset($defaults['redosMode']) && \is_string($defaults['redosMode'])) {
+            $defaultMode = ReDoSMode::tryFrom($defaults['redosMode']) ?? ReDoSMode::THEORETICAL;
+        }
+        $redosMode = $defaultMode;
+        $redosModeExplicit = false;
+
+        // Use config defaults for redosThreshold
         $redosThreshold = null;
+        if (isset($defaults['redosThreshold']) && \is_string($defaults['redosThreshold'])) {
+            $redosThreshold = ReDoSSeverity::tryFrom($defaults['redosThreshold']);
+        }
+
+        // Use config defaults for redosNoJit
+        $disableJit = (bool) ($defaults['redosNoJit'] ?? false);
+
         $confirmOptions = null;
-        $disableJit = false;
         $stopParsing = false;
 
         for ($i = 0; $i < \count($args); $i++) {

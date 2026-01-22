@@ -80,7 +80,7 @@ $app->register(new SelfUpdateCommand(new SelfUpdater()));
 $app->register(new ParseCommand());
 $app->register(new ExplainCommand());
 $app->register(new AnalyzeCommand());
-$app->register(new DebugCommand());
+$app->register(new DebugCommand(new LintConfigLoader(), new LintDefaultsBuilder()));
 $app->register(new CompareCommand());
 $app->register(new RedosCommand());
 $app->register(new DiagramCommand());
