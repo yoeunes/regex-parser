@@ -176,7 +176,7 @@
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
 
-  corpus/wp-cli/php/commands/src/CLI_Alias_Command.php:512:37
+  corpus/wp-cli/php/commands/src/CLI_Alias_Command.php:514:37
       → /^@(\w+)/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
@@ -511,7 +511,7 @@
          - /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
          + /^(?:\w+:{2})?on[A-Z][\w+]*$/
 
-  corpus/october/modules/cms/classes/controller/HasAjaxRequests.php:235:25
+  corpus/october/modules/cms/classes/controller/HasAjaxRequests.php:232:25
       → /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
      WARN  Quantifier is redundant; it matches exactly once.
          ↳ Remove the {1} quantifier; it does not change the match.
@@ -1721,7 +1721,7 @@
          - /(extension\s*=.*pcov.*)/mi
          + /(extension\s*=.*pcov.*)/i
 
-  corpus/server/core/Migrations/Version13000Date20170718121200.php:1021:15
+  corpus/server/core/Migrations/Version13000Date20170718121200.php:1022:15
       → /(calendar)\/([A-z0-9-@_]+)\//
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: '_' (covered by range 'A'-'z')
@@ -2057,7 +2057,7 @@
          - /(?|(?:[\?|\&]h={1})([\w]+)|\d\/([\w]+))/
          + /(?|(?:[?|&]h=)([\w]+)|\d\/([\w]+))/
 
-  corpus/elementor/includes/db.php:604:31
+  corpus/elementor/includes/db.php:609:31
       → /(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the second quantifier to its minimum.
