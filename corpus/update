@@ -6,7 +6,7 @@ declare(strict_types=1);
 /**
  * Corpus Update Script
  *
- * Updates git repositories under corpus/ with optional parallelism.
+ * Updates git repositories under corpus/ with parallel processing and timeouts.
  */
 
 final class ConsoleStyle
@@ -25,27 +25,16 @@ final class ConsoleStyle
         echo $this->dim($line).PHP_EOL;
     }
 
-    public function section(string $title, int $step, int $totalSteps): void
-    {
-        $label = sprintf('[%d/%d] %s', $step, $totalSteps, $title);
-        echo PHP_EOL.$this->bold($label).PHP_EOL;
-    }
-
     public function status(string $label, string $message, ?string $detail = null): void
     {
         $plainLabel = preg_replace('/\e\[[\d;]*m/', '', $label);
         $plainLabel ??= $label;
-        $pad = max(0, 6 - \strlen($plainLabel));
+        $pad = max(0, 8 - \strlen($plainLabel));
         $label = $label.str_repeat(' ', $pad);
         echo '  '.$label.' '.$message.PHP_EOL;
         if (null !== $detail && '' !== $detail) {
-            echo $this->indent($detail, '       ');
+            echo $this->indent($detail, '         ');
         }
-    }
-
-    public function debug(string $message, ?string $detail = null): void
-    {
-        $this->status($this->dim('[DBG]'), $message, $detail);
     }
 
     public function info(string $message): void
@@ -128,6 +117,10 @@ final class ConsoleStyle
     }
 }
 
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+
 /**
  * @return array<string, mixed>
  */
@@ -135,6 +128,7 @@ function parseArgs(array $argv): array
 {
     $options = [
         'jobs' => null,
+        'timeout' => null,
         'force' => false,
         'debug' => false,
         'help' => false,
@@ -168,6 +162,19 @@ function parseArgs(array $argv): array
             $options['jobs'] = substr($arg, \strlen('--jobs='));
             continue;
         }
+        if ('--timeout' === $arg || '-t' === $arg) {
+            $next = $argv[$i + 1] ?? null;
+            if (null === $next || str_starts_with($next, '-')) {
+                continue;
+            }
+            $options['timeout'] = $next;
+            $i++;
+            continue;
+        }
+        if (str_starts_with($arg, '--timeout=')) {
+            $options['timeout'] = substr($arg, \strlen('--timeout='));
+            continue;
+        }
 
         throw new InvalidArgumentException(sprintf('Unknown argument: %s', $arg));
     }
@@ -177,17 +184,22 @@ function parseArgs(array $argv): array
 
 function printUsage(): void
 {
-    echo <<<TXT
-Usage: corpus/update [--jobs[=<n>|auto]] [--force] [--debug] [--help]
+    echo <<<'TXT'
+Usage: corpus/update [--jobs[=<n>|auto]] [--timeout=<sec>] [--force] [--debug] [--help]
 
 Options:
-  --jobs, -j   Number of parallel workers (default: auto-detected CPUs)
-  --force      Reset tracked changes and remove untracked files before pulling
-  --debug      Show git commands and detailed diagnostics
-  --help, -h   Show this help message
+  --jobs, -j      Number of parallel workers (default: auto, 2x CPUs)
+  --timeout, -t   Per-repo timeout in seconds (default: 120)
+  --force         Reset tracked changes and remove untracked files before pulling
+  --debug         Show git commands and detailed diagnostics per repo
+  --help, -h      Show this help message
 
 TXT;
 }
+
+// ---------------------------------------------------------------------------
+// System helpers
+// ---------------------------------------------------------------------------
 
 function detectCpuCount(): int
 {
@@ -234,22 +246,45 @@ function supportsParallel(): bool
         && \function_exists('pcntl_waitpid');
 }
 
+// ---------------------------------------------------------------------------
+// Repository discovery
+// ---------------------------------------------------------------------------
+
 /**
  * @return array<string>
  */
 function findGitRepos(string $dir): array
 {
     $repos = [];
-    $subdirs = glob($dir.'/*', GLOB_ONLYDIR);
-    foreach ($subdirs as $subdir) {
-        if (is_dir($subdir.'/.git')) {
-            $repos[] = $subdir;
-        }
-    }
+    findGitReposRecursive($dir, $repos);
 
     sort($repos);
 
     return $repos;
+}
+
+/**
+ * @param array<string> $repos
+ */
+function findGitReposRecursive(string $dir, array &$repos): void
+{
+    $subdirs = glob($dir.'/*', GLOB_ONLYDIR);
+    if (false === $subdirs) {
+        return;
+    }
+
+    foreach ($subdirs as $subdir) {
+        if (is_dir($subdir.'/.git')) {
+            $repos[] = $subdir;
+            continue;
+        }
+
+        if ('.' === basename($subdir)[0]) {
+            continue;
+        }
+
+        findGitReposRecursive($subdir, $repos);
+    }
 }
 
 function isSafeRepo(string $repoPath, string $corpusDir): bool
@@ -265,17 +300,33 @@ function isSafeRepo(string $repoPath, string $corpusDir): bool
     return str_starts_with($repoReal, $prefix) && is_dir($repoReal.'/.git');
 }
 
+function formatRepoLabel(string $repoPath, string $corpusDir): string
+{
+    $repoReal = realpath($repoPath) ?: $repoPath;
+    $corpusReal = realpath($corpusDir) ?: $corpusDir;
+    $prefix = rtrim($corpusReal, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+    if (str_starts_with($repoReal, $prefix)) {
+        return substr($repoReal, \strlen($prefix));
+    }
+
+    return $repoReal;
+}
+
+// ---------------------------------------------------------------------------
+// Git execution with timeout
+// ---------------------------------------------------------------------------
+
 /**
+ * @param array<int, string> $args
+ *
  * @return array{code: int, output: string}
  */
-function runGit(string $repoPath, array $args, ?ConsoleStyle $io = null, bool $debug = false): array
+function runGit(string $repoPath, array $args, int $timeout = 120): array
 {
     $command = array_merge(['git'], $args);
-    if ($debug && null !== $io) {
-        $printArgs = implode(' ', array_map(static fn (string $arg): string => escapeshellarg($arg), $args));
-        $io->debug('git '.$printArgs, 'cwd: '.$repoPath);
-    }
     $descriptors = [
+        0 => ['file', '/dev/null', 'r'],
         1 => ['pipe', 'w'],
         2 => ['pipe', 'w'],
     ];
@@ -285,28 +336,363 @@ function runGit(string $repoPath, array $args, ?ConsoleStyle $io = null, bool $d
         return ['code' => 1, 'output' => 'Failed to start git process.'];
     }
 
-    $stdout = stream_get_contents($pipes[1]);
-    $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
 
-    $code = proc_close($process);
-    $output = trim($stdout."\n".$stderr);
+    $stdout = '';
+    $stderr = '';
+    $deadline = microtime(true) + $timeout;
 
-    if ($debug && null !== $io) {
-        $summary = 'exit '.$code;
-        $detail = '' === $output ? '(no output)' : $output;
-        $io->debug($summary, $detail);
+    while (true) {
+        $remaining = $deadline - microtime(true);
+        if ($remaining <= 0) {
+            proc_terminate($process, 9);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+
+            return ['code' => -1, 'output' => 'Timed out after '.$timeout.'s'];
+        }
+
+        $status = proc_get_status($process);
+
+        $stdout .= (string) stream_get_contents($pipes[1]);
+        $stderr .= (string) stream_get_contents($pipes[2]);
+
+        if (!$status['running']) {
+            $stdout .= (string) stream_get_contents($pipes[1]);
+            $stderr .= (string) stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            proc_close($process);
+
+            return [
+                'code' => $status['exitcode'],
+                'output' => trim($stdout."\n".$stderr),
+            ];
+        }
+
+        usleep(20000); // 20ms
     }
-
-    return ['code' => $code, 'output' => $output];
 }
 
-function canUseDynamicProgress(bool $debug): bool
+// ---------------------------------------------------------------------------
+// Pull-command resolution (no I/O side effects)
+// ---------------------------------------------------------------------------
+
+function getCurrentBranch(string $repoPath, int $timeout): ?string
 {
-    return !$debug
-        && \function_exists('posix_isatty')
-        && posix_isatty(\STDOUT);
+    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'], $timeout);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $branch = trim($result['output']);
+
+    return ('' === $branch || 'HEAD' === $branch) ? null : $branch;
+}
+
+function getUpstreamRef(string $repoPath, int $timeout): ?string
+{
+    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], $timeout);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $ref = trim($result['output']);
+
+    return '' === $ref ? null : $ref;
+}
+
+function remoteExists(string $repoPath, string $remote, int $timeout): bool
+{
+    $result = runGit($repoPath, ['remote', 'get-url', $remote], $timeout);
+
+    return 0 === $result['code'] && '' !== trim($result['output']);
+}
+
+function getBranchRemote(string $repoPath, string $branch, int $timeout): ?string
+{
+    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.remote'], $timeout);
+    if (0 === $result['code']) {
+        $remote = trim($result['output']);
+        if ('' !== $remote) {
+            return $remote;
+        }
+    }
+
+    return remoteExists($repoPath, 'origin', $timeout) ? 'origin' : null;
+}
+
+function getBranchMergeRef(string $repoPath, string $branch, int $timeout): ?string
+{
+    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.merge'], $timeout);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $mergeRef = trim($result['output']);
+
+    return '' === $mergeRef ? null : $mergeRef;
+}
+
+function normalizeMergeRef(string $mergeRef): string
+{
+    $prefix = 'refs/heads/';
+    if (str_starts_with($mergeRef, $prefix)) {
+        return substr($mergeRef, \strlen($prefix));
+    }
+
+    return $mergeRef;
+}
+
+/**
+ * @return array{ok: bool, args?: array<int, string>, command?: string, note?: string, message?: string}
+ */
+function resolvePullCommand(string $repoPath, int $timeout): array
+{
+    $upstream = getUpstreamRef($repoPath, $timeout);
+    if (null !== $upstream) {
+        return [
+            'ok' => true,
+            'args' => ['pull', '--rebase'],
+            'command' => 'git pull --rebase',
+        ];
+    }
+
+    $branch = getCurrentBranch($repoPath, $timeout);
+    if (null === $branch) {
+        return [
+            'ok' => false,
+            'message' => 'Detached HEAD or unable to determine current branch.',
+        ];
+    }
+
+    $remote = getBranchRemote($repoPath, $branch, $timeout);
+    if (null === $remote) {
+        return [
+            'ok' => false,
+            'message' => 'No git remote found for branch '.$branch.'.',
+        ];
+    }
+
+    $mergeRef = getBranchMergeRef($repoPath, $branch, $timeout);
+    $remoteBranch = null !== $mergeRef ? normalizeMergeRef($mergeRef) : $branch;
+
+    return [
+        'ok' => true,
+        'args' => ['pull', '--rebase', $remote, $remoteBranch],
+        'command' => 'git pull --rebase '.$remote.' '.$remoteBranch,
+        'note' => 'No upstream configured; pulling '.$remote.'/'.$remoteBranch.'.',
+    ];
+}
+
+// ---------------------------------------------------------------------------
+// Combined prepare + update per repo (runs inside worker)
+// ---------------------------------------------------------------------------
+
+/**
+ * @return array{path: string, status: string, output: string, command: string, code: int, log: array<string>}
+ */
+function processRepo(string $repoPath, bool $force, string $corpusDir, bool $debug, int $timeout): array
+{
+    $log = [];
+    $fail = static fn (string $msg, string $cmd = 'N/A', int $code = 1): array => [
+        'path' => $repoPath,
+        'status' => 'FAIL',
+        'output' => $msg,
+        'command' => $cmd,
+        'code' => $code,
+        'log' => $log,
+    ];
+
+    $git = static function (array $args) use ($repoPath, $timeout, $debug, &$log): array {
+        $result = runGit($repoPath, $args, $timeout);
+        if ($debug) {
+            $cmdStr = 'git '.implode(' ', array_map('escapeshellarg', $args));
+            $detail = 0 === $result['code'] && '' === $result['output'] ? '(no output)' : $result['output'];
+            $log[] = $cmdStr.' → exit '.$result['code'].': '.$detail;
+        }
+
+        return $result;
+    };
+
+    // Safety check
+    if (!isSafeRepo($repoPath, $corpusDir)) {
+        return [
+            'path' => $repoPath,
+            'status' => 'SKIP',
+            'output' => 'Outside corpus directory.',
+            'command' => 'N/A',
+            'code' => 0,
+            'log' => $log,
+        ];
+    }
+
+    // --- Prepare phase ---
+    if ($force) {
+        $reset = $git(['reset', '--hard', 'HEAD']);
+        if (0 !== $reset['code']) {
+            return $fail('Reset failed: '.$reset['output']);
+        }
+
+        $clean = $git(['clean', '-fd']);
+        if (0 !== $clean['code']) {
+            return $fail('Clean failed: '.$clean['output']);
+        }
+    } else {
+        $status = $git(['status', '--porcelain']);
+        if (0 !== $status['code']) {
+            return $fail($status['output']);
+        }
+
+        if ('' !== $status['output']) {
+            return [
+                'path' => $repoPath,
+                'status' => 'SKIP',
+                'output' => 'Dirty working tree (use --force to reset).',
+                'command' => 'N/A',
+                'code' => 0,
+                'log' => $log,
+            ];
+        }
+    }
+
+    // --- Update phase ---
+    $resolved = resolvePullCommand($repoPath, $timeout);
+    if (!($resolved['ok'] ?? false)) {
+        return $fail($resolved['message'] ?? 'Unable to resolve pull command.');
+    }
+
+    /** @var array<int, string> $args */
+    $args = $resolved['args'] ?? ['pull', '--rebase'];
+    $command = $resolved['command'] ?? 'git pull --rebase';
+
+    $pull = $git($args);
+    $output = $pull['output'];
+    if (isset($resolved['note']) && '' !== $resolved['note']) {
+        $output = $resolved['note'].('' === $output ? '' : PHP_EOL.$output);
+    }
+
+    return [
+        'path' => $repoPath,
+        'status' => 0 === $pull['code'] ? 'OK' : 'FAIL',
+        'output' => $output,
+        'command' => $command,
+        'code' => $pull['code'],
+        'log' => $log,
+    ];
+}
+
+// ---------------------------------------------------------------------------
+// Worker-pool parallel execution
+// ---------------------------------------------------------------------------
+
+/**
+ * @param array<string> $repos
+ *
+ * @return array<int, array{path: string, status: string, output: string, command: string, code: int, log: array<string>}>
+ */
+function processReposParallel(
+    array $repos,
+    int $jobs,
+    bool $force,
+    string $corpusDir,
+    bool $debug,
+    int $timeout,
+    callable $onComplete,
+): array {
+    $results = [];
+    $queue = $repos;
+    /** @var array<int, array{tmp: string, repo: string}> $active */
+    $active = [];
+    $completed = 0;
+    $total = \count($repos);
+
+    while ($queue || $active) {
+        // Fill worker slots
+        while (\count($active) < $jobs && $queue) {
+            $repo = array_shift($queue);
+            $tmp = tempnam(sys_get_temp_dir(), 'corpus_');
+            if (false === $tmp) {
+                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                $completed++;
+                $onComplete($completed, $total);
+                continue;
+            }
+
+            $pid = pcntl_fork();
+            if (-1 === $pid) {
+                @unlink($tmp);
+                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                $completed++;
+                $onComplete($completed, $total);
+                continue;
+            }
+
+            if (0 === $pid) {
+                // Child: process single repo, write result, exit
+                $result = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                file_put_contents($tmp, serialize($result));
+                exit(0);
+            }
+
+            $active[$pid] = ['tmp' => $tmp, 'repo' => $repo];
+        }
+
+        if ([] === $active) {
+            break;
+        }
+
+        // Wait for any child to finish
+        $pid = pcntl_waitpid(-1, $status);
+        if ($pid > 0 && isset($active[$pid])) {
+            $info = $active[$pid];
+            unset($active[$pid]);
+
+            $data = @file_get_contents($info['tmp']);
+            @unlink($info['tmp']);
+
+            if (false !== $data) {
+                $decoded = @unserialize($data);
+                if (\is_array($decoded)) {
+                    $results[] = $decoded;
+                } else {
+                    $results[] = [
+                        'path' => $info['repo'],
+                        'status' => 'FAIL',
+                        'output' => 'Worker produced invalid result.',
+                        'command' => 'N/A',
+                        'code' => 1,
+                        'log' => [],
+                    ];
+                }
+            } else {
+                $results[] = [
+                    'path' => $info['repo'],
+                    'status' => 'FAIL',
+                    'output' => 'Worker result file missing.',
+                    'command' => 'N/A',
+                    'code' => 1,
+                    'log' => [],
+                ];
+            }
+
+            $completed++;
+            $onComplete($completed, $total);
+        }
+    }
+
+    return $results;
+}
+
+// ---------------------------------------------------------------------------
+// Progress rendering
+// ---------------------------------------------------------------------------
+
+function canUseDynamicProgress(): bool
+{
+    return \function_exists('posix_isatty') && posix_isatty(\STDOUT);
 }
 
 function renderProgress(int $current, int $total, bool $dynamic, bool $final = false): void
@@ -331,364 +717,43 @@ function renderProgress(int $current, int $total, bool $dynamic, bool $final = f
     echo $line.PHP_EOL;
 }
 
-function getCurrentBranch(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): ?string
+// ---------------------------------------------------------------------------
+// Result printing
+// ---------------------------------------------------------------------------
+
+function printResult(array $result, string $corpusDir, ConsoleStyle $io, bool $debug): void
 {
-    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'], $io, $debug);
-    if (0 !== $result['code']) {
-        return null;
-    }
+    $label = formatRepoLabel($result['path'], $corpusDir);
 
-    $branch = trim($result['output']);
-    if ('' === $branch || 'HEAD' === $branch) {
-        return null;
-    }
-
-    return $branch;
-}
-
-function getUpstreamRef(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): ?string
-{
-    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], $io, $debug);
-    if (0 !== $result['code']) {
-        return null;
-    }
-
-    $ref = trim($result['output']);
-
-    return '' === $ref ? null : $ref;
-}
-
-function remoteExists(string $repoPath, string $remote, ?ConsoleStyle $io = null, bool $debug = false): bool
-{
-    $result = runGit($repoPath, ['remote', 'get-url', $remote], $io, $debug);
-
-    return 0 === $result['code'] && '' !== trim($result['output']);
-}
-
-function getBranchRemote(string $repoPath, string $branch, ?ConsoleStyle $io = null, bool $debug = false): ?string
-{
-    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.remote'], $io, $debug);
-    if (0 === $result['code']) {
-        $remote = trim($result['output']);
-        if ('' !== $remote) {
-            return $remote;
+    $detail = '';
+    if ($debug) {
+        $lines = [];
+        if ([] !== ($result['log'] ?? [])) {
+            $lines = array_merge($lines, $result['log']);
         }
+        $detail = implode(PHP_EOL, $lines);
+    } elseif ('' !== ($result['output'] ?? '')) {
+        $detail = $result['output'];
     }
 
-    return remoteExists($repoPath, 'origin', $io, $debug) ? 'origin' : null;
-}
-
-function getBranchMergeRef(string $repoPath, string $branch, ?ConsoleStyle $io = null, bool $debug = false): ?string
-{
-    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.merge'], $io, $debug);
-    if (0 !== $result['code']) {
-        return null;
-    }
-
-    $mergeRef = trim($result['output']);
-
-    return '' === $mergeRef ? null : $mergeRef;
-}
-
-function normalizeMergeRef(string $mergeRef): string
-{
-    $mergeRef = trim($mergeRef);
-    $prefix = 'refs/heads/';
-    if (str_starts_with($mergeRef, $prefix)) {
-        return substr($mergeRef, \strlen($prefix));
-    }
-
-    return $mergeRef;
-}
-
-/**
- * @return array{ok: bool, args?: array<int, string>, command?: string, note?: string, message?: string}
- */
-function resolvePullCommand(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): array
-{
-    $upstream = getUpstreamRef($repoPath, $io, $debug);
-    if (null !== $upstream) {
-        return [
-            'ok' => true,
-            'args' => ['pull', '--rebase'],
-            'command' => 'git pull --rebase',
-        ];
-    }
-
-    $branch = getCurrentBranch($repoPath, $io, $debug);
-    if (null === $branch) {
-        return [
-            'ok' => false,
-            'message' => 'Detached HEAD or unable to determine current branch.',
-        ];
-    }
-
-    $remote = getBranchRemote($repoPath, $branch, $io, $debug);
-    if (null === $remote) {
-        return [
-            'ok' => false,
-            'message' => 'No git remote found for branch '.$branch.'.',
-        ];
-    }
-
-    $mergeRef = getBranchMergeRef($repoPath, $branch, $io, $debug);
-    $remoteBranch = null !== $mergeRef ? normalizeMergeRef($mergeRef) : $branch;
-
-    return [
-        'ok' => true,
-        'args' => ['pull', '--rebase', $remote, $remoteBranch],
-        'command' => 'git pull --rebase '.$remote.' '.$remoteBranch,
-        'note' => 'No upstream configured; pulling '.$remote.'/'.$remoteBranch.'.',
-    ];
-}
-
-/**
- * @return array{status: string, proceed: bool, message: string}
- */
-function prepareRepo(string $repoPath, bool $force, string $corpusDir, ConsoleStyle $io, bool $debug): array
-{
-    if (!isSafeRepo($repoPath, $corpusDir)) {
-        return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Outside corpus directory.'];
-    }
-
-    $status = runGit($repoPath, ['status', '--porcelain'], $io, $debug);
-    if (0 !== $status['code']) {
-        return ['status' => 'FAIL', 'proceed' => false, 'message' => $status['output']];
-    }
-
-    if ('' === $status['output']) {
-        return ['status' => 'OK', 'proceed' => true, 'message' => 'Clean working tree.'];
-    }
-
-    if ($force) {
-        $reset = runGit($repoPath, ['reset', '--hard', 'HEAD'], $io, $debug);
-        if (0 !== $reset['code']) {
-            return ['status' => 'FAIL', 'proceed' => false, 'message' => $reset['output']];
-        }
-
-        $clean = runGit($repoPath, ['clean', '-fd'], $io, $debug);
-        if (0 !== $clean['code']) {
-            return ['status' => 'FAIL', 'proceed' => false, 'message' => $clean['output']];
-        }
-
-        $afterReset = runGit($repoPath, ['status', '--porcelain'], $io, $debug);
-        if (0 === $afterReset['code'] && '' !== $afterReset['output']) {
-            return [
-                'status' => 'RESET',
-                'proceed' => true,
-                'message' => 'Force reset applied (working tree still dirty; ignored or nested files may remain).',
-            ];
-        }
-
-        return ['status' => 'RESET', 'proceed' => true, 'message' => 'Force reset applied (including untracked cleanup).'];
-    }
-
-    if (!isInteractive()) {
-        return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Dirty repository (non-interactive).'];
-    }
-
-    $io->info('');
-    $io->info('Repository: '.$repoPath);
-    $io->info('Uncommitted changes detected:');
-    $short = runGit($repoPath, ['status', '--short'], $io, $debug);
-    if ('' !== $short['output']) {
-        $io->info($short['output']);
-    }
-    $io->info('');
-    $io->info('Options:');
-    $io->info('  (k)eep changes');
-    $io->info('  (r)eset changes (git reset --hard HEAD)');
-    $io->info('  (c)ommit changes (git add . && git commit -m "Auto-commit before pull")');
-    $io->info('  (s)kip this repository');
-
-    $choice = strtolower(trim(readInput('Choose: ')));
-
-    switch ($choice) {
-        case 'k':
-            return ['status' => 'KEEP', 'proceed' => true, 'message' => 'Keeping local changes.'];
-        case 'r':
-            $reset = runGit($repoPath, ['reset', '--hard', 'HEAD'], $io, $debug);
-            if (0 !== $reset['code']) {
-                return ['status' => 'FAIL', 'proceed' => false, 'message' => $reset['output']];
-            }
-            return ['status' => 'RESET', 'proceed' => true, 'message' => 'Changes reset.'];
-        case 'c':
-            $add = runGit($repoPath, ['add', '.'], $io, $debug);
-            if (0 !== $add['code']) {
-                return ['status' => 'FAIL', 'proceed' => false, 'message' => $add['output']];
-            }
-            $commit = runGit($repoPath, ['commit', '-m', 'Auto-commit before pull'], $io, $debug);
-            if (0 !== $commit['code']) {
-                return ['status' => 'FAIL', 'proceed' => false, 'message' => $commit['output']];
-            }
-            return ['status' => 'COMMIT', 'proceed' => true, 'message' => 'Changes committed.'];
-        case 's':
+    switch ($result['status']) {
+        case 'OK':
+            $io->status($io->green('[OK]'), $label, $detail);
+            break;
+        case 'SKIP':
+            $io->status($io->yellow('[SKIP]'), $label, $detail);
+            break;
+        case 'FAIL':
         default:
-            return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Skipped by user.'];
+            $statusTag = -1 === ($result['code'] ?? 0) ? '[TIMEOUT]' : '[FAIL]';
+            $io->status($io->red($statusTag), $label, $detail);
+            break;
     }
 }
 
-/**
- * @return array{path: string, status: string, output: string, command: string, code: int}
- */
-function updateRepo(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): array
-{
-    $resolved = resolvePullCommand($repoPath, $io, $debug);
-    if (!($resolved['ok'] ?? false)) {
-        return [
-            'path' => $repoPath,
-            'status' => 'FAIL',
-            'output' => $resolved['message'] ?? 'Unable to resolve pull command.',
-            'command' => $resolved['command'] ?? 'git pull --rebase',
-            'code' => 1,
-        ];
-    }
-
-    /** @var array<int, string> $args */
-    $args = $resolved['args'] ?? ['pull', '--rebase'];
-    $command = $resolved['command'] ?? 'git pull --rebase';
-    $result = runGit($repoPath, $args, $io, $debug);
-    $output = $result['output'];
-    if (isset($resolved['note']) && '' !== $resolved['note']) {
-        $output = $resolved['note'].('' === $output ? '' : PHP_EOL.$output);
-    }
-
-    if (0 !== $result['code']) {
-        return [
-            'path' => $repoPath,
-            'status' => 'FAIL',
-            'output' => $output,
-            'command' => $command,
-            'code' => $result['code'],
-        ];
-    }
-
-    return [
-        'path' => $repoPath,
-        'status' => 'OK',
-        'output' => $output,
-        'command' => $command,
-        'code' => $result['code'],
-    ];
-}
-
-/**
- * @param array<string> $repos
- *
- * @return array<int, array{path: string, status: string, output: string, command?: string, code?: int}>
- */
-function updateReposParallel(array $repos, int $jobs, ?callable $progress = null): array
-{
-    $total = \count($repos);
-    if (0 === $total) {
-        return [];
-    }
-
-    if (null !== $progress) {
-        $progress(0, $total, false);
-    }
-
-    $workerCount = max(1, min($jobs, $total));
-    $chunkSize = (int) ceil($total / $workerCount);
-    $chunks = array_chunk($repos, $chunkSize);
-
-    $children = [];
-    $results = [];
-    $fallback = [];
-    $processed = 0;
-
-    foreach ($chunks as $chunk) {
-        $tmpFile = tempnam(sys_get_temp_dir(), 'corpus_update_');
-        if (false === $tmpFile) {
-            $fallback = array_merge($fallback, $chunk);
-            continue;
-        }
-
-        $pid = pcntl_fork();
-        if (-1 === $pid) {
-            @unlink($tmpFile);
-            $fallback = array_merge($fallback, $chunk);
-            continue;
-        }
-
-        if (0 === $pid) {
-            $payload = [];
-            foreach ($chunk as $repo) {
-                $payload[] = updateRepo($repo);
-            }
-
-            file_put_contents($tmpFile, serialize($payload));
-            exit(0);
-        }
-
-        $children[$pid] = $tmpFile;
-    }
-
-    foreach ($children as $pid => $tmpFile) {
-        pcntl_waitpid($pid, $status);
-        $payload = file_get_contents($tmpFile);
-        @unlink($tmpFile);
-
-        if (false === $payload) {
-            continue;
-        }
-
-        $decoded = @unserialize($payload);
-        if (\is_array($decoded)) {
-            foreach ($decoded as $item) {
-                if (!\is_array($item)) {
-                    continue;
-                }
-                $results[] = $item;
-                $processed++;
-                if (null !== $progress) {
-                    $progress($processed, $total, $processed >= $total);
-                }
-            }
-        }
-    }
-
-    if ([] !== $fallback) {
-        foreach ($fallback as $repo) {
-            $results[] = updateRepo($repo);
-            $processed++;
-            if (null !== $progress) {
-                $progress($processed, $total, $processed >= $total);
-            }
-        }
-    }
-
-    return $results;
-}
-
-function isInteractive(): bool
-{
-    return \function_exists('posix_isatty') && posix_isatty(\STDIN);
-}
-
-function readInput(string $prompt): string
-{
-    if (\function_exists('readline')) {
-        return (string) readline($prompt);
-    }
-
-    echo $prompt;
-
-    return (string) fgets(\STDIN);
-}
-
-function formatRepoLabel(string $repoPath, string $corpusDir): string
-{
-    $repoReal = realpath($repoPath) ?: $repoPath;
-    $corpusReal = realpath($corpusDir) ?: $corpusDir;
-    $prefix = rtrim($corpusReal, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
-
-    if (str_starts_with($repoReal, $prefix)) {
-        return substr($repoReal, \strlen($prefix));
-    }
-
-    return $repoReal;
-}
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
 function main(array $argv): int
 {
@@ -723,9 +788,10 @@ function main(array $argv): int
         return 0;
     }
 
+    // --- Resolve jobs ---
     $jobs = $options['jobs'];
     if (null === $jobs || '' === $jobs || 'auto' === $jobs) {
-        $jobs = detectCpuCount();
+        $jobs = max(2, detectCpuCount() * 2);
     } else {
         $jobs = trim((string) $jobs);
         if (!ctype_digit($jobs)) {
@@ -742,134 +808,114 @@ function main(array $argv): int
         return 1;
     }
 
-    $debug = (bool) $options['debug'];
-    if ($debug && $jobs > 1) {
-        $io->warn('Debug mode forces jobs=1 for readable output.');
-        $jobs = 1;
-    }
-
     if ($jobs > 1 && !supportsParallel()) {
         $io->warn('Parallel jobs requested but pcntl is unavailable; falling back to 1 job.');
         $jobs = 1;
     }
 
+    // --- Resolve timeout ---
+    $timeout = $options['timeout'];
+    if (null === $timeout || '' === $timeout) {
+        $timeout = 120;
+    } else {
+        $timeout = trim((string) $timeout);
+        if (!ctype_digit($timeout)) {
+            $io->error('The --timeout value must be a positive integer.');
+
+            return 1;
+        }
+        $timeout = (int) $timeout;
+    }
+
+    $debug = (bool) $options['debug'];
+    $force = (bool) $options['force'];
+
     $io->header('Corpus Updater');
     $io->info('Runtime : PHP '.PHP_VERSION);
     $io->info('Corpus  : '.$corpusDir);
     $io->info('Jobs    : '.$jobs);
-    $io->info('Force   : '.($options['force'] ? 'yes' : 'no'));
+    $io->info('Timeout : '.$timeout.'s per repo');
+    $io->info('Force   : '.($force ? 'yes' : 'no'));
     $io->info('Debug   : '.($debug ? 'on' : 'off'));
     $io->info('Repos   : '.\count($repos));
-    if ($debug) {
-        $io->debug('Parallel support', supportsParallel() ? 'available' : 'unavailable');
+    $io->info('');
+
+    $dynamicProgress = canUseDynamicProgress() && !$debug;
+    $startTime = microtime(true);
+
+    if (1 === $jobs) {
+        // Sequential: print each result immediately
+        $results = [];
+        $total = \count($repos);
+        renderProgress(0, $total, $dynamicProgress);
+
+        foreach ($repos as $i => $repo) {
+            $result = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+            $results[] = $result;
+
+            if ($debug) {
+                printResult($result, $corpusDir, $io, $debug);
+            }
+
+            renderProgress($i + 1, $total, $dynamicProgress, $i + 1 >= $total);
+        }
+    } else {
+        // Parallel: worker pool
+        $onComplete = static function (int $current, int $total) use ($dynamicProgress): void {
+            renderProgress($current, $total, $dynamicProgress, $current >= $total);
+        };
+
+        renderProgress(0, \count($repos), $dynamicProgress);
+        $results = processReposParallel($repos, $jobs, $force, $corpusDir, $debug, $timeout, $onComplete);
     }
 
+    $elapsed = microtime(true) - $startTime;
     $io->info('');
-    $io->info($io->bold('Updating repositories'));
-    $readyRepos = [];
+
+    // --- Print results (parallel mode deferred; sequential already printed in debug) ---
+    if ($jobs > 1) {
+        // Sort results by path to match repo order
+        usort($results, static fn (array $a, array $b): int => strcmp($a['path'] ?? '', $b['path'] ?? ''));
+
+        foreach ($results as $result) {
+            printResult($result, $corpusDir, $io, $debug);
+        }
+    } elseif (!$debug) {
+        // Sequential non-debug: print compact results
+        foreach ($results as $result) {
+            printResult($result, $corpusDir, $io, false);
+        }
+    }
+
+    // --- Summary ---
+    $ok = 0;
+    $failed = 0;
     $skipped = 0;
+    $timedOut = 0;
 
-    foreach ($repos as $repo) {
-        $label = formatRepoLabel($repo, $corpusDir);
-        $prep = prepareRepo($repo, (bool) $options['force'], $corpusDir, $io, $debug);
-        $statusLabel = $prep['status'];
-        $message = $label;
-        $detail = $prep['message'] ?? '';
-
-        switch ($statusLabel) {
+    foreach ($results as $result) {
+        switch ($result['status']) {
             case 'OK':
-                $io->status($io->green('[OK]'), $message, $detail);
-                break;
-            case 'RESET':
-                $io->status($io->yellow('[RESET]'), $message, $detail);
-                break;
-            case 'KEEP':
-            case 'COMMIT':
-                $io->status($io->cyan('['.$statusLabel.']'), $message, $detail);
+                $ok++;
                 break;
             case 'SKIP':
-                $io->status($io->yellow('[SKIP]'), $message, $detail);
                 $skipped++;
                 break;
             default:
-                $io->status($io->red('[FAIL]'), $message, $detail);
-                $skipped++;
+                if (-1 === ($result['code'] ?? 0)) {
+                    $timedOut++;
+                }
+                $failed++;
                 break;
-        }
-
-        if ($prep['proceed']) {
-            $readyRepos[] = $repo;
-        }
-    }
-
-    if ([] === $readyRepos) {
-        $io->info('');
-        $io->info($io->bold('Summary'));
-        $io->info('Nothing to update.');
-
-        return 0;
-    }
-
-    $progressDynamic = canUseDynamicProgress($debug);
-    $progress = static function (int $current, int $total, bool $final) use ($progressDynamic): void {
-        renderProgress($current, $total, $progressDynamic, $final);
-    };
-
-    if ($jobs > 1) {
-        $results = updateReposParallel($readyRepos, $jobs, $progress);
-    } else {
-        $results = [];
-        $total = \count($readyRepos);
-        $processed = 0;
-        $progress(0, $total, false);
-        foreach ($readyRepos as $repo) {
-            $results[] = updateRepo($repo, $io, $debug);
-            $processed++;
-            $progress($processed, $total, $processed >= $total);
-        }
-    }
-
-    $resultsByPath = [];
-    foreach ($results as $result) {
-        if (isset($result['path'])) {
-            $resultsByPath[$result['path']] = $result;
-        }
-    }
-
-    $ok = 0;
-    $failed = 0;
-
-    foreach ($readyRepos as $repo) {
-        $label = formatRepoLabel($repo, $corpusDir);
-        $result = $resultsByPath[$repo] ?? ['status' => 'FAIL', 'output' => 'No result returned.'];
-        $detail = $result['output'] ?? '';
-        if ($debug) {
-            $command = $result['command'] ?? 'git pull --rebase';
-            $code = $result['code'] ?? null;
-            $detailLines = ['Command: '.$command];
-            if (null !== $code) {
-                $detailLines[] = 'Exit: '.$code;
-            }
-            if ('' !== $detail) {
-                $detailLines[] = $detail;
-            }
-            $detail = implode(PHP_EOL, $detailLines);
-        }
-
-        if ('OK' === $result['status']) {
-            $io->status($io->green('[OK]'), $label, $detail);
-            $ok++;
-        } else {
-            $io->status($io->red('[FAIL]'), $label, $detail);
-            $failed++;
         }
     }
 
     $io->info('');
     $io->info($io->bold('Summary'));
-    $io->info('Updated : '.$ok);
-    $io->info('Failed  : '.$failed);
-    $io->info('Skipped : '.$skipped);
+    $io->info('Updated  : '.$ok);
+    $io->info('Failed   : '.$failed.($timedOut > 0 ? ' ('.$timedOut.' timed out)' : ''));
+    $io->info('Skipped  : '.$skipped);
+    $io->info('Elapsed  : '.round($elapsed, 1).'s');
 
     return $failed > 0 ? 1 : 0;
 }

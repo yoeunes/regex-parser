@@ -48,6 +48,11 @@ final class RegexParserRuleHighThresholdTest extends RuleTestCase
                 23,
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
             ],
+            [
+                'Quantified capturing group "(...)" with "+": only the last iteration\'s capture is retained.',
+                23,
+                "Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.",
+            ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
                 'Concatenated quantifiers can be optimized when one character set is a subset of the other.',

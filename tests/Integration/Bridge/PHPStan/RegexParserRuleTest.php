@@ -49,6 +49,11 @@ final class RegexParserRuleTest extends RuleTestCase
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
             ],
             [
+                'Quantified capturing group "(...)" with "+": only the last iteration\'s capture is retained.',
+                23,
+                "Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.",
+            ],
+            [
                 'Potential ReDoS risk (theoretical) (severity: MEDIUM, confidence: MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
                 24,
                 "Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quantifier possessive to remove ambiguity.\n".
@@ -128,6 +133,11 @@ final class RegexParserRuleTest extends RuleTestCase
                 'Nested quantifiers can cause catastrophic backtracking.',
                 20,
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
+            ],
+            [
+                'Quantified capturing group "(...)" with "+": only the last iteration\'s capture is retained.',
+                20,
+                "Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.",
             ],
         ]);
     }

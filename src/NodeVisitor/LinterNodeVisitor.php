@@ -238,6 +238,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->lintSuspiciousCharClassPipe($node);
         $this->lintUselessCharClassRange($node);
         $this->lintDuplicateCharClassElements($node);
+        $this->lintBackrefAsOctalInCharClass($node);
+        $this->lintLiteralMetacharInCharClass($node);
 
         return $node;
     }
@@ -412,6 +414,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 );
             }
         }
+
+        $this->lintQuantifiedCapturingGroup($node);
 
         $this->parentStack[] = $node;
         $node->node->accept($this);
@@ -1243,6 +1247,22 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function lintAlternation(AlternationNode $node): void
     {
+        // Check for (.|\n) anti-pattern before generic overlap detection.
+        // This produces a more specific and actionable message.
+        if ($this->isDotNewlineAntiPattern($node)) {
+            $hasSFlag = str_contains($this->activeFlags, 's');
+            $hint = $hasSFlag
+                ? 'Replace (.|\n) with [\s\S] for clarity, or remove the surrounding group if the "s" flag is already active.'
+                : 'Use the "s" (PCRE_DOTALL) flag to make "." match newlines, or use [\s\S] instead of (.|\n).';
+
+            $this->addIssue(
+                'regex.lint.alternation.dotNewline',
+                'Alternation (.|\n) is an anti-pattern for matching any character including newlines.',
+                $node->startPosition,
+                $hint,
+            );
+        }
+
         $literals = [];
         foreach ($node->alternatives as $alt) {
             $literal = $this->extractLiteralSequence($alt);
@@ -1788,6 +1808,212 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 return;
             }
         }
+    }
+
+    /**
+     * Detect \1-\9 inside character classes where they are treated as
+     * octal escapes rather than backreferences.
+     */
+    private function lintBackrefAsOctalInCharClass(CharClassNode $node): void
+    {
+        if (0 === $this->maxCapturingGroup) {
+            return;
+        }
+
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        foreach ($parts as $part) {
+            if (!$part instanceof CharLiteralNode) {
+                continue;
+            }
+
+            if (CharLiteralType::OCTAL_LEGACY !== $part->type) {
+                continue;
+            }
+
+            // Check if the original representation looks like \1-\9 (a single digit backref)
+            if (!preg_match('/^\\\\([1-9])$/', $part->originalRepresentation, $m)) {
+                continue;
+            }
+
+            $num = (int) $m[1];
+            if ($num > $this->maxCapturingGroup) {
+                continue;
+            }
+
+            $this->addIssue(
+                'regex.lint.charclass.backrefAsOctal',
+                \sprintf(
+                    'Suspicious \\%d inside character class: this is octal (\\x%02X), not a backreference to group %d.',
+                    $num,
+                    $part->codePoint,
+                    $num,
+                ),
+                $part->startPosition,
+                \sprintf(
+                    'Backreferences do not work inside character classes. '
+                    .'If you intended to match the same text as group %d, move the check outside the class.',
+                    $num,
+                ),
+            );
+
+            return;
+        }
+    }
+
+    /**
+     * Detect quantifier metacharacters (+, *, ?) used as literals inside
+     * character classes, which is a common source of confusion.
+     */
+    private function lintLiteralMetacharInCharClass(CharClassNode $node): void
+    {
+        // Skip negated classes — [^\s+] (exclude whitespace and plus) is
+        // virtually always intentional.
+        if ($node->isNegated) {
+            return;
+        }
+
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        // Only flag when the class also contains \w, \d, or \s (shorthand
+        // types that the author likely intended to quantify).
+        $hasShorthand = false;
+        foreach ($parts as $part) {
+            if ($part instanceof CharTypeNode && \in_array($part->value, ['w', 'd', 's', 'W', 'D', 'S'], true)) {
+                $hasShorthand = true;
+
+                break;
+            }
+        }
+
+        if (!$hasShorthand) {
+            return;
+        }
+
+        // Count distinct non-metachar elements.  When the class contains 3+
+        // elements beyond the metachar itself (e.g. [\w+.-], [a-z\d/+]),
+        // the literal +/*/?  is almost certainly intentional — the developer
+        // is building a character set, not trying to quantify a shorthand.
+        $metachars = [];
+        $otherCount = 0;
+
+        foreach ($parts as $part) {
+            if ($part instanceof LiteralNode && 1 === \strlen($part->value) && \in_array($part->value, ['+', '*', '?'], true)) {
+                $metachars[] = $part;
+            } else {
+                ++$otherCount;
+            }
+        }
+
+        if ([] === $metachars || $otherCount > 2) {
+            return;
+        }
+
+        $meta = $metachars[0];
+
+        $this->addIssue(
+            'regex.lint.charclass.literalMetachar',
+            \sprintf(
+                '"%s" is a literal character inside a character class, not a quantifier.',
+                $meta->value,
+            ),
+            $meta->startPosition,
+            \sprintf(
+                'Inside [...], "%s" matches a literal "%s". '
+                .'If you meant to quantify a shorthand like \\w, use \\w%s outside the class.',
+                $meta->value,
+                $meta->value,
+                $meta->value,
+            ),
+        );
+    }
+
+    /**
+     * Detect (.|\n) and (.\n|.) anti-patterns where the developer uses
+     * alternation with dot and newline to match any character.
+     */
+    private function isDotNewlineAntiPattern(AlternationNode $node): bool
+    {
+        $alts = $node->alternatives;
+        if (2 !== \count($alts)) {
+            return false;
+        }
+
+        $hasDot = false;
+        $hasNewline = false;
+
+        foreach ($alts as $alt) {
+            if ($alt instanceof DotNode) {
+                $hasDot = true;
+            } elseif ($this->isNewlineEscape($alt)) {
+                $hasNewline = true;
+            }
+        }
+
+        return $hasDot && $hasNewline;
+    }
+
+    private function isNewlineEscape(NodeInterface $node): bool
+    {
+        if ($node instanceof LiteralNode && "\n" === $node->value) {
+            return true;
+        }
+
+        if ($node instanceof CharLiteralNode && 0x0A === $node->codePoint) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Warn when a capturing or named group is directly quantified with a
+     * repeating quantifier, because only the last iteration's capture is
+     * retained.
+     */
+    private function lintQuantifiedCapturingGroup(QuantifierNode $node): void
+    {
+        $inner = $node->node;
+        if (!$inner instanceof GroupNode) {
+            return;
+        }
+
+        $isCapturing = \in_array($inner->type, [
+            GroupType::T_GROUP_CAPTURING,
+            GroupType::T_GROUP_NAMED,
+        ], true);
+
+        if (!$isCapturing) {
+            return;
+        }
+
+        // Only flag repeating quantifiers (not ?, {1}, {0,1})
+        if (!$this->isRepeatableQuantifier($node->quantifier)) {
+            return;
+        }
+
+        $isNamed = null !== $inner->name;
+        $label = $isNamed
+            ? \sprintf('named group "(?<%s>...)"', $inner->name)
+            : 'capturing group "(...)"';
+
+        $this->addIssue(
+            'regex.lint.group.quantifiedCapture',
+            \sprintf(
+                'Quantified %s with "%s": only the last iteration\'s capture is retained.',
+                $label,
+                $node->quantifier,
+            ),
+            $node->startPosition,
+            'Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.',
+            $isNamed ? Severity::Warning : Severity::Info,
+        );
     }
 
     /**

@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Lint configuration `checks` section with nested ReDoS and optimization settings (schema + defaults).
 - PHPStan extension support for `checks` configuration overrides.
+- Lint check for backreference-as-octal in character classes: `[^\1]` is treated as octal `\x01`, not a backreference — warns when a corresponding capturing group exists.
+- Lint check for literal metacharacters in character classes: `[\w+]` where `+`, `*`, `?` are literals, not quantifiers. Skips negated classes and multi-element sets (3+ other elements) to avoid false positives on URI schemes, Base64, etc.
+- Lint check for `(.|\n)` anti-pattern: suggests using the `s` (DOTALL) flag or `[\s\S]` instead.
+- Lint check for quantified capturing groups: `(?<name>\d+)+` warns that only the last iteration's capture is retained. Named groups report as Warning; anonymous groups report as Info.
 
 ### Changed
 - Deprecated legacy lint config keys (`rules`, `redosMode`, `redosThreshold`, `redosNoJit`, `optimizations`, `minSavings`) in favor of `checks.*`.
@@ -22,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 - Added coverage for `checks` normalization and PHPStan `checks` overrides.
+- Added data-provider coverage for backreference-as-octal, literal metacharacter, dot-newline anti-pattern, and quantified capturing group lint checks.
 
 ## [1.3.0] - 2026-01-12
 

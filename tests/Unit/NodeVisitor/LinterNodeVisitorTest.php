@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\LintIssue;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
+use RegexParser\Severity;
 
 final class LinterNodeVisitorTest extends TestCase
 {
@@ -500,6 +501,147 @@ final class LinterNodeVisitorTest extends TestCase
         $warnings = $linter->getWarnings();
 
         $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    // ---------------------------------------------------------------
+    // Backreference-as-octal inside character class
+    // ---------------------------------------------------------------
+
+    #[DataProvider('provideBackrefAsOctalInCharClassCases')]
+    public function test_backref_as_octal_in_char_class(string $pattern, bool $expectWarning): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.charclass.backrefAsOctal');
+
+        if ($expectWarning) {
+            $this->assertInstanceOf(LintIssue::class, $issue, "Expected backref_as_octal warning for: {$pattern}");
+            $this->assertNotNull($issue->hint);
+        } else {
+            $this->assertNotInstanceOf(LintIssue::class, $issue, "Did NOT expect backref_as_octal warning for: {$pattern}");
+        }
+    }
+
+    public static function provideBackrefAsOctalInCharClassCases(): \Generator
+    {
+        yield 'backref \1 in negated class with one group' => ['/(a)([^\1]*?)\1/', true];
+        yield 'backref \2 in class with two groups' => ['/(a)(b)[\2]/', true];
+        yield 'backref \1 in non-negated class' => ['/(a)[\1]/', true];
+        yield 'no group defined — just octal' => ['/[\1]/', false];
+        yield 'octal \0 is not a backref' => ['/(a)[\0]/', false];
+        yield 'three-digit octal \177 is not a backref' => ['/(a)[\177]/', false];
+        yield 'backref \1 outside class is fine' => ['/(a)\1/', false];
+        yield 'backref \7 with enough groups' => ['/(a)(b)(c)(d)(e)(f)(g)[\7]/', true];
+        yield 'high digit without enough groups' => ['/(a)[\9]/', false];
+    }
+
+    // ---------------------------------------------------------------
+    // Literal metacharacter inside character class
+    // ---------------------------------------------------------------
+
+    #[DataProvider('provideLiteralMetacharInCharClassCases')]
+    public function test_literal_metachar_in_char_class(string $pattern, bool $expectWarning): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.charclass.literalMetachar');
+
+        if ($expectWarning) {
+            $this->assertInstanceOf(LintIssue::class, $issue, "Expected literal_metachar warning for: {$pattern}");
+            $this->assertNotNull($issue->hint);
+        } else {
+            $this->assertNotInstanceOf(LintIssue::class, $issue, "Did NOT expect literal_metachar warning for: {$pattern}");
+        }
+    }
+
+    public static function provideLiteralMetacharInCharClassCases(): \Generator
+    {
+        yield 'plus with \w shorthand' => ['/[\w+]*/', true];
+        yield 'star with \d shorthand' => ['/[\d*]/', true];
+        yield 'question mark with \s shorthand' => ['/[\s?]/', true];
+        yield 'plus without shorthand — not flagged' => ['/[a-z+]/', false];
+        yield 'star without shorthand — not flagged' => ['/[0-9*]/', false];
+        yield 'no metachar with shorthand — not flagged' => ['/[\w-]/', false];
+        yield 'plus with \W shorthand' => ['/[\W+]/', true];
+        yield 'negated class — not flagged' => ['/[^\s+]/', false];
+        yield 'multi-element URI scheme — not flagged' => ['/[a-z\d+.-]/', false];
+        yield 'multi-element base64 — not flagged' => ['/[a-zA-Z\d\/+]/', false];
+    }
+
+    // ---------------------------------------------------------------
+    // (.|\n) anti-pattern detection
+    // ---------------------------------------------------------------
+
+    #[DataProvider('provideDotNewlineAntiPatternCases')]
+    public function test_dot_newline_anti_pattern(string $pattern, bool $expectWarning, ?string $hintFragment = null): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.alternation.dotNewline');
+
+        if ($expectWarning) {
+            $this->assertInstanceOf(LintIssue::class, $issue, "Expected dot_newline warning for: {$pattern}");
+            if (null !== $hintFragment) {
+                $this->assertNotNull($issue->hint);
+                $this->assertStringContainsString($hintFragment, (string) $issue->hint);
+            }
+        } else {
+            $this->assertNotInstanceOf(LintIssue::class, $issue, "Did NOT expect dot_newline warning for: {$pattern}");
+        }
+    }
+
+    public static function provideDotNewlineAntiPatternCases(): \Generator
+    {
+        yield 'dot-or-newline quantified' => ['/(.|\\n)+/', true, '[\s\S]'];
+        yield 'newline-or-dot quantified' => ['/(\\n|.)+/', true, '[\s\S]'];
+        yield 'dot-or-newline without quantifier — still an anti-pattern' => ['/.|\\n/', true, '[\s\S]'];
+        yield 'dot-or-newline with s flag suggests clarity' => ['/(.|\\n)+/s', true, 'already active'];
+        yield 'three-way alternation — not the pattern' => ['/(.|\\n|x)+/', false];
+        yield 'dot-or-carriage-return is not the pattern' => ['/(.|\\r)+/', false];
+        yield 'just a dot — not the pattern' => ['/.+/', false];
+    }
+
+    // ---------------------------------------------------------------
+    // Quantified capturing group
+    // ---------------------------------------------------------------
+
+    #[DataProvider('provideQuantifiedCapturingGroupCases')]
+    public function test_quantified_capturing_group(string $pattern, bool $expectWarning, ?Severity $expectedSeverity = null): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.group.quantifiedCapture');
+
+        if ($expectWarning) {
+            $this->assertInstanceOf(LintIssue::class, $issue, "Expected quantified_capture warning for: {$pattern}");
+            $this->assertNotNull($issue->hint);
+            if (null !== $expectedSeverity) {
+                $this->assertSame($expectedSeverity, $issue->severity, "Expected severity {$expectedSeverity->value} for: {$pattern}");
+            }
+        } else {
+            $this->assertNotInstanceOf(LintIssue::class, $issue, "Did NOT expect quantified_capture warning for: {$pattern}");
+        }
+    }
+
+    public static function provideQuantifiedCapturingGroupCases(): \Generator
+    {
+        yield 'named group with + — Warning' => ['/(?<digit>\d+)+/', true, Severity::Warning];
+        yield 'numbered group with + — Info' => ['/(\d+)+/', true, Severity::Info];
+        yield 'numbered group with * — Info' => ['/(\d+)*/', true, Severity::Info];
+        yield 'numbered group with {2,} — Info' => ['/(\d+){2,}/', true, Severity::Info];
+        yield 'exact repetition {3} — still warns' => ['/(\d+){3}/', true, Severity::Info];
+        yield 'non-capturing group — not flagged' => ['/(?:\d+)+/', false];
+        yield 'optional group (?) — not flagged' => ['/(\d+)?/', false];
+        yield 'single repetition {1} — not flagged' => ['/(\d+){1}/', false];
+        yield 'atomic group — not flagged' => ['/(?>(\d+))+/', false];
     }
 
     /**
