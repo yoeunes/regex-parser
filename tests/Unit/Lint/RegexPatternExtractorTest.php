@@ -101,7 +101,7 @@ final class RegexPatternExtractorTest extends TestCase
             $result = $this->patternExtractor->extract(
                 [$file1, $file2],
                 null,
-                function (int $current, int $total) use (&$progressCalls): void {
+                static function (int $current, int $total) use (&$progressCalls): void {
                     $progressCalls[] = ['current' => $current, 'total' => $total];
                 },
             );
@@ -122,7 +122,7 @@ final class RegexPatternExtractorTest extends TestCase
         $result = $this->patternExtractor->extract(
             ['src/'],
             null,
-            function (int $current, int $total) use (&$progressCalls): void {
+            static function (int $current, int $total) use (&$progressCalls): void {
                 $progressCalls[] = ['current' => $current, 'total' => $total];
             },
         );
@@ -139,7 +139,7 @@ final class RegexPatternExtractorTest extends TestCase
         $result = $this->patternExtractor->extract(
             [],
             null,
-            function (int $current, int $total) use (&$progressCalls): void {
+            static function (int $current, int $total) use (&$progressCalls): void {
                 $progressCalls[] = [$current, $total];
             },
         );
@@ -202,7 +202,7 @@ final class RegexPatternExtractorTest extends TestCase
             $result = $this->patternExtractor->extract(
                 [$file1, $file2],
                 null,
-                function (int $current, int $total) use (&$progressCalls): void {
+                static function (int $current, int $total) use (&$progressCalls): void {
                     $progressCalls[] = [$current, $total];
                 },
                 2,
@@ -456,7 +456,7 @@ final class RegexPatternExtractorTest extends TestCase
             'extractParallel',
             ['a.php', 'b.php'],
             2,
-            function (int $current, int $total) use (&$progressCalls): void {
+            static function (int $current, int $total) use (&$progressCalls): void {
                 $progressCalls[] = [$current, $total];
             },
         );

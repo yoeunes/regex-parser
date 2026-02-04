@@ -133,12 +133,12 @@ final class RegexLintServiceTest extends TestCase
         $this->assertCount(1, $result->results);
         $this->assertSame('/(a+)+/', $result->results[0]['pattern']);
         // Should have warnings from the linter
-        $warnings = array_filter($result->results[0]['issues'], fn ($issue) => 'warning' === $issue['type']);
+        $warnings = array_filter($result->results[0]['issues'], static fn ($issue) => 'warning' === $issue['type']);
         $this->assertGreaterThan(0, \count($warnings));
 
         $nestedWarnings = array_values(array_filter(
             $result->results[0]['issues'],
-            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
+            static fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
         ));
 
         $this->assertCount(1, $nestedWarnings);
@@ -159,7 +159,7 @@ final class RegexLintServiceTest extends TestCase
 
         $nestedWarnings = array_values(array_filter(
             $result->results[0]['issues'],
-            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
+            static fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
         ));
 
         $this->assertCount(1, $nestedWarnings);
@@ -178,7 +178,7 @@ final class RegexLintServiceTest extends TestCase
 
         $dotstarWarnings = array_values(array_filter(
             $result->results[0]['issues'],
-            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.dotstar.nested',
+            static fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.dotstar.nested',
         ));
 
         $this->assertCount(1, $dotstarWarnings);
@@ -281,7 +281,7 @@ final class RegexLintServiceTest extends TestCase
         // Complexity issues should be filtered out by filterLintIssues
         $complexityIssues = array_filter(
             $result->results[0]['issues'] ?? [],
-            fn ($issue) => ($issue['issueId'] ?? '') === 'regex.lint.complexity',
+            static fn ($issue) => ($issue['issueId'] ?? '') === 'regex.lint.complexity',
         );
         $this->assertCount(0, $complexityIssues);
     }
@@ -300,7 +300,7 @@ final class RegexLintServiceTest extends TestCase
         if (!empty($result->results)) {
             $routeIssues = array_filter(
                 $result->results[0]['issues'] ?? [],
-                fn ($issue) => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
+                static fn ($issue) => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
             );
             $this->assertCount(0, $routeIssues);
         }
@@ -323,7 +323,7 @@ final class RegexLintServiceTest extends TestCase
         if (!empty($result->results)) {
             $redosIssues = array_filter(
                 $result->results[0]['issues'] ?? [],
-                fn ($issue) => isset($issue['analysis']),
+                static fn ($issue) => isset($issue['analysis']),
             );
             $this->assertCount(0, $redosIssues, 'ReDoS issues should be filtered when checkRedos is false');
         }
@@ -337,7 +337,7 @@ final class RegexLintServiceTest extends TestCase
         ];
 
         $progressCalls = 0;
-        $progressCallback = function () use (&$progressCalls): void {
+        $progressCallback = static function () use (&$progressCalls): void {
             $progressCalls++;
         };
 
@@ -361,13 +361,13 @@ final class RegexLintServiceTest extends TestCase
             // Check if any issues have analysis (ReDoS)
             $redosIssues = array_filter(
                 $result->results[0]['issues'] ?? [],
-                fn ($issue) => isset($issue['analysis']),
+                static fn ($issue) => isset($issue['analysis']),
             );
             if (!empty($redosIssues)) {
                 // Ensure the problems array contains ReDoS problems
                 $redosProblems = array_filter(
                     $result->results[0]['problems'] ?? [],
-                    fn ($problem) => ProblemType::Security === $problem->type,
+                    static fn ($problem) => ProblemType::Security === $problem->type,
                 );
                 $this->assertNotEmpty($redosProblems, 'Should create security problems for ReDoS issues');
             }

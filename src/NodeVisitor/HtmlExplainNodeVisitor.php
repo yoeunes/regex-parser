@@ -135,7 +135,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     public function visitSequence(SequenceNode $node): string
     {
         $parts = array_map(fn (NodeInterface $child): string => $child->accept($this), $node->children);
-        $parts = array_filter($parts, fn (string $part): bool => '' !== $part);
+        $parts = array_filter($parts, static fn (string $part): bool => '' !== $part);
 
         return implode("\n", $parts);
     }

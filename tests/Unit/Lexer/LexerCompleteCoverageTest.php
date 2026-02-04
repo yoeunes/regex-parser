@@ -348,7 +348,7 @@ final class LexerCompleteCoverageTest extends TestCase
         $tokens = (new Lexer())->tokenize('a\Q*+?\Eb\Q[]\Ec')->getTokens();
 
         // Should have: a, *+?, b, [], c, EOF
-        $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
+        $values = array_map(static fn ($t) => $t->value, array_filter($tokens, static fn ($t) => TokenType::T_EOF !== $t->type));
 
         $this->assertContains('a', $values);
         $this->assertContains('*+?', $values);
@@ -374,7 +374,7 @@ final class LexerCompleteCoverageTest extends TestCase
         $tokens = (new Lexer())->tokenize('abc\Q*+?')->getTokens();
 
         // Last token before EOF should be the quoted literal
-        $nonEofTokens = array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type);
+        $nonEofTokens = array_filter($tokens, static fn ($t) => TokenType::T_EOF !== $t->type);
         $lastToken = end($nonEofTokens);
 
         $this->assertNotFalse($lastToken);
@@ -484,7 +484,7 @@ final class LexerCompleteCoverageTest extends TestCase
         $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
 
         // Check escape sequences are present
-        $values = array_map(fn ($t) => $t->value, $tokens);
+        $values = array_map(static fn ($t) => $t->value, $tokens);
         $this->assertContains("\t", $values);
         $this->assertContains("\n", $values);
         $this->assertContains("\r", $values);
@@ -611,7 +611,7 @@ final class LexerCompleteCoverageTest extends TestCase
         $this->assertGreaterThan(5, \count($tokens));
 
         // Verify we have various token types
-        $types = array_map(fn ($t) => $t->type, $tokens);
+        $types = array_map(static fn ($t) => $t->type, $tokens);
         $this->assertContains(TokenType::T_GROUP_MODIFIER_OPEN, $types);
     }
 
@@ -637,7 +637,7 @@ final class LexerCompleteCoverageTest extends TestCase
         $tokens = (new Lexer())->tokenize('a\Q\Eb\Q\Ec')->getTokens();
 
         // Should have: a, b, c, EOF (no tokens from empty \Q\E)
-        $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
+        $values = array_map(static fn ($t) => $t->value, array_filter($tokens, static fn ($t) => TokenType::T_EOF !== $t->type));
 
         $this->assertContains('a', $values);
         $this->assertContains('b', $values);

@@ -178,7 +178,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         // Should have warnings from the linter
-        $warnings = array_filter($issues, fn ($issue) => 'warning' === $issue['type']);
+        $warnings = array_filter($issues, static fn ($issue) => 'warning' === $issue['type']);
         $this->assertNotEmpty($warnings);
     }
 
@@ -191,7 +191,7 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $issues = $service->lint([$pattern]);
 
-        $complexityIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
+        $complexityIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
         $this->assertNotEmpty($complexityIssues);
     }
 
@@ -202,7 +202,7 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $issues = $service->lint([$pattern]);
 
-        $redosIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $redosIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
         $this->assertNotEmpty($redosIssues);
         $this->assertArrayHasKey('analysis', $redosIssues[array_key_first($redosIssues)]);
     }
@@ -240,7 +240,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         $this->assertNotEmpty($issues);
-        $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
+        $errorIssue = array_filter($issues, static fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
         /** @var string $tip */
@@ -256,7 +256,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         $this->assertNotEmpty($issues);
-        $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
+        $errorIssue = array_filter($issues, static fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
     }
@@ -269,7 +269,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         $this->assertNotEmpty($issues);
-        $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
+        $errorIssue = array_filter($issues, static fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
     }
@@ -282,7 +282,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         $this->assertNotEmpty($issues);
-        $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
+        $errorIssue = array_filter($issues, static fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
     }
@@ -295,7 +295,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         $this->assertNotEmpty($issues);
-        $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
+        $errorIssue = array_filter($issues, static fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
     }
@@ -307,7 +307,7 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $issues = $service->lint([$pattern]);
 
-        $redosIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $redosIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
         $this->assertNotEmpty($redosIssues);
         $this->assertArrayHasKey('hint', $redosIssues[array_key_first($redosIssues)]);
         $hint = $redosIssues[array_key_first($redosIssues)]['hint'];
@@ -321,7 +321,7 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $issues = $service->lint([$pattern]);
 
-        $redosIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $redosIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
         $this->assertNotEmpty($redosIssues);
         $this->assertArrayHasKey('hint', $redosIssues[array_key_first($redosIssues)]);
     }
@@ -334,8 +334,8 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         // Should skip complexity and ReDoS checks for trivially safe patterns
-        $complexityIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
-        $redosIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $complexityIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
+        $redosIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
         $this->assertEmpty($complexityIssues);
         $this->assertEmpty($redosIssues);
     }
@@ -365,7 +365,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $issues = $service->lint([$pattern]);
 
         // Should skip ReDoS check for ignored patterns
-        $redosIssues = array_filter($issues, fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $redosIssues = array_filter($issues, static fn ($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
         $this->assertEmpty($redosIssues);
     }
 

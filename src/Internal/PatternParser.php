@@ -92,7 +92,7 @@ final class PatternParser
                         }
 
                         // Format each invalid flag individually with quotes
-                        $formattedFlags = implode(', ', array_map(fn (string $flag): string => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
+                        $formattedFlags = implode(', ', array_map(static fn (string $flag): string => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
 
                         throw new ParserException(\sprintf('Unknown regex flag(s) found: %s', $formattedFlags));
                     }

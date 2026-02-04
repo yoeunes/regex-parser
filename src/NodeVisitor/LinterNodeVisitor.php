@@ -1907,7 +1907,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             if ($part instanceof LiteralNode && 1 === \strlen($part->value) && \in_array($part->value, ['+', '*', '?'], true)) {
                 $metachars[] = $part;
             } else {
-                ++$otherCount;
+                $otherCount++;
             }
         }
 

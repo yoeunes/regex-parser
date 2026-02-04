@@ -79,7 +79,7 @@ final readonly class SecurityAccessControlAnalyzer
         $index = 0;
 
         $options = new SolverOptions(
-            matchMode: MatchMode::PARTIAL,
+            matchMode: MatchMode::FULL,
             minimizeDfa: false,
             minimizationAlgorithm: $this->resolveMinimizationAlgorithm(),
             determinizationAlgorithm: $this->resolveDeterminizationAlgorithm(),

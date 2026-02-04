@@ -260,7 +260,7 @@ final class RegexLintCommand extends Command
             $io->writeln('  <fg=gray>[2/2] Analyzing patterns</>');
             $totalPatterns = \count($patterns);
             $analysisBar = $this->createProgressBar($io, $totalPatterns);
-            $progressCallback = function () use ($analysisBar, &$currentAnalysis, $totalPatterns): void {
+            $progressCallback = static function () use ($analysisBar, &$currentAnalysis, $totalPatterns): void {
                 $currentAnalysis++;
                 $analysisBar->setMessage(str_pad($currentAnalysis.'/'.$totalPatterns, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT));
                 $analysisBar->advance();

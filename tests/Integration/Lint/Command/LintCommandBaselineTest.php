@@ -95,7 +95,7 @@ final class LintCommandBaselineTest extends TestCase
         $input2 = $this->makeInput([$file, '--baseline='.$baselineFile]);
 
         $exitCode = 0;
-        $buffer = $this->captureOutput(fn (): int => $command->run($input2, $output2), $exitCode);
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input2, $output2), $exitCode);
 
         $this->assertSame(0, $exitCode); // No errors after filtering
         $this->assertStringNotContainsString('Unknown regex flag', $buffer);

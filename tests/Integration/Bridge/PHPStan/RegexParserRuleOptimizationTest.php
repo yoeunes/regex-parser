@@ -51,7 +51,7 @@ final class RegexParserRuleOptimizationTest extends RuleTestCase
             [
                 'Quantified capturing group "(...)" with "+": only the last iteration\'s capture is retained.',
                 23,
-                "Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.",
+                'Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.',
             ],
             [
                 'Potential ReDoS risk (theoretical) (severity: MEDIUM, confidence: MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',

@@ -147,8 +147,18 @@ final readonly class CharSet
 
     public function contains(int $codePoint): bool
     {
-        foreach ($this->ranges as [$start, $end]) {
-            if ($codePoint >= $start && $codePoint <= $end) {
+        $low = 0;
+        $high = \count($this->ranges) - 1;
+
+        while ($low <= $high) {
+            $mid = ($low + $high) >> 1;
+            [$start, $end] = $this->ranges[$mid];
+
+            if ($codePoint < $start) {
+                $high = $mid - 1;
+            } elseif ($codePoint > $end) {
+                $low = $mid + 1;
+            } else {
                 return true;
             }
         }

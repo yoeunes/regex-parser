@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lint check for literal metacharacters in character classes: `[\w+]` where `+`, `*`, `?` are literals, not quantifiers. Skips negated classes and multi-element sets (3+ other elements) to avoid false positives on URI schemes, Base64, etc.
 - Lint check for `(.|\n)` anti-pattern: suggests using the `s` (DOTALL) flag or `[\s\S]` instead.
 - Lint check for quantified capturing groups: `(?<name>\d+)+` warns that only the last iteration's capture is retained. Named groups report as Warning; anonymous groups report as Info.
+- `CharSet::contains()` now uses binary search over sorted ranges, reducing lookup from O(n) to O(log n) on the determinization hot path.
 
 ### Changed
 - Deprecated legacy lint config keys (`rules`, `redosMode`, `redosThreshold`, `redosNoJit`, `optimizations`, `minSavings`) in favor of `checks.*`.
+- `SecurityAccessControlAnalyzer` now uses `MatchMode::FULL` instead of `MatchMode::PARTIAL`, avoiding redundant NFA self-loops since patterns are already manually wrapped with `.*` by `normalizeSearchPattern()`.
+- `RegexSolver::findExample()` product-automaton BFS now uses integer pair keys instead of string concatenation, reducing allocation overhead during DFA intersection/subset/equivalence checks.
 
 ### Fixed
 - CLI lint config now honors `verifyWithAutomata` when provided in optimization settings.
@@ -27,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 - Added coverage for `checks` normalization and PHPStan `checks` overrides.
 - Added data-provider coverage for backreference-as-octal, literal metacharacter, dot-newline anti-pattern, and quantified capturing group lint checks.
+- Added `CharSetContainsTest` covering binary search: single points, ranges, empty/full sets, complement, union, intersection, subtraction, Unicode code points, and many-ranges stress test.
+- Added `RegexSolverEdgeCaseTest` covering identical patterns, empty languages, case-insensitive equivalence, char class shorthands (`\d`, `\w`, `\s`), `.*` subset, quantifier equivalences, alternation commutativity/distributivity, both determinization algorithms, DFA cache reuse, and dotall flag equivalence.
+- Added `DfaMinimizerRangesTest` covering range-based transitions, range preservation in minimized output, single-state DFA, and all-accepting state merging for both Hopcroft and Moore algorithms.
+- Added `SecurityAccessControlMatchModeTest` verifying `MatchMode::FULL` correctness for prefix shadowing, unanchored paths, regex paths, disjoint paths/methods, equivalent/redundant rules, empty paths, and fully anchored paths.
 
 ## [1.3.0] - 2026-01-12
 

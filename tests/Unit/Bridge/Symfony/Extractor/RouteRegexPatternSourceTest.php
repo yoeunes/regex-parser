@@ -181,7 +181,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         $result = $source->extract($context);
 
         $this->assertCount(2, $result);
-        $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+        $patterns = array_map(static fn ($occurrence) => $occurrence->pattern, $result);
         $this->assertContains('#^\d+$#', $patterns);
         $this->assertContains('#^[a-z-]+$#', $patterns);
     }
@@ -382,7 +382,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
             // Should extract patterns from YAML
             $this->assertGreaterThanOrEqual(2, \count($result));
-            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $patterns = array_map(static fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('#^\d+$#', $patterns);
             $this->assertContains('#^[a-z-]+$#', $patterns);
         } finally {
@@ -546,7 +546,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
             // Should extract patterns from YAML, handling when@ conditions
             $this->assertGreaterThanOrEqual(1, \count($result));
-            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $patterns = array_map(static fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('#^[a-z0-9_-]+$#', $patterns);
         } finally {
             unlink($tempYaml);

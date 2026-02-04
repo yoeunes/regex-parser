@@ -138,7 +138,7 @@ abstract class AbstractOutputFormatter implements OutputFormatterInterface
 
         $severityOrder = ['error' => 0, 'warning' => 1, 'info' => 2];
 
-        usort($results, function (array $a, array $b) use ($severityOrder): int {
+        usort($results, static function (array $a, array $b) use ($severityOrder): int {
             $aSeverity = isset($a['type']) && \is_string($a['type']) ? $a['type'] : 'info';
             $bSeverity = isset($b['type']) && \is_string($b['type']) ? $b['type'] : 'info';
 

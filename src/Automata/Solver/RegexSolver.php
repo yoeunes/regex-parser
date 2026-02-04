@@ -180,20 +180,21 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
     {
         $startLeft = $left->startState;
         $startRight = $right->startState;
-        $startKey = $this->pairKey($startLeft, $startRight);
+        $rightStateCount = \count($right->states);
+        $startKey = $startLeft * $rightStateCount + $startRight;
         $alphabetRanges = $this->mergeAlphabetRanges($left, $right);
 
         if ($acceptPredicate($left->getState($startLeft)->isAccepting, $right->getState($startRight)->isAccepting)) {
             return '';
         }
 
-        /** @var \SplQueue<array{int, int, string}> $queue */
+        /** @var \SplQueue<array{int, int, int}> $queue */
         $queue = new \SplQueue();
         $queue->enqueue([$startLeft, $startRight, $startKey]);
 
-        /** @var array<string, bool> $visited */
+        /** @var array<int, bool> $visited */
         $visited = [$startKey => true];
-        /** @var array<string, array{0:string, 1:int}|null> $previous */
+        /** @var array<int, array{0:int, 1:int}|null> $previous */
         $previous = [$startKey => null];
 
         while (!$queue->isEmpty()) {
@@ -211,7 +212,7 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
                     continue;
                 }
 
-                $nextKey = $this->pairKey($nextLeft, $nextRight);
+                $nextKey = $nextLeft * $rightStateCount + $nextRight;
 
                 if (isset($visited[$nextKey])) {
                     continue;
@@ -234,9 +235,9 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
     }
 
     /**
-     * @param array<string, array{0:string, 1:int}|null> $previous
+     * @param array<int, array{0:int, 1:int}|null> $previous
      */
-    private function buildExample(string $key, array $previous): string
+    private function buildExample(int $key, array $previous): string
     {
         $chars = [];
         $current = $key;
@@ -251,11 +252,6 @@ final readonly class RegexSolver implements RegexSolverCompilerInterface, RegexS
         }
 
         return implode('', \array_reverse($chars));
-    }
-
-    private function pairKey(int $leftState, int $rightState): string
-    {
-        return $leftState.':'.$rightState;
     }
 
     /**

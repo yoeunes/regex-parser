@@ -87,7 +87,7 @@ final class PhpStanExtractionStrategyTest extends TestCase
 
         if ($this->isPhpParserAvailable()) {
             $this->assertCount(3, $result);
-            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $patterns = array_map(static fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('/pattern1/', $patterns);
             $this->assertContains('/pattern2/', $patterns);
             $this->assertContains('/pattern3/', $patterns);
@@ -161,7 +161,7 @@ final class PhpStanExtractionStrategyTest extends TestCase
 
         if ($this->isPhpParserAvailable()) {
             $this->assertCount(2, $result);
-            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $patterns = array_map(static fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('/test1/', $patterns);
             $this->assertContains('/test2/', $patterns);
         } else {

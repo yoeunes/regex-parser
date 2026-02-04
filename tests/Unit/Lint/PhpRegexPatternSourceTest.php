@@ -64,7 +64,7 @@ final class PhpRegexPatternSourceTest extends TestCase
     public function test_extract_with_progress_callback(): void
     {
         $progressCalled = false;
-        $progressCallback = function () use (&$progressCalled): void {
+        $progressCallback = static function () use (&$progressCalled): void {
             $progressCalled = true;
         };
 
