@@ -332,6 +332,7 @@ Create `regex.json` or `regex.dist.json` in your project root:
   "checks": {
     "validation": true,
     "redos": {
+      "enabled": true,
       "mode": "theoretical",
       "threshold": "high"
     },
@@ -470,16 +471,19 @@ vendor/bin/regex lint src/ --format=junit --output=junit.xml
 
 ## Lint Options
 
-| Option              | Description                      |
-|---------------------|----------------------------------|
-| `--exclude <path>`  | Exclude path (repeatable)        |
-| `--min-savings <n>` | Minimum optimization savings     |
-| `--jobs <n>`        | Parallel workers                 |
-| `--no-redos`        | Skip ReDoS analysis              |
-| `--no-validate`     | Skip validation                  |
-| `--no-optimize`     | Disable optimization suggestions |
-| `-v, --verbose`     | Detailed output                  |
-| `--debug`           | Debug information                |
+| Option              | Description                                        |
+|---------------------|----------------------------------------------------|
+| `--exclude <path>`  | Exclude path (repeatable)                          |
+| `--min-savings <n>` | Minimum optimization savings                       |
+| `--jobs <n>`        | Parallel workers                                   |
+| `--redos`           | Enable ReDoS analysis (disabled by default)        |
+| `--no-redos`        | Explicitly disable ReDoS analysis                  |
+| `--no-validate`     | Skip validation                                    |
+| `--no-optimize`     | Disable optimization suggestions                   |
+| `-v, --verbose`     | Detailed output                                    |
+| `--debug`           | Debug information                                  |
+
+> **Note:** ReDoS analysis is disabled by default for performance. Enable it with `--redos` or via configuration.
 
 ---
 

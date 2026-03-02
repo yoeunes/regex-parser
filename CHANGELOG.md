@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: ReDoS analysis is now disabled by default for better performance. Enable explicitly via:
+  - CLI: `--redos` flag or `checks.redos.enabled: true` in `regex.json`
+  - PHPStan: `reportRedos: true` in rule configuration
+  - Symfony: `regex_parser.redos.enabled: true` in bundle configuration
+
 ### Added
+- CLI `--redos` flag to explicitly enable ReDoS analysis (counterpart to `--no-redos`).
+- Symfony bundle `redos.enabled` configuration option (defaults to `false`).
 - Lint configuration `checks` section with nested ReDoS and optimization settings (schema + defaults).
 - PHPStan extension support for `checks` configuration overrides.
 - Lint check for backreference-as-octal in character classes: `[^\1]` is treated as octal `\x01`, not a backreference — warns when a corresponding capturing group exists.

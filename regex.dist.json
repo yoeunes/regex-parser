@@ -12,7 +12,7 @@
     "checks": {
         "validation": true,
         "redos": {
-            "enabled": true,
+            "enabled": false,
             "mode": "confirmed",
             "threshold": "critical",
             "noJit": false

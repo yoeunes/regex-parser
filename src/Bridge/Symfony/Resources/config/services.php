@@ -83,7 +83,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
         ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
         ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'))
-        ->arg('$redosIgnoredPatterns', param('regex_parser.redos.ignored_patterns'));
+        ->arg('$redosIgnoredPatterns', param('regex_parser.redos.ignored_patterns'))
+        ->arg('$redosEnabled', param('regex_parser.redos.enabled'));
 
     $services->set('regex_parser.pattern_sources', RegexPatternSourceCollection::class)
         ->args([

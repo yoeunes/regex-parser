@@ -76,7 +76,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
         if (null !== $parsed->error) {
             $output->write($output->error('Error: '.$parsed->error."\n"));
-            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--no-redos] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--redos] [--no-redos] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
 
             return 1;
         }

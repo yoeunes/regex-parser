@@ -110,6 +110,31 @@ final class LintArgumentParser
                 continue;
             }
 
+            if ('--redos' === $arg) {
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    true,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
+                );
+
+                continue;
+            }
+
             if ('--no-redos' === $arg) {
                 $arguments = new LintArguments(
                     $arguments->paths,

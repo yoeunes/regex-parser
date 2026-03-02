@@ -349,7 +349,7 @@ final class RegexLintServiceTest extends TestCase
 
     public function test_analyze_creates_redos_problems(): void
     {
-        $request = new RegexLintRequest(['.'], [], 0); // checkRedos = true by default
+        $request = new RegexLintRequest(['.'], [], 0, [], true, true); // checkRedos = true explicitly
         $patterns = [
             new RegexPatternOccurrence('/(x+)+y/', 'test.php', 1, 'preg_match'),
         ];

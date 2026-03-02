@@ -2,6 +2,11 @@
 
 ReDoS (Regular Expression Denial of Service) happens when a regex takes exponential time to match certain inputs. This guide explains the risky shapes, how RegexParser detects them, and how to mitigate them.
 
+> **Note:** ReDoS analysis is disabled by default for performance. Enable it explicitly:
+> - CLI: `--redos` flag or `checks.redos.enabled: true` in `regex.json`
+> - PHPStan: `reportRedos: true` in rule configuration
+> - Symfony: `regex_parser.redos.enabled: true` in bundle configuration
+
 ## What Is ReDoS?
 
 Most PCRE engines use backtracking. When a pattern has multiple ways to match the same input, the engine may explore a huge number of paths before it can fail or succeed.

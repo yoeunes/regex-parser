@@ -81,9 +81,9 @@ final readonly class LintArguments
             $quiet = false;
         }
 
-        $checkRedos = $defaults['checkRedos'] ?? true;
+        $checkRedos = $defaults['checkRedos'] ?? false;
         if (!\is_bool($checkRedos)) {
-            $checkRedos = true;
+            $checkRedos = false;
         }
 
         $checkValidation = $defaults['checkValidation'] ?? true;

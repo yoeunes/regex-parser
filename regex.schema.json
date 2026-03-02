@@ -77,8 +77,8 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Enable ReDoS vulnerability analysis.",
-          "default": true
+          "description": "Enable ReDoS vulnerability analysis. Disabled by default for performance; enable explicitly when needed.",
+          "default": false
         },
         "mode": {
           "type": "string",
@@ -332,7 +332,7 @@
         "redos": {
           "type": "boolean",
           "description": "Enable ReDoS vulnerability analysis.",
-          "default": true
+          "default": false
         },
         "validation": {
           "type": "boolean",

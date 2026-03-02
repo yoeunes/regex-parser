@@ -140,7 +140,7 @@ final class RegexParserRuleCoverageTest extends TestCase
         $this->assertSame([], $errors);
     }
 
-    public function test_default_report_redos_is_enabled(): void
+    public function test_default_report_redos_is_disabled(): void
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
@@ -158,7 +158,8 @@ final class RegexParserRuleCoverageTest extends TestCase
             }
         }
 
-        $this->assertTrue($hasRedos);
+        // ReDoS is disabled by default for performance
+        $this->assertFalse($hasRedos);
     }
 
     public function test_default_suggest_optimizations_is_disabled(): void

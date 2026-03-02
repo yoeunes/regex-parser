@@ -77,12 +77,19 @@ final readonly class RegexAnalysisService
         private bool $ignoreParseErrors = false,
         ReDoSMode|string $redosMode = ReDoSMode::THEORETICAL,
         private ?ReDoSConfirmOptions $redosConfirmOptions = null,
+        bool $redosEnabled = false,
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
-        $this->redosMode = $redosMode instanceof ReDoSMode
-            ? $redosMode
-            : (ReDoSMode::tryFrom(strtolower((string) $redosMode)) ?? ReDoSMode::THEORETICAL);
+
+        // When redosEnabled is false, force mode to OFF
+        if (!$redosEnabled) {
+            $this->redosMode = ReDoSMode::OFF;
+        } else {
+            $this->redosMode = $redosMode instanceof ReDoSMode
+                ? $redosMode
+                : (ReDoSMode::tryFrom(strtolower((string) $redosMode)) ?? ReDoSMode::THEORETICAL);
+        }
     }
 
     public function getRegex(): Regex

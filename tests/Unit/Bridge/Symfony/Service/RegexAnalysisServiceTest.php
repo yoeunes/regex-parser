@@ -380,6 +380,11 @@ final class RegexAnalysisServiceTest extends TestCase
             $warningThreshold,
             $redosThreshold,
             $ignoredPatterns,
+            [],
+            false,
+            'theoretical',
+            null,
+            true, // redosEnabled
         );
     }
 }

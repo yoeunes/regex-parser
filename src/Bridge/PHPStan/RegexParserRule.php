@@ -147,7 +147,7 @@ final class RegexParserRule implements Rule
      */
     public function __construct(
         bool $ignoreParseErrors = true,
-        bool $reportRedos = true,
+        bool $reportRedos = false,
         string $redosThreshold = 'high',
         string $redosMode = 'theoretical',
         bool $suggestOptimizations = false,
@@ -728,6 +728,7 @@ final class RegexParserRule implements Rule
             redosThreshold: $this->redosThreshold,
             redosMode: $this->redosMode,
             ignoreParseErrors: $this->ignoreParseErrors,
+            redosEnabled: $this->reportRedos,
         );
     }
 

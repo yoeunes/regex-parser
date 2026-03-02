@@ -57,6 +57,7 @@ final class RegexParserExtension extends Extension
          *     },
          *     extractor_service: string|null,
          *     redos: array{
+         *         enabled: bool,
          *         threshold: string,
          *         ignored_patterns: array<int, string>,
          *     },
@@ -94,6 +95,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.runtime_pcre_validation', $config['runtime_pcre_validation']);
         $container->setParameter('regex_parser.cache', $config['cache']);
         $container->setParameter('regex_parser.extractor_service', $config['extractor_service']);
+        $container->setParameter('regex_parser.redos.enabled', $config['redos']['enabled']);
         $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);
         $container->setParameter('regex_parser.redos.ignored_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);

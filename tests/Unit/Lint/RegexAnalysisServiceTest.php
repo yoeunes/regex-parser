@@ -31,7 +31,18 @@ final class RegexAnalysisServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->analysis = new RegexAnalysisService(Regex::create());
+        $this->analysis = new RegexAnalysisService(
+            Regex::create(),
+            null,
+            50,
+            'low',
+            [],
+            [],
+            false,
+            'theoretical',
+            null,
+            true, // redosEnabled
+        );
     }
 
     protected function tearDown(): void
