@@ -7,14 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Language Server Protocol (LSP) support** via `bin/regex-lsp` for real-time regex analysis in IDEs.
+  - Real-time diagnostics (parse errors, validation issues, lint warnings)
+  - Hover information with pattern explanations
+  - Code actions for quick fixes (add `/u` flag, apply optimizations)
+  - Completion support for regex syntax (character classes, anchors, quantifiers, groups, Unicode properties, POSIX classes, flags)
+  - Works with VS Code, Neovim, Vim, Emacs, Sublime Text, Helix, Zed, and PhpStorm (via LSP4IJ plugin)
+- **Unicode awareness lint checks** (3 new rules):
+  - `regex.lint.unicode.shorthandWithoutU` (Style): Warns when `\w`, `\d`, `\s` used without `/u` flag
+  - `regex.lint.unicode.propertyWithoutU` (Error): Error when `\p{L}` used without `/u` flag
+  - `regex.lint.unicode.bracedHexWithoutU` (Error): Error when `\x{100}` used without `/u` flag for code points > U+FF
+- CLI `--redos` flag to explicitly enable ReDoS analysis (counterpart to `--no-redos`).
+
 ### Changed
 - **BREAKING**: ReDoS analysis is now disabled by default for better performance. Enable explicitly via:
   - CLI: `--redos` flag or `checks.redos.enabled: true` in `regex.json`
   - PHPStan: `reportRedos: true` in rule configuration
   - Symfony: `regex_parser.redos.enabled: true` in bundle configuration
-
-### Added
-- CLI `--redos` flag to explicitly enable ReDoS analysis (counterpart to `--no-redos`).
+- **BREAKING**: Lint identifiers now use camelCase instead of snake_case for PHPStan compatibility:
+  - `regex.lint.unicode.shorthand_without_u` → `regex.lint.unicode.shorthandWithoutU`
+  - `regex.lint.alternation.duplicate_disjunction` → `regex.lint.alternation.duplicateDisjunction`
+  - `regex.lint.charclass.duplicate_chars` → `regex.lint.charclass.duplicateChars`
+  - `regex.lint.charclass.suspicious_range` → `regex.lint.charclass.suspiciousRange`
+  - `regex.lint.charclass.suspicious_pipe` → `regex.lint.charclass.suspiciousPipe`
 - Symfony bundle `redos.enabled` configuration option (defaults to `false`).
 - Lint configuration `checks` section with nested ReDoS and optimization settings (schema + defaults).
 - PHPStan extension support for `checks` configuration overrides.
@@ -33,9 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI lint config now honors `verifyWithAutomata` when provided in optimization settings.
 
 ### Documentation
+- Added comprehensive LSP integration guide (`docs/guides/lsp.md`) with configuration for VS Code, PhpStorm (LSP4IJ), Neovim, Vim, Emacs, Sublime Text, Helix, and Zed.
 - Updated CLI configuration examples to use `checks` and note deprecated keys.
 
 ### Tests
+- Added comprehensive LSP server test suite (97 tests) covering Protocol, Handlers, Document management, and Converters.
+- Added Unicode lint rules tests covering all shorthand patterns and Unicode properties.
 - Added coverage for `checks` normalization and PHPStan `checks` overrides.
 - Added data-provider coverage for backreference-as-octal, literal metacharacter, dot-newline anti-pattern, and quantified capturing group lint checks.
 - Added `CharSetContainsTest` covering binary search: single points, ranges, empty/full sets, complement, union, intersection, subtraction, Unicode code points, and many-ranges stress test.
