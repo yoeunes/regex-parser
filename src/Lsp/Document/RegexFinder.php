@@ -43,7 +43,7 @@ final class RegexFinder
     {
         $occurrences = [];
         $tokens = @token_get_all($content);
-        if (false === $tokens) {
+        if ([] === $tokens) {
             return [];
         }
 

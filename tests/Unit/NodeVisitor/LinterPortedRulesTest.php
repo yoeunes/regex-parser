@@ -38,9 +38,9 @@ final class LinterPortedRulesTest extends TestCase
         $issues = $this->lint($pattern);
 
         if ($shouldWarn) {
-            $this->assertContains('regex.lint.charclass.duplicate_chars', $issues);
+            $this->assertContains('regex.lint.charclass.duplicateChars', $issues);
         } else {
-            $this->assertNotContains('regex.lint.charclass.duplicate_chars', $issues);
+            $this->assertNotContains('regex.lint.charclass.duplicateChars', $issues);
         }
     }
 

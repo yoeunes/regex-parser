@@ -20,6 +20,7 @@ final readonly class Message
 {
     /**
      * @param array<string, mixed>|null $params
+     * @param array<string, mixed>|null $error
      */
     public function __construct(
         public string $jsonrpc,
@@ -59,28 +60,44 @@ final readonly class Message
         }
 
         $contentLength = (int) $headers['content-length'];
-        $content = '';
+        if ($contentLength <= 0) {
+            return null;
+        }
 
+        $content = '';
         while (\strlen($content) < $contentLength) {
-            $chunk = fread(\STDIN, $contentLength - \strlen($content));
+            $remaining = $contentLength - \strlen($content);
+            $chunk = fread(\STDIN, max(1, $remaining));
             if (false === $chunk) {
                 return null;
             }
             $content .= $chunk;
         }
 
+        /** @var array<string, mixed> $data */
         $data = json_decode($content, true);
         if (!\is_array($data)) {
             return null;
         }
 
+        /** @var string $jsonrpc */
+        $jsonrpc = isset($data['jsonrpc']) && \is_string($data['jsonrpc']) ? $data['jsonrpc'] : '2.0';
+        /** @var string|null $method */
+        $method = isset($data['method']) && \is_string($data['method']) ? $data['method'] : null;
+        /** @var int|string|null $id */
+        $id = isset($data['id']) && (\is_int($data['id']) || \is_string($data['id'])) ? $data['id'] : null;
+        /** @var array<string, mixed>|null $params */
+        $params = isset($data['params']) && \is_array($data['params']) ? $data['params'] : null;
+        /** @var array<string, mixed>|null $error */
+        $error = isset($data['error']) && \is_array($data['error']) ? $data['error'] : null;
+
         return new self(
-            jsonrpc: $data['jsonrpc'] ?? '2.0',
-            method: $data['method'] ?? null,
-            id: $data['id'] ?? null,
-            params: $data['params'] ?? null,
+            jsonrpc: $jsonrpc,
+            method: $method,
+            id: $id,
+            params: $params,
             result: $data['result'] ?? null,
-            error: $data['error'] ?? null,
+            error: $error,
         );
     }
 

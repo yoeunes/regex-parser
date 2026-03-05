@@ -77,7 +77,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
         yield 'suspicious_A_z_range_in_laravel_env' => [
             '/^[a-zA-z0-9]+$/',
             [
-                'regex.lint.charclass.suspicious_range',
+                'regex.lint.charclass.suspiciousRange',
             ],
             [],
         ];
@@ -85,7 +85,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
         yield 'suspicious_A_z_range_in_php_codesniffer' => [
             '/[a-zA-z0-9_]/',
             [
-                'regex.lint.charclass.suspicious_range',
+                'regex.lint.charclass.suspiciousRange',
             ],
             [],
         ];
@@ -109,7 +109,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
         );
 
         $this->assertContains(
-            'regex.lint.charclass.suspicious_range',
+            'regex.lint.charclass.suspiciousRange',
             $issueIds,
         );
     }
@@ -130,7 +130,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
         );
 
         $this->assertNotContains(
-            'regex.lint.charclass.suspicious_range',
+            'regex.lint.charclass.suspiciousRange',
             $issueIds,
         );
     }

@@ -297,7 +297,7 @@ preg_match('/foo/', $input);
 
 ### Duplicate Alternation Branches
 
-**Identifier:** `regex.lint.alternation.duplicate_disjunction`
+**Identifier:** `regex.lint.alternation.duplicateDisjunction`
 
 **When it triggers:** The same alternative appears more than once.
 
@@ -436,7 +436,7 @@ preg_match('/[a-f]/', $input);
 
 ### Duplicate Character Class Elements
 
-**Identifier:** `regex.lint.charclass.duplicate_chars`
+**Identifier:** `regex.lint.charclass.duplicateChars`
 
 **When it triggers:** A character class contains an element that is fully covered by another element (e.g., `\d` plus `0-9`).
 
@@ -482,7 +482,7 @@ preg_match('/[ab]/', $input);
 
 ### Suspicious ASCII Ranges
 
-**Identifier:** `regex.lint.charclass.suspicious_range`
+**Identifier:** `regex.lint.charclass.suspiciousRange`
 
 **When it triggers:** A character range spans the ASCII gap between `Z` and `a` (e.g. `[A-z]`), which includes `[ \ ] ^ _ `.
 
@@ -501,7 +501,7 @@ preg_match('/[A-Za-z]/', $input);
 
 ### Alternation-like Character Classes
 
-**Identifier:** `regex.lint.charclass.suspicious_pipe`
+**Identifier:** `regex.lint.charclass.suspiciousPipe`
 
 **When it triggers:** A character class contains `|` alongside many letters, suggesting an alternation typo.
 

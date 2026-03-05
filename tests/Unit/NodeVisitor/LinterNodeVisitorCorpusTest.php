@@ -472,7 +472,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         if (str_starts_with($message, 'Character class contains duplicate elements')) {
-            return 'regex.lint.charclass.duplicate_chars';
+            return 'regex.lint.charclass.duplicateChars';
         }
 
         if (str_starts_with($message, 'Character range is unnecessary')) {
@@ -480,11 +480,11 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         if (str_starts_with($message, 'Suspicious ASCII range')) {
-            return 'regex.lint.charclass.suspicious_range';
+            return 'regex.lint.charclass.suspiciousRange';
         }
 
         if (str_starts_with($message, 'Character class contains "|"')) {
-            return 'regex.lint.charclass.suspicious_pipe';
+            return 'regex.lint.charclass.suspiciousPipe';
         }
 
         if (str_starts_with($message, 'Alternation contains an empty alternative.')) {
@@ -518,7 +518,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         if (str_starts_with($message, 'Duplicate alternation branch')) {
-            return 'regex.lint.alternation.duplicate_disjunction';
+            return 'regex.lint.alternation.duplicateDisjunction';
         }
 
         if (str_starts_with($message, 'Inline flag') && str_contains($message, 'overrides')) {

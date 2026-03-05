@@ -26,56 +26,56 @@ final class LinterUnicodeRulesTest extends TestCase
     #[Test]
     public function test_shorthand_without_u_flag_warning(): void
     {
-        $this->assertHasIssue('/\\w+/', 'regex.lint.unicode.shorthand_without_u');
+        $this->assertHasIssue('/\\w+/', 'regex.lint.unicode.shorthandWithoutU');
     }
 
     #[Test]
     public function test_shorthand_with_u_flag_no_warning(): void
     {
-        $this->assertNoIssue('/\\w+/u', 'regex.lint.unicode.shorthand_without_u');
+        $this->assertNoIssue('/\\w+/u', 'regex.lint.unicode.shorthandWithoutU');
     }
 
     #[Test]
     public function test_unicode_property_without_u_flag_error(): void
     {
-        $this->assertHasIssue('/\\p{L}+/', 'regex.lint.unicode.property_without_u');
+        $this->assertHasIssue('/\\p{L}+/', 'regex.lint.unicode.propertyWithoutU');
     }
 
     #[Test]
     public function test_unicode_property_with_u_flag_no_error(): void
     {
-        $this->assertNoIssue('/\\p{L}+/u', 'regex.lint.unicode.property_without_u');
+        $this->assertNoIssue('/\\p{L}+/u', 'regex.lint.unicode.propertyWithoutU');
     }
 
     #[Test]
     public function test_braced_hex_without_u_flag_error(): void
     {
-        $this->assertHasIssue('/\\x{100}/', 'regex.lint.unicode.braced_hex_without_u');
+        $this->assertHasIssue('/\\x{100}/', 'regex.lint.unicode.bracedHexWithoutU');
     }
 
     #[Test]
     public function test_braced_hex_with_u_flag_no_error(): void
     {
-        $this->assertNoIssue('/\\x{100}/u', 'regex.lint.unicode.braced_hex_without_u');
+        $this->assertNoIssue('/\\x{100}/u', 'regex.lint.unicode.bracedHexWithoutU');
     }
 
     #[Test]
     public function test_braced_hex_below_ff_no_error(): void
     {
-        $this->assertNoIssue('/\\x{41}/', 'regex.lint.unicode.braced_hex_without_u');
+        $this->assertNoIssue('/\\x{41}/', 'regex.lint.unicode.bracedHexWithoutU');
     }
 
     #[Test]
     public function test_braced_hex_at_ff_boundary_no_error(): void
     {
-        $this->assertNoIssue('/\\x{FF}/', 'regex.lint.unicode.braced_hex_without_u');
+        $this->assertNoIssue('/\\x{FF}/', 'regex.lint.unicode.bracedHexWithoutU');
     }
 
     #[Test]
     #[DataProvider('provideShorthandPatterns')]
     public function test_all_shorthands_trigger_warning(string $pattern): void
     {
-        $this->assertHasIssue($pattern, 'regex.lint.unicode.shorthand_without_u');
+        $this->assertHasIssue($pattern, 'regex.lint.unicode.shorthandWithoutU');
     }
 
     /**
@@ -95,7 +95,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[DataProvider('provideShorthandPatternsWithUFlag')]
     public function test_all_shorthands_no_warning_with_u_flag(string $pattern): void
     {
-        $this->assertNoIssue($pattern, 'regex.lint.unicode.shorthand_without_u');
+        $this->assertNoIssue($pattern, 'regex.lint.unicode.shorthandWithoutU');
     }
 
     /**
@@ -117,7 +117,7 @@ final class LinterUnicodeRulesTest extends TestCase
         $issues = $this->lint('/\\w+/');
         $shorthandIssue = null;
         foreach ($issues as $issue) {
-            if ('regex.lint.unicode.shorthand_without_u' === $issue->id) {
+            if ('regex.lint.unicode.shorthandWithoutU' === $issue->id) {
                 $shorthandIssue = $issue;
 
                 break;
@@ -134,7 +134,7 @@ final class LinterUnicodeRulesTest extends TestCase
         $issues = $this->lint('/\\p{L}+/');
         $propertyIssue = null;
         foreach ($issues as $issue) {
-            if ('regex.lint.unicode.property_without_u' === $issue->id) {
+            if ('regex.lint.unicode.propertyWithoutU' === $issue->id) {
                 $propertyIssue = $issue;
 
                 break;
@@ -151,7 +151,7 @@ final class LinterUnicodeRulesTest extends TestCase
         $issues = $this->lint('/\\x{100}/');
         $bracedHexIssue = null;
         foreach ($issues as $issue) {
-            if ('regex.lint.unicode.braced_hex_without_u' === $issue->id) {
+            if ('regex.lint.unicode.bracedHexWithoutU' === $issue->id) {
                 $bracedHexIssue = $issue;
 
                 break;
@@ -165,7 +165,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[Test]
     public function test_unicode_property_negated_without_u_flag(): void
     {
-        $this->assertHasIssue('/\\P{L}+/', 'regex.lint.unicode.property_without_u');
+        $this->assertHasIssue('/\\P{L}+/', 'regex.lint.unicode.propertyWithoutU');
     }
 
     #[Test]
@@ -174,7 +174,7 @@ final class LinterUnicodeRulesTest extends TestCase
         $issues = $this->lint('/\\w\\d\\s/');
         $shorthandIssues = array_filter(
             $issues,
-            static fn ($issue) => 'regex.lint.unicode.shorthand_without_u' === $issue->id,
+            static fn ($issue) => 'regex.lint.unicode.shorthandWithoutU' === $issue->id,
         );
 
         $this->assertCount(3, $shorthandIssues);

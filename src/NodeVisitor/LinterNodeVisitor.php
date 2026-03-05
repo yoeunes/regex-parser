@@ -440,7 +440,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Braced Unicode escapes (e.g., \x{100}) require /u flag for code points > U+FF
         if ($this->isBracedUnicodeEscape($node->code) && !$this->unicodeMode && null !== $code && $code > 0xFF) {
             $this->addIssue(
-                'regex.lint.unicode.braced_hex_without_u',
+                'regex.lint.unicode.bracedHexWithoutU',
                 \sprintf('Unicode escape "%s" requires /u flag for code points > U+FF.', $node->code),
                 $node->startPosition,
                 'Add /u flag or use byte-level encoding.',
@@ -477,7 +477,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             && $node->codePoint > 0xFF
         ) {
             $this->addIssue(
-                'regex.lint.unicode.braced_hex_without_u',
+                'regex.lint.unicode.bracedHexWithoutU',
                 \sprintf('Unicode escape "%s" requires /u flag for code points > U+FF.', $node->originalRepresentation),
                 $node->startPosition,
                 'Add /u flag or use byte-level encoding.',
@@ -523,7 +523,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Unicode properties require /u flag to work correctly
         if (!$this->unicodeMode) {
             $this->addIssue(
-                'regex.lint.unicode.property_without_u',
+                'regex.lint.unicode.propertyWithoutU',
                 \sprintf('Unicode property "\\p{%s}" requires /u flag.', trim($node->prop, '^{}')),
                 $node->startPosition,
                 'Add /u flag to enable Unicode property matching.',
@@ -547,7 +547,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Shorthands \w, \d, \s match only ASCII without /u flag
         if (\in_array($node->value, ['w', 'd', 's', 'W', 'D', 'S'], true) && !$this->unicodeMode) {
             $this->addIssue(
-                'regex.lint.unicode.shorthand_without_u',
+                'regex.lint.unicode.shorthandWithoutU',
                 \sprintf('Shorthand "\\%s" matches only ASCII without /u flag.', $node->value),
                 $node->startPosition,
                 'Add /u flag for Unicode support, or use \\p{L} for letters.',
@@ -1399,7 +1399,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             if (isset($seen[$signature])) {
                 $display = addcslashes($signature, "\0..\37\177..\377");
                 $this->addIssue(
-                    'regex.lint.alternation.duplicate_disjunction',
+                    'regex.lint.alternation.duplicateDisjunction',
                     \sprintf('Duplicate alternation branch "%s".', $display),
                     $alt->getStartPosition(),
                     'Remove the redundant alternative.',
@@ -1705,7 +1705,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 $minChar = \chr($minOrd);
                 $maxChar = \chr($maxOrd);
                 $this->addIssue(
-                    'regex.lint.charclass.suspicious_range',
+                    'regex.lint.charclass.suspiciousRange',
                     \sprintf(
                         'Suspicious ASCII range "%s" includes non-letters between "%s" and "%s" in ASCII order.',
                         $rangeLabel,
@@ -1759,7 +1759,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         if ($pipes > 0 && $letters >= 4) {
             $this->addIssue(
-                'regex.lint.charclass.suspicious_pipe',
+                'regex.lint.charclass.suspiciousPipe',
                 'Character class contains "|" which is literal inside []. It looks like an alternation typo.',
                 $node->startPosition,
                 'Did you mean an alternation like "(error|failure)" instead of a character class?',
@@ -1858,7 +1858,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 }
 
                 $this->addIssue(
-                    'regex.lint.charclass.duplicate_chars',
+                    'regex.lint.charclass.duplicateChars',
                     'Character class contains duplicate elements that do not add new matches.',
                     $entry['node']->getStartPosition(),
                     'Remove the redundant character class element.',

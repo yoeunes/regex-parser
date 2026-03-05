@@ -43,9 +43,10 @@ final readonly class TextDocumentHandler
     public function didOpen(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
-        $text = $textDocument['text'] ?? null;
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
+        $text = isset($textDocument['text']) && \is_string($textDocument['text']) ? $textDocument['text'] : null;
 
         if (null === $uri || null === $text) {
             return;
@@ -61,16 +62,18 @@ final readonly class TextDocumentHandler
     public function didChange(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
-        $contentChanges = $params['contentChanges'] ?? [];
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
+        /** @var array<int, array{text?: string}> $contentChanges */
+        $contentChanges = isset($params['contentChanges']) && \is_array($params['contentChanges']) ? $params['contentChanges'] : [];
 
-        if (null === $uri || empty($contentChanges)) {
+        if (null === $uri || [] === $contentChanges) {
             return;
         }
 
         // For full sync, we get the complete text
-        $text = $contentChanges[0]['text'] ?? null;
+        $text = isset($contentChanges[0]['text']) && \is_string($contentChanges[0]['text']) ? $contentChanges[0]['text'] : null;
         if (null === $text) {
             return;
         }
@@ -85,8 +88,9 @@ final readonly class TextDocumentHandler
     public function didClose(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
 
         if (null === $uri) {
             return;
@@ -107,9 +111,11 @@ final readonly class TextDocumentHandler
     public function hover(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
-        $position = $params['position'] ?? null;
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
+        /** @var array{line?: int, character?: int}|null $position */
+        $position = isset($params['position']) && \is_array($params['position']) ? $params['position'] : null;
 
         if (null === $message->id || null === $uri || null === $position) {
             return;
@@ -179,7 +185,7 @@ final readonly class TextDocumentHandler
                     $e->getMessage(),
                     $occurrence->start,
                     \strlen($occurrence->pattern),
-                    $e->offset,
+                    $e->position,
                 );
             }
         }

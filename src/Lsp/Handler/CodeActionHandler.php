@@ -31,9 +31,9 @@ final readonly class CodeActionHandler
      * Unicode-related lint IDs that can be fixed by adding /u flag.
      */
     private const UNICODE_LINT_IDS = [
-        'regex.lint.unicode.shorthand_without_u',
-        'regex.lint.unicode.property_without_u',
-        'regex.lint.unicode.braced_hex_without_u',
+        'regex.lint.unicode.shorthandWithoutU',
+        'regex.lint.unicode.propertyWithoutU',
+        'regex.lint.unicode.bracedHexWithoutU',
     ];
 
     public function __construct(
@@ -47,10 +47,13 @@ final readonly class CodeActionHandler
     public function handle(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
-        $range = $params['range'] ?? null;
-        $context = $params['context'] ?? [];
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
+        /** @var array{start: array{line: int, character: int}, end: array{line: int, character: int}}|null $range */
+        $range = isset($params['range']) && \is_array($params['range']) ? $params['range'] : null;
+        /** @var array<string, mixed> $context */
+        $context = isset($params['context']) && \is_array($params['context']) ? $params['context'] : [];
 
         if (null === $message->id || null === $uri || null === $range) {
             Response::success($message->id ?? 0, []);
@@ -137,7 +140,8 @@ final readonly class CodeActionHandler
         $actions = [];
 
         // Check if there are Unicode-related diagnostics
-        $diagnostics = $context['diagnostics'] ?? [];
+        /** @var array<int, array{code?: string}> $diagnostics */
+        $diagnostics = isset($context['diagnostics']) && \is_array($context['diagnostics']) ? $context['diagnostics'] : [];
         $hasUnicodeIssue = false;
 
         foreach ($diagnostics as $diagnostic) {
@@ -176,7 +180,7 @@ final readonly class CodeActionHandler
                 $actions[] = [
                     'title' => 'Add /u flag for Unicode support',
                     'kind' => 'quickfix',
-                    'diagnostics' => array_filter($diagnostics, static fn ($d) => \in_array($d['code'] ?? '', self::UNICODE_LINT_IDS, true)),
+                    'diagnostics' => array_values(array_filter($diagnostics, static fn ($d) => \in_array($d['code'] ?? '', self::UNICODE_LINT_IDS, true))),
                     'isPreferred' => true,
                     'edit' => [
                         'changes' => [

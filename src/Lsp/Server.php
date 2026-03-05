@@ -101,10 +101,29 @@ final class Server
             exit($this->shutdown ? 0 : 1);
         }
 
-        // Handle other methods
+        // Handle initialize before anything else
+        if ('initialize' === $method) {
+            $this->handleInitialize($message);
+
+            return;
+        }
+
+        // Handle initialized notification
+        if ('initialized' === $method) {
+            $this->initialized = true;
+
+            return;
+        }
+
+        // Reject requests before initialization (except shutdown)
+        if (!$this->initialized && $message->isRequest() && null !== $message->id) {
+            Response::error($message->id, -32002, 'Server not initialized');
+
+            return;
+        }
+
+        // Handle document methods
         match ($method) {
-            'initialize' => $this->handleInitialize($message),
-            'initialized' => $this->initialized = true,
             'textDocument/didOpen' => $this->textDocHandler->didOpen($message),
             'textDocument/didChange' => $this->textDocHandler->didChange($message),
             'textDocument/didClose' => $this->textDocHandler->didClose($message),
@@ -120,6 +139,7 @@ final class Server
     private function handleInitialize(Message $message): void
     {
         $this->initHandler->handle($message);
+        $this->initialized = true;
     }
 
     private function handleUnknownMethod(Message $message): void

@@ -38,9 +38,9 @@ final class LinterLogicRulesTest extends TestCase
         $issues = $this->lint($pattern);
 
         if ($shouldWarn) {
-            $this->assertContains('regex.lint.alternation.duplicate_disjunction', $issues);
+            $this->assertContains('regex.lint.alternation.duplicateDisjunction', $issues);
         } else {
-            $this->assertNotContains('regex.lint.alternation.duplicate_disjunction', $issues);
+            $this->assertNotContains('regex.lint.alternation.duplicateDisjunction', $issues);
         }
     }
 

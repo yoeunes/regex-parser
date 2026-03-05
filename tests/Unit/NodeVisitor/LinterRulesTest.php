@@ -59,7 +59,7 @@ final class LinterRulesTest extends TestCase
     public function test_alternation_duplicate_warning(): void
     {
         $issues = $this->lint('/(a|a)/');
-        $this->assertContains('regex.lint.alternation.duplicate_disjunction', $issues);
+        $this->assertContains('regex.lint.alternation.duplicateDisjunction', $issues);
     }
 
     public function test_alternation_overlap_warning(): void
@@ -73,7 +73,7 @@ final class LinterRulesTest extends TestCase
     public function test_alternation_duplicate_with_lookarounds(): void
     {
         $issues = $this->lint('/(?=foo)|(?=foo)/');
-        $this->assertContains('regex.lint.alternation.duplicate_disjunction', $issues);
+        $this->assertContains('regex.lint.alternation.duplicateDisjunction', $issues);
     }
 
     public function test_redundant_char_class_warning(): void
@@ -85,7 +85,7 @@ final class LinterRulesTest extends TestCase
     public function test_suspicious_char_class_range_warning(): void
     {
         $issues = $this->lint('/[A-z]/');
-        $this->assertContains('regex.lint.charclass.suspicious_range', $issues);
+        $this->assertContains('regex.lint.charclass.suspiciousRange', $issues);
     }
 
     public function test_suspicious_char_class_range_message_uses_ascii_order(): void
@@ -96,7 +96,7 @@ final class LinterRulesTest extends TestCase
 
         $issues = array_values(array_filter(
             $linter->getIssues(),
-            static fn ($issue): bool => 'regex.lint.charclass.suspicious_range' === $issue->id,
+            static fn ($issue): bool => 'regex.lint.charclass.suspiciousRange' === $issue->id,
         ));
 
         $this->assertCount(1, $issues);
@@ -109,13 +109,13 @@ final class LinterRulesTest extends TestCase
     public function test_suspicious_char_class_pipe_warning(): void
     {
         $issues = $this->lint('/[error|failure]/');
-        $this->assertContains('regex.lint.charclass.suspicious_pipe', $issues);
+        $this->assertContains('regex.lint.charclass.suspiciousPipe', $issues);
     }
 
     public function test_suspicious_char_class_pipe_ignores_small_sets(): void
     {
         $issues = $this->lint('/[a|b]/');
-        $this->assertNotContains('regex.lint.charclass.suspicious_pipe', $issues);
+        $this->assertNotContains('regex.lint.charclass.suspiciousPipe', $issues);
     }
 
     public function test_inline_flag_redundant_warning(): void

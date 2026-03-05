@@ -412,9 +412,9 @@ For large codebases:
 |------|----------|-------------|
 | `regex.parse.error` | Error | Invalid regex syntax |
 | `regex.validation.error` | Error | PCRE validation failure |
-| `regex.lint.unicode.shorthand_without_u` | Style | `\w`, `\d`, `\s` without `/u` |
-| `regex.lint.unicode.property_without_u` | Error | `\p{L}` without `/u` |
-| `regex.lint.unicode.braced_hex_without_u` | Error | `\x{100}` without `/u` |
+| `regex.lint.unicode.shorthandWithoutU` | Style | `\w`, `\d`, `\s` without `/u` |
+| `regex.lint.unicode.propertyWithoutU` | Error | `\p{L}` without `/u` |
+| `regex.lint.unicode.bracedHexWithoutU` | Error | `\x{100}` without `/u` |
 
 ---
 

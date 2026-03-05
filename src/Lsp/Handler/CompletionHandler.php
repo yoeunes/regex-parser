@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Lsp\Handler;
 
 use RegexParser\Lsp\Document\DocumentManager;
+use RegexParser\Lsp\Document\RegexOccurrence;
 use RegexParser\Lsp\Protocol\Message;
 use RegexParser\Lsp\Protocol\Response;
 
@@ -22,8 +23,7 @@ use RegexParser\Lsp\Protocol\Response;
  */
 final readonly class CompletionHandler
 {
-    // LSP CompletionItemKind
-    private const KIND_TEXT = 1;
+    // LSP CompletionItemKind constants
     private const KIND_KEYWORD = 14;
     private const KIND_SNIPPET = 15;
     private const KIND_VALUE = 12;
@@ -160,9 +160,11 @@ final readonly class CompletionHandler
     public function handle(Message $message): void
     {
         $params = $message->params ?? [];
+        /** @var array<string, mixed> $textDocument */
         $textDocument = $params['textDocument'] ?? [];
-        $uri = $textDocument['uri'] ?? null;
-        $position = $params['position'] ?? null;
+        $uri = isset($textDocument['uri']) && \is_string($textDocument['uri']) ? $textDocument['uri'] : null;
+        /** @var array{line?: int, character?: int}|null $position */
+        $position = isset($params['position']) && \is_array($params['position']) ? $params['position'] : null;
 
         if (null === $message->id || null === $uri || null === $position) {
             Response::success($message->id ?? 0, null);
@@ -203,7 +205,7 @@ final readonly class CompletionHandler
      *
      * @return array{type: string, prefix: string}
      */
-    private function getCompletionContext(string $content, $occurrence, int $line, int $character): array
+    private function getCompletionContext(string $content, RegexOccurrence $occurrence, int $line, int $character): array
     {
         $lines = explode("\n", $content);
         $currentLine = $lines[$line] ?? '';
@@ -212,11 +214,11 @@ final readonly class CompletionHandler
         $patternStart = $occurrence->start['character'];
         $cursorInPattern = $character - $patternStart;
 
-        if ($cursorInPattern < 0 || $cursorInPattern > \strlen((string) $occurrence->pattern)) {
+        if ($cursorInPattern < 0 || $cursorInPattern > \strlen($occurrence->pattern)) {
             return ['type' => 'general', 'prefix' => ''];
         }
 
-        $textBeforeCursor = substr((string) $occurrence->pattern, 0, $cursorInPattern);
+        $textBeforeCursor = substr($occurrence->pattern, 0, $cursorInPattern);
 
         // Check for escape sequence start
         if (str_ends_with($textBeforeCursor, '\\')) {
@@ -234,7 +236,7 @@ final readonly class CompletionHandler
         }
 
         // Check for after closing delimiter - flags
-        $delimiterPos = strrpos($textBeforeCursor, (string) $occurrence->pattern[0]);
+        $delimiterPos = strrpos($textBeforeCursor, $occurrence->pattern[0]);
         if (false !== $delimiterPos && $delimiterPos > 0) {
             // We're after the closing delimiter, offer flags
             $afterDelimiter = substr($textBeforeCursor, $delimiterPos + 1);

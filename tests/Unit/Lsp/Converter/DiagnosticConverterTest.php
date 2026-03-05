@@ -62,10 +62,12 @@ final class DiagnosticConverterTest extends TestCase
         $start = ['line' => 1, 'character' => 10];
         $diagnostic = $this->converter->convert($issue, $start, 20);
 
-        $this->assertSame(1, $diagnostic['range']['start']['line']);
-        $this->assertSame(15, $diagnostic['range']['start']['character']); // 10 + 5
-        $this->assertSame(1, $diagnostic['range']['end']['line']);
-        $this->assertSame(16, $diagnostic['range']['end']['character']); // 10 + 5 + 1
+        /** @var array{start: array{line: int, character: int}, end: array{line: int, character: int}} $range */
+        $range = $diagnostic['range'];
+        $this->assertSame(1, $range['start']['line']);
+        $this->assertSame(15, $range['start']['character']); // 10 + 5
+        $this->assertSame(1, $range['end']['line']);
+        $this->assertSame(16, $range['end']['character']); // 10 + 5 + 1
     }
 
     #[Test]
@@ -81,13 +83,13 @@ final class DiagnosticConverterTest extends TestCase
     public function test_convert_sets_correct_code(): void
     {
         $issue = new LintIssue(
-            id: 'regex.lint.unicode.shorthand_without_u',
+            id: 'regex.lint.unicode.shorthandWithoutU',
             message: 'Test',
         );
 
         $diagnostic = $this->converter->convert($issue, ['line' => 0, 'character' => 0], 10);
 
-        $this->assertSame('regex.lint.unicode.shorthand_without_u', $diagnostic['code']);
+        $this->assertSame('regex.lint.unicode.shorthandWithoutU', $diagnostic['code']);
     }
 
     #[Test]
@@ -130,8 +132,10 @@ final class DiagnosticConverterTest extends TestCase
         $diagnostic = $this->converter->convert($issue, ['line' => 0, 'character' => 0], 10);
 
         // Offset should be clamped to pattern length
-        $this->assertSame(10, $diagnostic['range']['start']['character']);
-        $this->assertSame(10, $diagnostic['range']['end']['character']);
+        /** @var array{start: array{character: int}, end: array{character: int}} $range */
+        $range = $diagnostic['range'];
+        $this->assertSame(10, $range['start']['character']);
+        $this->assertSame(10, $range['end']['character']);
     }
 
     #[Test]
@@ -147,7 +151,9 @@ final class DiagnosticConverterTest extends TestCase
         $this->assertSame(1, $diagnostic['severity']); // Error
         $this->assertSame('regex.parse.error', $diagnostic['code']);
         $this->assertSame('Parse error', $diagnostic['message']);
-        $this->assertSame(8, $diagnostic['range']['start']['character']); // 5 + 3
+        /** @var array{start: array{character: int}} $range */
+        $range = $diagnostic['range'];
+        $this->assertSame(8, $range['start']['character']); // 5 + 3
     }
 
     #[Test]
@@ -177,6 +183,8 @@ final class DiagnosticConverterTest extends TestCase
         $diagnostic = $this->converter->convert($issue, ['line' => 0, 'character' => 5], 10);
 
         // Null offset should default to 0
-        $this->assertSame(5, $diagnostic['range']['start']['character']);
+        /** @var array{start: array{character: int}} $range */
+        $range = $diagnostic['range'];
+        $this->assertSame(5, $range['start']['character']);
     }
 }

@@ -33,3 +33,8 @@ parameters:
     ignoreErrors:
         - identifiers:
             - classConstant.internalClass
+            # Unicode lint rules are style warnings - too noisy for our codebase
+            # Many patterns intentionally use ASCII-only matching
+            - regex.lint.unicode.shorthandWithoutU
+            # PHPUnit assertions that PHPStan considers redundant
+            - method.alreadyNarrowedType

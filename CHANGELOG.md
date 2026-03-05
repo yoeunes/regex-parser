@@ -108,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI output and banner formatting refined for consistency across commands.
 - Symfony bundle service wiring and lint command structure refactored for maintainability.
 - Parser, lexer, regex facade, and node visitor refactors for clarity and stricter typing.
-- Alternation duplicate warnings now use the `regex.lint.alternation.duplicate_disjunction` identifier.
+- Alternation duplicate warnings now use the `regex.lint.alternation.duplicateDisjunction` identifier.
 
 ### Fixed
 - PHPStan type errors in CLI ReDoS command and progress bar type hints.
