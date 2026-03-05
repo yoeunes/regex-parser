@@ -43,7 +43,8 @@
         }
     },
     "bin": [
-        "bin/regex"
+        "bin/regex",
+        "bin/regex-lsp"
     ],
     "scripts": {
         "phpunit": "tools/phpunit/vendor/bin/phpunit",
