@@ -136,6 +136,8 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             redosThreshold: $arguments->redosThreshold ?? ReDoSSeverity::HIGH->value,
             redosMode: $arguments->redosMode,
             redosConfirmOptions: $confirmOptions,
+            lintEnabled: $arguments->checkLint,
+            lintRules: $arguments->lintRules,
         );
 
         $formatterRegistry = new FormatterRegistry();

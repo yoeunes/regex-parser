@@ -36,76 +36,45 @@ final class LintArgumentParser
             }
 
             if ('--quiet' === $arg || '-q' === $arg) {
-                $arguments = new LintArguments(
-                    $arguments->paths,
-                    $arguments->exclude,
-                    $arguments->minSavings,
-                    OutputConfiguration::VERBOSITY_QUIET,
-                    $arguments->format,
-                    true,
-                    $arguments->checkRedos,
-                    $arguments->checkValidation,
-                    $arguments->checkOptimizations,
-                    $arguments->jobs,
-                    $arguments->output,
-                    $arguments->baseline,
-                    $arguments->generateBaseline,
-                    $arguments->ide,
-                    $arguments->optimizations,
-                    $arguments->redosMode,
-                    $arguments->redosThreshold,
-                    $arguments->redosNoJit,
-                );
+                $arguments = $this->withVerbosity($arguments, OutputConfiguration::VERBOSITY_QUIET, true);
 
                 continue;
             }
 
             if ('--verbose' === $arg || '-v' === $arg) {
-                $arguments = new LintArguments(
-                    $arguments->paths,
-                    $arguments->exclude,
-                    $arguments->minSavings,
-                    OutputConfiguration::VERBOSITY_VERBOSE,
-                    $arguments->format,
-                    $arguments->quiet,
-                    $arguments->checkRedos,
-                    $arguments->checkValidation,
-                    $arguments->checkOptimizations,
-                    $arguments->jobs,
-                    $arguments->output,
-                    $arguments->baseline,
-                    $arguments->generateBaseline,
-                    $arguments->ide,
-                    $arguments->optimizations,
-                    $arguments->redosMode,
-                    $arguments->redosThreshold,
-                    $arguments->redosNoJit,
-                );
+                $arguments = $this->withVerbosity($arguments, OutputConfiguration::VERBOSITY_VERBOSE);
 
                 continue;
             }
 
             if ('--debug' === $arg) {
-                $arguments = new LintArguments(
-                    $arguments->paths,
-                    $arguments->exclude,
-                    $arguments->minSavings,
-                    OutputConfiguration::VERBOSITY_DEBUG,
-                    $arguments->format,
-                    $arguments->quiet,
-                    $arguments->checkRedos,
-                    $arguments->checkValidation,
-                    $arguments->checkOptimizations,
-                    $arguments->jobs,
-                    $arguments->output,
-                    $arguments->baseline,
-                    $arguments->generateBaseline,
-                    $arguments->ide,
-                    $arguments->optimizations,
-                    $arguments->redosMode,
-                    $arguments->redosThreshold,
-                    $arguments->redosNoJit,
-                );
+                $arguments = $this->withVerbosity($arguments, OutputConfiguration::VERBOSITY_DEBUG);
+
+                continue;
+            }
+
+            if ('--lint' === $arg) {
+                $arguments = $this->withCheckLint($arguments, true);
+
+                continue;
+            }
+
+            if ('--no-lint' === $arg) {
+                $arguments = $this->withCheckLint($arguments, false);
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--enable-rule=')) {
+                $ruleId = substr($arg, \strlen('--enable-rule='));
+                $arguments = $this->withLintRule($arguments, $ruleId, true);
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--disable-rule=')) {
+                $ruleId = substr($arg, \strlen('--disable-rule='));
+                $arguments = $this->withLintRule($arguments, $ruleId, false);
 
                 continue;
             }
@@ -121,6 +90,7 @@ final class LintArgumentParser
                     true,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -130,6 +100,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -146,6 +117,7 @@ final class LintArgumentParser
                     false,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -155,6 +127,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -177,6 +150,7 @@ final class LintArgumentParser
                     $checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -186,6 +160,7 @@ final class LintArgumentParser
                     $mode->value,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -211,6 +186,7 @@ final class LintArgumentParser
                     $checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -220,6 +196,7 @@ final class LintArgumentParser
                     $mode->value,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -241,6 +218,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -250,6 +228,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $value,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -274,6 +253,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -283,6 +263,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $value,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -300,6 +281,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -309,6 +291,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     true,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -325,6 +308,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     false,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -334,6 +318,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -350,6 +335,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     false,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -359,6 +345,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -376,6 +363,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -385,6 +373,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -402,6 +391,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $baseline,
@@ -411,6 +401,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -427,6 +418,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -436,6 +428,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -456,6 +449,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -465,6 +459,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -484,6 +479,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -493,6 +489,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -515,6 +512,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -524,6 +522,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -541,6 +540,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -550,6 +550,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -570,6 +571,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -579,6 +581,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -600,6 +603,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -609,6 +613,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -634,6 +639,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $jobs,
                     $arguments->output,
                     $arguments->baseline,
@@ -643,6 +649,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -660,6 +667,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     substr($arg, \strlen('--output=')),
                     $arguments->baseline,
@@ -669,6 +677,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
 
                 continue;
@@ -689,6 +698,7 @@ final class LintArgumentParser
                     $arguments->checkRedos,
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
+                    $arguments->checkLint,
                     $arguments->jobs,
                     $value,
                     $arguments->baseline,
@@ -698,6 +708,7 @@ final class LintArgumentParser
                     $arguments->redosMode,
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
+                    $arguments->lintRules,
                 );
                 $i++;
 
@@ -724,6 +735,7 @@ final class LintArgumentParser
                 $arguments->checkRedos,
                 $arguments->checkValidation,
                 $arguments->checkOptimizations,
+                $arguments->checkLint,
                 $arguments->jobs,
                 $arguments->output,
                 $arguments->baseline,
@@ -733,9 +745,94 @@ final class LintArgumentParser
                 $arguments->redosMode,
                 $arguments->redosThreshold,
                 $arguments->redosNoJit,
+                $arguments->lintRules,
             );
         }
 
         return new LintParseResult($arguments);
+    }
+
+    /**
+     * @param "debug"|"normal"|"quiet"|"verbose" $verbosity
+     */
+    private function withVerbosity(LintArguments $arguments, string $verbosity, bool $quiet = false): LintArguments
+    {
+        return new LintArguments(
+            $arguments->paths,
+            $arguments->exclude,
+            $arguments->minSavings,
+            $verbosity,
+            $arguments->format,
+            $quiet ?: $arguments->quiet,
+            $arguments->checkRedos,
+            $arguments->checkValidation,
+            $arguments->checkOptimizations,
+            $arguments->checkLint,
+            $arguments->jobs,
+            $arguments->output,
+            $arguments->baseline,
+            $arguments->generateBaseline,
+            $arguments->ide,
+            $arguments->optimizations,
+            $arguments->redosMode,
+            $arguments->redosThreshold,
+            $arguments->redosNoJit,
+            $arguments->lintRules,
+        );
+    }
+
+    private function withCheckLint(LintArguments $arguments, bool $checkLint): LintArguments
+    {
+        return new LintArguments(
+            $arguments->paths,
+            $arguments->exclude,
+            $arguments->minSavings,
+            $arguments->verbosity,
+            $arguments->format,
+            $arguments->quiet,
+            $arguments->checkRedos,
+            $arguments->checkValidation,
+            $arguments->checkOptimizations,
+            $checkLint,
+            $arguments->jobs,
+            $arguments->output,
+            $arguments->baseline,
+            $arguments->generateBaseline,
+            $arguments->ide,
+            $arguments->optimizations,
+            $arguments->redosMode,
+            $arguments->redosThreshold,
+            $arguments->redosNoJit,
+            $arguments->lintRules,
+        );
+    }
+
+    private function withLintRule(LintArguments $arguments, string $ruleId, bool $enabled): LintArguments
+    {
+        $lintRules = $arguments->lintRules;
+        $lintRules[$ruleId] = $enabled;
+
+        return new LintArguments(
+            $arguments->paths,
+            $arguments->exclude,
+            $arguments->minSavings,
+            $arguments->verbosity,
+            $arguments->format,
+            $arguments->quiet,
+            $arguments->checkRedos,
+            $arguments->checkValidation,
+            $arguments->checkOptimizations,
+            $arguments->checkLint,
+            $arguments->jobs,
+            $arguments->output,
+            $arguments->baseline,
+            $arguments->generateBaseline,
+            $arguments->ide,
+            $arguments->optimizations,
+            $arguments->redosMode,
+            $arguments->redosThreshold,
+            $arguments->redosNoJit,
+            $lintRules,
+        );
     }
 }

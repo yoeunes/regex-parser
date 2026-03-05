@@ -34,7 +34,14 @@ final class RegexLintServiceCoverageTest extends TestCase
         $issues = [
             ['validation' => new ValidationResult(false, 'error', 0)],
         ];
-        $request = new RegexLintRequest([], [], 1, [], false, true, true, 1);
+        $request = new RegexLintRequest(
+            paths: [],
+            excludePaths: [],
+            minSavings: 1,
+            checkValidation: false,
+            checkRedos: true,
+            checkOptimizations: true,
+        );
 
         $filtered = $method->invoke($service, $issues, $request);
 

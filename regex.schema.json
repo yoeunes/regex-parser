@@ -161,6 +161,185 @@
           "$ref": "#/$defs/optimizationOptions"
         }
       }
+    },
+    "checksLint": {
+      "type": "object",
+      "description": "Lint check settings.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable lint checks for regex anti-patterns and style issues.",
+          "default": true
+        },
+        "rules": {
+          "type": "object",
+          "description": "Enable or disable specific lint rules. All rules are enabled by default except unicode.shorthandWithoutU.",
+          "additionalProperties": false,
+          "properties": {
+            "unicode.shorthandWithoutU": {
+              "type": "boolean",
+              "description": "Warn when \\w, \\d, \\s are used without /u flag (ASCII-only matching).",
+              "default": false
+            },
+            "unicode.propertyWithoutU": {
+              "type": "boolean",
+              "description": "Error when \\p{...} Unicode properties are used without /u flag.",
+              "default": true
+            },
+            "unicode.bracedHexWithoutU": {
+              "type": "boolean",
+              "description": "Error when \\x{...} escapes with code points > 0xFF are used without /u flag.",
+              "default": true
+            },
+            "flag.useless.i": {
+              "type": "boolean",
+              "description": "Warn when /i flag is used but pattern has no case-sensitive characters.",
+              "default": true
+            },
+            "flag.useless.m": {
+              "type": "boolean",
+              "description": "Warn when /m flag is used but pattern has no anchors.",
+              "default": true
+            },
+            "flag.useless.s": {
+              "type": "boolean",
+              "description": "Warn when /s flag is used but pattern has no dots.",
+              "default": true
+            },
+            "flag.redundant": {
+              "type": "boolean",
+              "description": "Warn about redundant flag modifiers.",
+              "default": true
+            },
+            "flag.override": {
+              "type": "boolean",
+              "description": "Warn when inline flags override outer flags.",
+              "default": true
+            },
+            "charclass.redundant": {
+              "type": "boolean",
+              "description": "Warn about redundant character classes like [a].",
+              "default": true
+            },
+            "charclass.suspiciousRange": {
+              "type": "boolean",
+              "description": "Warn about suspicious character ranges like [A-z].",
+              "default": true
+            },
+            "charclass.suspiciousPipe": {
+              "type": "boolean",
+              "description": "Warn about literal pipe in character class (likely meant alternation).",
+              "default": true
+            },
+            "charclass.duplicateChars": {
+              "type": "boolean",
+              "description": "Warn about duplicate elements in character classes.",
+              "default": true
+            },
+            "charclass.backrefAsOctal": {
+              "type": "boolean",
+              "description": "Warn when \\1-\\9 in character class is octal, not a backreference.",
+              "default": true
+            },
+            "charclass.literalMetachar": {
+              "type": "boolean",
+              "description": "Warn about unescaped metacharacters in character classes.",
+              "default": true
+            },
+            "alternation.empty": {
+              "type": "boolean",
+              "description": "Warn about empty alternatives in alternations.",
+              "default": true
+            },
+            "alternation.duplicateDisjunction": {
+              "type": "boolean",
+              "description": "Warn about duplicate branches in alternations.",
+              "default": true
+            },
+            "alternation.overlap": {
+              "type": "boolean",
+              "description": "Warn about overlapping alternatives that may cause backtracking.",
+              "default": true
+            },
+            "alternation.dotNewline": {
+              "type": "boolean",
+              "description": "Warn about (.|\n) anti-pattern for matching any character.",
+              "default": true
+            },
+            "quantifier.useless": {
+              "type": "boolean",
+              "description": "Warn about useless quantifiers like {1}.",
+              "default": true
+            },
+            "quantifier.zero": {
+              "type": "boolean",
+              "description": "Warn about quantifiers that always match zero times.",
+              "default": true
+            },
+            "quantifier.nested": {
+              "type": "boolean",
+              "description": "Warn about nested quantifiers that may cause catastrophic backtracking.",
+              "default": true
+            },
+            "quantifier.concatenation": {
+              "type": "boolean",
+              "description": "Warn about concatenated quantifiers that can be optimized.",
+              "default": true
+            },
+            "group.redundant": {
+              "type": "boolean",
+              "description": "Warn about redundant non-capturing groups.",
+              "default": true
+            },
+            "group.quantifiedCapture": {
+              "type": "boolean",
+              "description": "Warn about quantified capturing groups where only last match is retained.",
+              "default": true
+            },
+            "anchor.impossible.start": {
+              "type": "boolean",
+              "description": "Warn about impossible start anchor positions.",
+              "default": true
+            },
+            "anchor.impossible.end": {
+              "type": "boolean",
+              "description": "Warn about impossible end anchor positions.",
+              "default": true
+            },
+            "backref.undefined": {
+              "type": "boolean",
+              "description": "Warn about references to undefined groups.",
+              "default": true
+            },
+            "backref.useless": {
+              "type": "boolean",
+              "description": "Warn about useless backreferences.",
+              "default": true
+            },
+            "dotstar.nested": {
+              "type": "boolean",
+              "description": "Warn about nested dot-star patterns that cause severe backtracking.",
+              "default": true
+            },
+            "escape.suspicious": {
+              "type": "boolean",
+              "description": "Warn about suspicious escape sequences.",
+              "default": true
+            },
+            "range.useless": {
+              "type": "boolean",
+              "description": "Warn about useless character ranges.",
+              "default": true
+            },
+            "overlap.charset": {
+              "type": "boolean",
+              "description": "Warn about overlapping character sets in alternations.",
+              "default": true
+            }
+          }
+        }
+      }
     }
   },
   "properties": {
@@ -318,6 +497,18 @@
             },
             {
               "$ref": "#/$defs/checksOptimizations"
+            }
+          ]
+        },
+        "lint": {
+          "description": "Lint check settings or toggle.",
+          "anyOf": [
+            {
+              "type": "boolean",
+              "description": "Enable or disable lint checks."
+            },
+            {
+              "$ref": "#/$defs/checksLint"
             }
           ]
         }

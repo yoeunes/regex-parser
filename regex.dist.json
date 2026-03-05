@@ -29,6 +29,12 @@
                 "minQuantifierCount": 4,
                 "verifyWithAutomata": true
             }
+        },
+        "lint": {
+            "enabled": true,
+            "rules": {
+                "unicode.shorthandWithoutU": false
+            }
         }
     }
 }

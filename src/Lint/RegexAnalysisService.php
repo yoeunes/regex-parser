@@ -64,8 +64,9 @@ final readonly class RegexAnalysisService
     private ReDoSMode $redosMode;
 
     /**
-     * @param array<string> $ignoredPatterns
-     * @param array<string> $redosIgnoredPatterns
+     * @param array<string>       $ignoredPatterns
+     * @param array<string>       $redosIgnoredPatterns
+     * @param array<string, bool> $lintRules
      */
     public function __construct(
         private Regex $regex,
@@ -78,6 +79,8 @@ final readonly class RegexAnalysisService
         ReDoSMode|string $redosMode = ReDoSMode::THEORETICAL,
         private ?ReDoSConfirmOptions $redosConfirmOptions = null,
         bool $redosEnabled = false,
+        private bool $lintEnabled = true,
+        private array $lintRules = [],
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
@@ -241,38 +244,42 @@ final readonly class RegexAnalysisService
             }
 
             $ast = $this->regex->parse($occurrence->pattern);
-            $linter = new LinterNodeVisitor();
-            $ast->accept($linter);
             $skipRiskAnalysis = $this->shouldSkipRiskAnalysis($occurrence);
 
-            foreach ($linter->getIssues() as $issue) {
-                if ($skipRiskAnalysis && isset(self::RISK_LINT_ISSUE_IDS[$issue->id])) {
-                    continue;
+            // Run linter if enabled
+            if ($this->lintEnabled) {
+                $linter = new LinterNodeVisitor($this->lintRules);
+                $ast->accept($linter);
+
+                foreach ($linter->getIssues() as $issue) {
+                    if ($skipRiskAnalysis && isset(self::RISK_LINT_ISSUE_IDS[$issue->id])) {
+                        continue;
+                    }
+
+                    $suggestedPattern = null;
+                    if (isset(self::RISK_LINT_ISSUE_IDS[$issue->id]) && \is_int($issue->offset)) {
+                        $suggestedPattern = $this->buildAtomicGroupSuggestion($occurrence->pattern, $ast, $issue->offset);
+                    }
+
+                    $issueEntry = [
+                        'type' => 'warning',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => $this->resolveColumn($occurrence),
+                        'fileOffset' => $occurrence->fileOffset,
+                        'position' => $issue->offset,
+                        'issueId' => $issue->id,
+                        'message' => $issue->message,
+                        'hint' => $issue->hint,
+                        'source' => $source,
+                    ];
+
+                    if (null !== $suggestedPattern && $suggestedPattern !== $occurrence->pattern) {
+                        $issueEntry['suggestedPattern'] = $suggestedPattern;
+                    }
+
+                    $issues[] = $issueEntry;
                 }
-
-                $suggestedPattern = null;
-                if (isset(self::RISK_LINT_ISSUE_IDS[$issue->id]) && \is_int($issue->offset)) {
-                    $suggestedPattern = $this->buildAtomicGroupSuggestion($occurrence->pattern, $ast, $issue->offset);
-                }
-
-                $issueEntry = [
-                    'type' => 'warning',
-                    'file' => $occurrence->file,
-                    'line' => $occurrence->line,
-                    'column' => $this->resolveColumn($occurrence),
-                    'fileOffset' => $occurrence->fileOffset,
-                    'position' => $issue->offset,
-                    'issueId' => $issue->id,
-                    'message' => $issue->message,
-                    'hint' => $issue->hint,
-                    'source' => $source,
-                ];
-
-                if (null !== $suggestedPattern && $suggestedPattern !== $occurrence->pattern) {
-                    $issueEntry['suggestedPattern'] = $suggestedPattern;
-                }
-
-                $issues[] = $issueEntry;
             }
 
             if (!$skipRiskAnalysis) {

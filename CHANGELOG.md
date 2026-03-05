@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `regex.lint.unicode.shorthandWithoutU` (Style): Warns when `\w`, `\d`, `\s` used without `/u` flag
   - `regex.lint.unicode.propertyWithoutU` (Error): Error when `\p{L}` used without `/u` flag
   - `regex.lint.unicode.bracedHexWithoutU` (Error): Error when `\x{100}` used without `/u` flag for code points > U+FF
+- **Configurable lint rules** via `checks.lint` in `regex.json`/`regex.dist.json`:
+  - Enable/disable individual lint rules (32 rules available)
+  - Configuration schema with all rule IDs and default values
+  - CLI flags: `--lint`/`--no-lint`, `--enable-rule=<id>`, `--disable-rule=<id>`
 - CLI `--redos` flag to explicitly enable ReDoS analysis (counterpart to `--no-redos`).
 
 ### Changed
@@ -25,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CLI: `--redos` flag or `checks.redos.enabled: true` in `regex.json`
   - PHPStan: `reportRedos: true` in rule configuration
   - Symfony: `regex_parser.redos.enabled: true` in bundle configuration
+- **BREAKING**: `unicode.shorthandWithoutU` lint rule is now disabled by default to reduce noise. Most PHP codebases intentionally use ASCII-only matching. Enable via:
+  - CLI: `--enable-rule=unicode.shorthandWithoutU`
+  - Config: `checks.lint.rules.unicode.shorthandWithoutU: true` in `regex.json`
 - **BREAKING**: Lint identifiers now use camelCase instead of snake_case for PHPStan compatibility:
   - `regex.lint.unicode.shorthand_without_u` → `regex.lint.unicode.shorthandWithoutU`
   - `regex.lint.alternation.duplicate_disjunction` → `regex.lint.alternation.duplicateDisjunction`

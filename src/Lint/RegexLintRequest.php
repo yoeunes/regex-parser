@@ -25,6 +25,7 @@ final readonly class RegexLintRequest
      * @param array<string>           $excludePaths
      * @param array<string>           $disabledSources
      * @param array<string, bool|int> $optimizations
+     * @param array<string, bool>     $lintRules
      */
     public function __construct(
         public array $paths,
@@ -34,8 +35,10 @@ final readonly class RegexLintRequest
         public bool $checkValidation = true,
         public bool $checkRedos = false,
         public bool $checkOptimizations = true,
+        public bool $checkLint = true,
         public int $analysisWorkers = 1,
         public array $optimizations = [],
+        public array $lintRules = [],
     ) {}
 
     /**

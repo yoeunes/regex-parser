@@ -88,6 +88,30 @@ final class LintDefaultsBuilder
                     }
                 }
             }
+
+            // Handle checks.lint (can be boolean or object)
+            if (\array_key_exists('lint', $config['checks'])) {
+                $lint = $config['checks']['lint'];
+                if (\is_bool($lint)) {
+                    $defaults['checkLint'] = $lint;
+                } elseif (\is_array($lint)) {
+                    if (\array_key_exists('enabled', $lint)) {
+                        $defaults['checkLint'] = $lint['enabled'];
+                    }
+                    if (\array_key_exists('rules', $lint) && \is_array($lint['rules'])) {
+                        $defaults['lintRules'] = $lint['rules'];
+                    }
+                }
+            }
+        }
+
+        // Handle normalized lintEnabled/lintRules (from config loader)
+        if (isset($config['lintEnabled']) && !isset($defaults['checkLint'])) {
+            $defaults['checkLint'] = $config['lintEnabled'];
+        }
+
+        if (isset($config['lintRules']) && !isset($defaults['lintRules'])) {
+            $defaults['lintRules'] = $config['lintRules'];
         }
 
         // Handle deprecated "rules" configuration format (for BC)

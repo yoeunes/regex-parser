@@ -135,6 +135,25 @@
          - /^(?:['"])(.*?)(?:['"])?$/
          + /^['"](.*?)['"]?$/
 
+  corpus/snipe-it/app/Providers/ValidationServiceProvider.php:250:31
+      → /\pL/
+     WARN  Unicode property "\p{L}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+
+  corpus/snipe-it/app/Providers/ValidationServiceProvider.php:254:31
+      → /\pN/
+     WARN  Unicode property "\p{N}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+
+  corpus/snipe-it/app/Providers/ValidationServiceProvider.php:262:31
+      → /\p{Z}|\p{S}|\p{P}/
+     WARN  Unicode property "\p{Z}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+     WARN  Unicode property "\p{S}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+     WARN  Unicode property "\p{P}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+
   corpus/twigstan/src/Processing/Compilation/PhpVisitor/AppendFilePathToLineCommentVisitor.php:29:28
       → #// line (?<line_number>\d+)+#
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -2208,7 +2227,6 @@
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
-     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/laminas/laminas-code/src/Generator/FileGenerator.php:437:24
       → #/\* Laminas_Code_Generator_Php_File-(.*?)Marker:#m
@@ -2383,6 +2401,16 @@
       → /@media [^{]*+{([^{}]++|{[^{}]*+})*+}/
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/alice/src/FixtureBuilder/ExpressionLanguage/Lexer/FunctionTreeTokenizer.php:47:13
+      → /(.*?)<((?:.*?:)?(?:\p{L}|_|[0-9])+?)\((.*?)/
+     WARN  Unicode property "\p{L}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
+
+  corpus/alice/src/FixtureBuilder/ExpressionLanguage/Lexer/ReferenceEscaperLexer.php:45:38
+      → /(\p{L})@/
+     WARN  Unicode property "\p{L}" requires /u flag.
+         ↳ Add /u flag to enable Unicode property matching.
 
   corpus/whoops/src/Whoops/Util/TemplateHelper.php:90:13
       → @([A-z]+?://([-\w\.]+[-\w])+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
@@ -2755,7 +2783,6 @@
      TIP 
          - /^[a-zA-Z_\x80-\xff](?:[\\]?[a-zA-Z0-9_\x80-\xff]+)*$/
          + /^[a-zA-Z_\x80-\xff](?>(?:[\\]?[a-zA-Z0-9_\x80-\xff]+))*$/
-     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/psalm/src/Psalm/Internal/PhpVisitor/Reflector/FunctionLikeDocblockParser.php:125:33
       → /\n \*\s+/um
@@ -3969,7 +3996,6 @@
      TIP 
          - /^(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)+$/
          + /^(?>(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*))+$/
-     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/symfony/symfony/src/Symfony/Component/ErrorHandler/DebugClassLoader.php:1280:39
       → {\(([^()]*+|(?R))*\)(?: *: *[^ ]++)?|<([^<>]*+|(?R))*>|\{([^{}]*+|(?R))*\}}
@@ -4023,7 +4049,6 @@
      TIP 
          - /^(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)+$/
          + /^(?>(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*))+$/
-     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/ServiceLocator.php:132:190
       → /([^\\]++\\)++/
@@ -4554,7 +4579,6 @@
      TIP 
          - /^(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?)+(?<!\\)$/i
          + /^(?>(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?))+(?<!\\)$/i
-     FAIL  Confirmed ReDoS risk (evidence: backtrack_limit, severity: CRITICAL, confidence: HIGH).
 
   corpus/janephp/src/Component/JsonSchema/Registry/Schema.php:190:30
       → #([^:]){1}/{2,}#

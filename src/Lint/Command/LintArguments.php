@@ -22,6 +22,7 @@ final readonly class LintArguments
      * @param array<int, string>                 $exclude
      * @param "debug"|"normal"|"quiet"|"verbose" $verbosity
      * @param array<string, bool|int>            $optimizations
+     * @param array<string, bool>                $lintRules
      */
     public function __construct(
         public array $paths,
@@ -33,6 +34,7 @@ final readonly class LintArguments
         public bool $checkRedos,
         public bool $checkValidation,
         public bool $checkOptimizations,
+        public bool $checkLint,
         public int $jobs,
         public ?string $output = null,
         public ?string $baseline = null,
@@ -42,6 +44,7 @@ final readonly class LintArguments
         public string $redosMode = 'theoretical',
         public ?string $redosThreshold = null,
         public bool $redosNoJit = false,
+        public array $lintRules = [],
     ) {}
 
     /**
@@ -94,6 +97,24 @@ final readonly class LintArguments
         $checkOptimizations = $defaults['checkOptimizations'] ?? true;
         if (!\is_bool($checkOptimizations)) {
             $checkOptimizations = true;
+        }
+
+        $checkLint = $defaults['checkLint'] ?? true;
+        if (!\is_bool($checkLint)) {
+            $checkLint = true;
+        }
+
+        $lintRules = $defaults['lintRules'] ?? [];
+        if (!\is_array($lintRules)) {
+            $lintRules = [];
+        } else {
+            $validatedLintRules = [];
+            foreach ($lintRules as $ruleId => $enabled) {
+                if (\is_string($ruleId) && \is_bool($enabled)) {
+                    $validatedLintRules[$ruleId] = $enabled;
+                }
+            }
+            $lintRules = $validatedLintRules;
         }
 
         $jobs = $defaults['jobs'] ?? -1; // -1 means auto-detect
@@ -184,6 +205,7 @@ final readonly class LintArguments
             $checkRedos,
             $checkValidation,
             $checkOptimizations,
+            $checkLint,
             $jobs,
             $output,
             $baseline,
@@ -193,6 +215,7 @@ final readonly class LintArguments
             $redosMode,
             $redosThreshold,
             $redosNoJit,
+            $lintRules,
         );
     }
 

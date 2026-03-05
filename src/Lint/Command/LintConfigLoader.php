@@ -271,6 +271,16 @@ final class LintConfigLoader
             }
         }
 
+        if (\array_key_exists('lint', $checks)) {
+            $lint = $this->normalizeLintCheck($checks['lint'], $path);
+            if (null !== $lint->error) {
+                return $lint;
+            }
+            if ([] !== $lint->config) {
+                $normalized = $this->mergeConfig($normalized, $lint->config);
+            }
+        }
+
         return new LintConfigResult($normalized, []);
     }
 
@@ -394,6 +404,51 @@ final class LintConfigLoader
             }
             $rules['optimization'] = $enabled ?? true;
             $normalized['rules'] = $rules;
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    private function normalizeLintCheck(mixed $value, string $path): LintConfigResult
+    {
+        if (\is_bool($value)) {
+            return new LintConfigResult(['lintEnabled' => $value], []);
+        }
+
+        if (!\is_array($value)) {
+            return new LintConfigResult([], [], 'Invalid "checks.lint" in '.$path.': expected a boolean or object.');
+        }
+
+        /** @var array<string, mixed> $normalized */
+        $normalized = [];
+
+        if (\array_key_exists('enabled', $value)) {
+            if (!\is_bool($value['enabled'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.lint.enabled" in '.$path.': expected a boolean.');
+            }
+            $normalized['lintEnabled'] = $value['enabled'];
+        }
+
+        if (\array_key_exists('rules', $value)) {
+            if (!\is_array($value['rules'])) {
+                return new LintConfigResult([], [], 'Invalid "checks.lint.rules" in '.$path.': expected an object.');
+            }
+
+            /** @var array<string, bool> $lintRules */
+            $lintRules = [];
+            foreach ($value['rules'] as $ruleId => $enabled) {
+                if (!\is_string($ruleId)) {
+                    return new LintConfigResult([], [], 'Invalid "checks.lint.rules" in '.$path.': rule IDs must be strings.');
+                }
+                if (!\is_bool($enabled)) {
+                    return new LintConfigResult([], [], 'Invalid "checks.lint.rules.'.$ruleId.'" in '.$path.': expected a boolean.');
+                }
+                $lintRules[$ruleId] = $enabled;
+            }
+
+            if ([] !== $lintRules) {
+                $normalized['lintRules'] = $lintRules;
+            }
         }
 
         return new LintConfigResult($normalized, []);

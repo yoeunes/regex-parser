@@ -26,13 +26,21 @@ final class LinterUnicodeRulesTest extends TestCase
     #[Test]
     public function test_shorthand_without_u_flag_warning(): void
     {
-        $this->assertHasIssue('/\\w+/', 'regex.lint.unicode.shorthandWithoutU');
+        // Rule is disabled by default, so we need to enable it explicitly
+        $this->assertHasIssue('/\\w+/', 'regex.lint.unicode.shorthandWithoutU', enableShorthandRule: true);
     }
 
     #[Test]
     public function test_shorthand_with_u_flag_no_warning(): void
     {
-        $this->assertNoIssue('/\\w+/u', 'regex.lint.unicode.shorthandWithoutU');
+        $this->assertNoIssue('/\\w+/u', 'regex.lint.unicode.shorthandWithoutU', enableShorthandRule: true);
+    }
+
+    #[Test]
+    public function test_shorthand_rule_disabled_by_default(): void
+    {
+        // By default, shorthandWithoutU should NOT trigger
+        $this->assertNoIssue('/\\w+/', 'regex.lint.unicode.shorthandWithoutU');
     }
 
     #[Test]
@@ -75,7 +83,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[DataProvider('provideShorthandPatterns')]
     public function test_all_shorthands_trigger_warning(string $pattern): void
     {
-        $this->assertHasIssue($pattern, 'regex.lint.unicode.shorthandWithoutU');
+        $this->assertHasIssue($pattern, 'regex.lint.unicode.shorthandWithoutU', enableShorthandRule: true);
     }
 
     /**
@@ -95,7 +103,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[DataProvider('provideShorthandPatternsWithUFlag')]
     public function test_all_shorthands_no_warning_with_u_flag(string $pattern): void
     {
-        $this->assertNoIssue($pattern, 'regex.lint.unicode.shorthandWithoutU');
+        $this->assertNoIssue($pattern, 'regex.lint.unicode.shorthandWithoutU', enableShorthandRule: true);
     }
 
     /**
@@ -114,7 +122,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[Test]
     public function test_shorthand_issue_has_style_severity(): void
     {
-        $issues = $this->lint('/\\w+/');
+        $issues = $this->lint('/\\w+/', enableShorthandRule: true);
         $shorthandIssue = null;
         foreach ($issues as $issue) {
             if ('regex.lint.unicode.shorthandWithoutU' === $issue->id) {
@@ -171,7 +179,7 @@ final class LinterUnicodeRulesTest extends TestCase
     #[Test]
     public function test_multiple_shorthands_generate_multiple_issues(): void
     {
-        $issues = $this->lint('/\\w\\d\\s/');
+        $issues = $this->lint('/\\w\\d\\s/', enableShorthandRule: true);
         $shorthandIssues = array_filter(
             $issues,
             static fn ($issue) => 'regex.lint.unicode.shorthandWithoutU' === $issue->id,
@@ -180,25 +188,26 @@ final class LinterUnicodeRulesTest extends TestCase
         $this->assertCount(3, $shorthandIssues);
     }
 
-    private function assertHasIssue(string $pattern, string $issueId): void
+    private function assertHasIssue(string $pattern, string $issueId, bool $enableShorthandRule = false): void
     {
-        $issueIds = array_map(static fn ($issue) => $issue->id, $this->lint($pattern));
+        $issueIds = array_map(static fn ($issue) => $issue->id, $this->lint($pattern, $enableShorthandRule));
         $this->assertContains($issueId, $issueIds, \sprintf('Expected issue "%s" not found in pattern "%s"', $issueId, $pattern));
     }
 
-    private function assertNoIssue(string $pattern, string $issueId): void
+    private function assertNoIssue(string $pattern, string $issueId, bool $enableShorthandRule = false): void
     {
-        $issueIds = array_map(static fn ($issue) => $issue->id, $this->lint($pattern));
+        $issueIds = array_map(static fn ($issue) => $issue->id, $this->lint($pattern, $enableShorthandRule));
         $this->assertNotContains($issueId, $issueIds, \sprintf('Unexpected issue "%s" found in pattern "%s"', $issueId, $pattern));
     }
 
     /**
      * @return array<LintIssue>
      */
-    private function lint(string $pattern): array
+    private function lint(string $pattern, bool $enableShorthandRule = false): array
     {
         $regex = Regex::create()->parse($pattern);
-        $linter = new LinterNodeVisitor();
+        $rules = $enableShorthandRule ? ['unicode.shorthandWithoutU' => true] : [];
+        $linter = new LinterNodeVisitor($rules);
         $regex->accept($linter);
 
         return $linter->getIssues();

@@ -59,6 +59,13 @@ use RegexParser\Severity;
 final class LinterNodeVisitor extends AbstractNodeVisitor
 {
     /**
+     * Rules that are disabled by default (can be enabled via config).
+     */
+    private const DEFAULT_DISABLED_RULES = [
+        'unicode.shorthandWithoutU' => false,
+    ];
+
+    /**
      * @var array<LintIssue>
      */
     private array $issues = [];
@@ -123,7 +130,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     private array $alternationStack = [];
 
-    public function __construct()
+    /**
+     * @param array<string, bool> $enabledRules
+     */
+    public function __construct(/**
+     * Configuration for which lint rules are enabled.
+     */
+        private array $enabledRules = [])
     {
         $this->charSetAnalyzer = new CharSetAnalyzer();
         $this->intlAvailable = class_exists(\IntlChar::class);
@@ -556,6 +569,30 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return $node;
+    }
+
+    /**
+     * Check if a lint rule is enabled.
+     */
+    private function isRuleEnabled(string $ruleId): bool
+    {
+        // Remove the 'regex.lint.' prefix if present for lookup
+        $shortId = str_starts_with($ruleId, 'regex.lint.')
+            ? substr($ruleId, \strlen('regex.lint.'))
+            : $ruleId;
+
+        // Explicit config takes precedence
+        if (\array_key_exists($shortId, $this->enabledRules)) {
+            return $this->enabledRules[$shortId];
+        }
+
+        // Check default disabled rules
+        if (\array_key_exists($shortId, self::DEFAULT_DISABLED_RULES)) {
+            return self::DEFAULT_DISABLED_RULES[$shortId];
+        }
+
+        // All other rules enabled by default
+        return true;
     }
 
     private function countCapturingGroups(NodeInterface $node): void
@@ -1198,6 +1235,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function addIssue(string $id, string $message, ?int $offset = null, ?string $hint = null, Severity $severity = Severity::Warning): void
     {
+        // Check if this rule is enabled before adding the issue
+        if (!$this->isRuleEnabled($id)) {
+            return;
+        }
+
         $this->issues[] = new LintIssue($id, $message, $offset, $hint, $severity);
     }
 
