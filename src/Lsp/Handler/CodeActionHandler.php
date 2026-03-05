@@ -25,7 +25,7 @@ use RegexParser\Regex;
 /**
  * Handles textDocument/codeAction requests.
  */
-final class CodeActionHandler
+final readonly class CodeActionHandler
 {
     /**
      * Unicode-related lint IDs that can be fixed by adding /u flag.
@@ -37,8 +37,8 @@ final class CodeActionHandler
     ];
 
     public function __construct(
-        private readonly DocumentManager $documents,
-        private readonly Regex $regex,
+        private DocumentManager $documents,
+        private Regex $regex,
     ) {}
 
     /**
@@ -111,14 +111,14 @@ final class CodeActionHandler
     private function rangesOverlap(array $start1, array $end1, array $start2, array $end2): bool
     {
         // Check if range1 ends before range2 starts
-        if ($end1['line'] < $start2['line'] ||
-            ($end1['line'] === $start2['line'] && $end1['character'] < $start2['character'])) {
+        if ($end1['line'] < $start2['line']
+            || ($end1['line'] === $start2['line'] && $end1['character'] < $start2['character'])) {
             return false;
         }
 
         // Check if range2 ends before range1 starts
-        if ($end2['line'] < $start1['line'] ||
-            ($end2['line'] === $start1['line'] && $end2['character'] < $start1['character'])) {
+        if ($end2['line'] < $start1['line']
+            || ($end2['line'] === $start1['line'] && $end2['character'] < $start1['character'])) {
             return false;
         }
 
@@ -144,6 +144,7 @@ final class CodeActionHandler
             $code = $diagnostic['code'] ?? '';
             if (\in_array($code, self::UNICODE_LINT_IDS, true)) {
                 $hasUnicodeIssue = true;
+
                 break;
             }
         }
@@ -158,6 +159,7 @@ final class CodeActionHandler
                 foreach ($linter->getIssues() as $issue) {
                     if (\in_array($issue->id, self::UNICODE_LINT_IDS, true)) {
                         $hasUnicodeIssue = true;
+
                         break;
                     }
                 }
@@ -174,7 +176,7 @@ final class CodeActionHandler
                 $actions[] = [
                     'title' => 'Add /u flag for Unicode support',
                     'kind' => 'quickfix',
-                    'diagnostics' => array_filter($diagnostics, fn ($d) => \in_array($d['code'] ?? '', self::UNICODE_LINT_IDS, true)),
+                    'diagnostics' => array_filter($diagnostics, static fn ($d) => \in_array($d['code'] ?? '', self::UNICODE_LINT_IDS, true)),
                     'isPreferred' => true,
                     'edit' => [
                         'changes' => [
@@ -251,7 +253,7 @@ final class CodeActionHandler
 
         // Find the last occurrence of the closing delimiter
         $lastDelimPos = strrpos($pattern, $closingDelimiter);
-        if (false === $lastDelimPos || $lastDelimPos === 0) {
+        if (false === $lastDelimPos || 0 === $lastDelimPos) {
             return null;
         }
 
@@ -264,6 +266,6 @@ final class CodeActionHandler
         }
 
         // Add /u flag
-        return substr($pattern, 0, $lastDelimPos + 1) . 'u' . $flags;
+        return substr($pattern, 0, $lastDelimPos + 1).'u'.$flags;
     }
 }

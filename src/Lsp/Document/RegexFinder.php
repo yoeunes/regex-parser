@@ -60,6 +60,7 @@ final class RegexFinder
                 } elseif (')' === $token || ',' === $token) {
                     $expectingPattern = false;
                 }
+
                 continue;
             }
 
@@ -69,6 +70,7 @@ final class RegexFinder
             if (\T_STRING === $tokenType && \in_array($tokenValue, self::PREG_FUNCTIONS, true)) {
                 $lastFunctionName = $tokenValue;
                 $expectingPattern = true;
+
                 continue;
             }
 
@@ -162,7 +164,7 @@ final class RegexFinder
             if (\is_array($token)) {
                 $offset += \strlen($token[1]);
             } else {
-                $offset += \strlen($token);
+                $offset += \strlen((string) $token);
             }
         }
 

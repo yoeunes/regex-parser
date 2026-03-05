@@ -26,13 +26,13 @@ use RegexParser\Regex;
 /**
  * Handles text document notifications and requests.
  */
-final class TextDocumentHandler
+final readonly class TextDocumentHandler
 {
-    private readonly DiagnosticConverter $diagnosticConverter;
+    private DiagnosticConverter $diagnosticConverter;
 
     public function __construct(
-        private readonly DocumentManager $documents,
-        private readonly Regex $regex,
+        private DocumentManager $documents,
+        private Regex $regex,
     ) {
         $this->diagnosticConverter = new DiagnosticConverter();
     }
@@ -174,14 +174,7 @@ final class TextDocumentHandler
                         \strlen($occurrence->pattern),
                     );
                 }
-            } catch (LexerException $e) {
-                $diagnostics[] = $this->diagnosticConverter->fromParseError(
-                    $e->getMessage(),
-                    $occurrence->start,
-                    \strlen($occurrence->pattern),
-                    $e->offset,
-                );
-            } catch (ParserException $e) {
+            } catch (LexerException|ParserException $e) {
                 $diagnostics[] = $this->diagnosticConverter->fromParseError(
                     $e->getMessage(),
                     $occurrence->start,

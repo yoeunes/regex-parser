@@ -125,10 +125,11 @@ final class LinterNodeVisitorTest extends TestCase
         foreach ($warnings as $warning) {
             if (str_contains($warning, "Flag 'm' is useless:")) {
                 $found = true;
+
                 break;
             }
         }
-        $this->assertTrue($found, "Expected 'Flag 'm' is useless:' warning not found in: " . implode(', ', $warnings));
+        $this->assertTrue($found, "Expected 'Flag 'm' is useless:' warning not found in: ".implode(', ', $warnings));
     }
 
     public function test_m_flag_not_useless_with_anchors(): void

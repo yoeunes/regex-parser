@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RegexParser\LintIssue;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
 use RegexParser\Severity;
@@ -118,11 +119,12 @@ final class LinterUnicodeRulesTest extends TestCase
         foreach ($issues as $issue) {
             if ('regex.lint.unicode.shorthand_without_u' === $issue->id) {
                 $shorthandIssue = $issue;
+
                 break;
             }
         }
 
-        $this->assertNotNull($shorthandIssue);
+        $this->assertInstanceOf(LintIssue::class, $shorthandIssue);
         $this->assertSame(Severity::Style, $shorthandIssue->severity);
     }
 
@@ -134,11 +136,12 @@ final class LinterUnicodeRulesTest extends TestCase
         foreach ($issues as $issue) {
             if ('regex.lint.unicode.property_without_u' === $issue->id) {
                 $propertyIssue = $issue;
+
                 break;
             }
         }
 
-        $this->assertNotNull($propertyIssue);
+        $this->assertInstanceOf(LintIssue::class, $propertyIssue);
         $this->assertSame(Severity::Error, $propertyIssue->severity);
     }
 
@@ -150,11 +153,12 @@ final class LinterUnicodeRulesTest extends TestCase
         foreach ($issues as $issue) {
             if ('regex.lint.unicode.braced_hex_without_u' === $issue->id) {
                 $bracedHexIssue = $issue;
+
                 break;
             }
         }
 
-        $this->assertNotNull($bracedHexIssue);
+        $this->assertInstanceOf(LintIssue::class, $bracedHexIssue);
         $this->assertSame(Severity::Error, $bracedHexIssue->severity);
     }
 
@@ -170,7 +174,7 @@ final class LinterUnicodeRulesTest extends TestCase
         $issues = $this->lint('/\\w\\d\\s/');
         $shorthandIssues = array_filter(
             $issues,
-            static fn ($issue) => 'regex.lint.unicode.shorthand_without_u' === $issue->id
+            static fn ($issue) => 'regex.lint.unicode.shorthand_without_u' === $issue->id,
         );
 
         $this->assertCount(3, $shorthandIssues);
@@ -189,7 +193,7 @@ final class LinterUnicodeRulesTest extends TestCase
     }
 
     /**
-     * @return array<\RegexParser\LintIssue>
+     * @return array<LintIssue>
      */
     private function lint(string $pattern): array
     {

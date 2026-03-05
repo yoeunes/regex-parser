@@ -20,7 +20,7 @@ use RegexParser\Lsp\Protocol\Response;
 /**
  * Handles textDocument/completion requests for regex patterns.
  */
-final class CompletionHandler
+final readonly class CompletionHandler
 {
     // LSP CompletionItemKind
     private const KIND_TEXT = 1;
@@ -151,7 +151,7 @@ final class CompletionHandler
     ];
 
     public function __construct(
-        private readonly DocumentManager $documents,
+        private DocumentManager $documents,
     ) {}
 
     /**
@@ -212,11 +212,11 @@ final class CompletionHandler
         $patternStart = $occurrence->start['character'];
         $cursorInPattern = $character - $patternStart;
 
-        if ($cursorInPattern < 0 || $cursorInPattern > \strlen($occurrence->pattern)) {
+        if ($cursorInPattern < 0 || $cursorInPattern > \strlen((string) $occurrence->pattern)) {
             return ['type' => 'general', 'prefix' => ''];
         }
 
-        $textBeforeCursor = substr($occurrence->pattern, 0, $cursorInPattern);
+        $textBeforeCursor = substr((string) $occurrence->pattern, 0, $cursorInPattern);
 
         // Check for escape sequence start
         if (str_ends_with($textBeforeCursor, '\\')) {
@@ -234,7 +234,7 @@ final class CompletionHandler
         }
 
         // Check for after closing delimiter - flags
-        $delimiterPos = strrpos($textBeforeCursor, $occurrence->pattern[0]);
+        $delimiterPos = strrpos($textBeforeCursor, (string) $occurrence->pattern[0]);
         if (false !== $delimiterPos && $delimiterPos > 0) {
             // We're after the closing delimiter, offer flags
             $afterDelimiter = substr($textBeforeCursor, $delimiterPos + 1);
