@@ -43,6 +43,10 @@ final class InitializeHandler
                     'refactor.rewrite',
                 ],
             ],
+            'completionProvider' => [
+                'triggerCharacters' => ['\\', '[', '(', '/'],
+                'resolveProvider' => false,
+            ],
         ];
 
         $serverInfo = [
