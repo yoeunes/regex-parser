@@ -146,38 +146,28 @@ Install [vscode-languageclient](https://marketplace.visualstudio.com/items?itemN
 
 ### PhpStorm / IntelliJ IDEA
 
-PhpStorm doesn't natively support custom LSP servers. Instead, use the **PHPStan integration** which provides the same regex analysis:
+Use the [LSP4IJ](https://plugins.jetbrains.com/plugin/23257-lsp4ij) plugin by Red Hat for LSP support:
 
-**Option 1: PHPStan Integration (Recommended)**
+1. Install LSP4IJ from the JetBrains Marketplace
+
+2. Go to **Settings → Languages & Frameworks → Language Servers**
+
+3. Click **+** to add a new server definition:
+   - **Name:** RegexParser
+   - **Command:** `vendor/bin/regex-lsp`
+   - **File Mappings:** `*.php`
+
+4. The server will now provide diagnostics, hover, and code actions for regex patterns
+
+**Alternative: PHPStan Integration**
+
+RegexParser also integrates with PHPStan via `extension.neon`:
 
 1. Install the [PHPStan plugin](https://plugins.jetbrains.com/plugin/12754-phpstan) for PhpStorm
+2. Configure PHPStan in **Settings → PHP → Quality Tools → PHPStan**
+3. Enable real-time inspection
 
-2. RegexParser automatically integrates with PHPStan via `extension.neon`
-
-3. Configure PHPStan in PhpStorm:
-   - Go to **Settings → PHP → Quality Tools → PHPStan**
-   - Set the path to your PHPStan executable
-   - Enable real-time inspection
-
-This gives you the same diagnostics as the LSP server.
-
-**Option 2: External Tools**
-
-Add RegexParser CLI as an external tool:
-
-1. Go to **Settings → Tools → External Tools**
-2. Add a new tool:
-   - **Name:** Regex Lint
-   - **Program:** `$ProjectFileDir$/vendor/bin/regex`
-   - **Arguments:** `lint $FilePath$`
-   - **Working directory:** `$ProjectFileDir$`
-
-**Option 3: File Watcher**
-
-Set up a file watcher to run regex analysis on save:
-
-1. Go to **Settings → Tools → File Watchers**
-2. Add a custom watcher for `*.php` files
+This provides the same regex diagnostics through PHPStan's analysis
 
 ### Neovim
 
