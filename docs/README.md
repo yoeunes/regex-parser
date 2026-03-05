@@ -18,6 +18,7 @@ Start here:
 ### Using RegexParser
 
 - [CLI Guide](guides/cli.md) - Command reference.
+- [LSP Integration](guides/lsp.md) - IDE integration via Language Server Protocol.
 - [Cookbook](COOKBOOK.md) - Practical patterns and examples.
 - [ReDoS Guide](REDOS_GUIDE.md) - Security and performance guidance.
 

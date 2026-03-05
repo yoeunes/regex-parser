@@ -597,6 +597,7 @@ vendor/bin/regex highlight '/test/' --ansi
 
 ## Learn More
 
+- **[LSP Integration](lsp.md)** - IDE integration via Language Server Protocol
 - **[Regex Tutorial](../tutorial/README.md)** - Learn regex from scratch
 - **[Regex in PHP](regex-in-php.md)** - PHP regex fundamentals
 - **[ReDoS Guide](../REDOS_GUIDE.md)** - Preventing catastrophic backtracking
