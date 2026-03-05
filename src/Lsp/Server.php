@@ -15,6 +15,7 @@ namespace RegexParser\Lsp;
 
 use RegexParser\Lsp\Document\DocumentManager;
 use RegexParser\Lsp\Document\RegexFinder;
+use RegexParser\Lsp\Handler\CodeActionHandler;
 use RegexParser\Lsp\Handler\InitializeHandler;
 use RegexParser\Lsp\Handler\TextDocumentHandler;
 use RegexParser\Lsp\Protocol\Message;
@@ -37,6 +38,8 @@ final class Server
 
     private readonly TextDocumentHandler $textDocHandler;
 
+    private readonly CodeActionHandler $codeActionHandler;
+
     public function __construct(?Regex $regex = null)
     {
         $regex ??= Regex::create();
@@ -45,6 +48,7 @@ final class Server
 
         $this->initHandler = new InitializeHandler();
         $this->textDocHandler = new TextDocumentHandler($documents, $regex);
+        $this->codeActionHandler = new CodeActionHandler($documents, $regex);
     }
 
     /**
@@ -102,7 +106,7 @@ final class Server
             'textDocument/didClose' => $this->textDocHandler->didClose($message),
             'textDocument/didSave' => null, // Optional, we handle on change
             'textDocument/hover' => $this->textDocHandler->hover($message),
-            'textDocument/codeAction' => $this->textDocHandler->codeAction($message),
+            'textDocument/codeAction' => $this->codeActionHandler->handle($message),
             '$/cancelRequest' => null, // Ignore cancellation
             default => $this->handleUnknownMethod($message),
         };

@@ -153,19 +153,6 @@ final class TextDocumentHandler
     }
 
     /**
-     * Handle textDocument/codeAction request.
-     */
-    public function codeAction(Message $message): void
-    {
-        if (null === $message->id) {
-            return;
-        }
-
-        // Code actions will be implemented in Phase 2
-        Response::success($message->id, []);
-    }
-
-    /**
      * Publish diagnostics for a document.
      */
     private function publishDiagnostics(string $uri): void
