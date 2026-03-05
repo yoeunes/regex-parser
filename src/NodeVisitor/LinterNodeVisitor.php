@@ -437,6 +437,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             );
         }
 
+        // Braced Unicode escapes (e.g., \x{100}) require /u flag for code points > U+FF
+        if ($this->isBracedUnicodeEscape($node->code) && !$this->unicodeMode && null !== $code && $code > 0xFF) {
+            $this->addIssue(
+                'regex.lint.unicode.braced_hex_without_u',
+                \sprintf('Unicode escape "%s" requires /u flag for code points > U+FF.', $node->code),
+                $node->startPosition,
+                'Add /u flag or use byte-level encoding.',
+                Severity::Error,
+            );
+        }
+
         if ($this->trackCaseSensitivity
             && !$this->hasCaseSensitiveChars
             && null !== $code
@@ -456,6 +467,21 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 'regex.lint.escape.suspicious',
                 \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->originalRepresentation),
                 $node->startPosition,
+            );
+        }
+
+        // Braced Unicode escapes (e.g., \x{100}) require /u flag for code points > U+FF
+        if (CharLiteralType::UNICODE === $node->type
+            && $this->isBracedUnicodeEscape($node->originalRepresentation)
+            && !$this->unicodeMode
+            && $node->codePoint > 0xFF
+        ) {
+            $this->addIssue(
+                'regex.lint.unicode.braced_hex_without_u',
+                \sprintf('Unicode escape "%s" requires /u flag for code points > U+FF.', $node->originalRepresentation),
+                $node->startPosition,
+                'Add /u flag or use byte-level encoding.',
+                Severity::Error,
             );
         }
 
@@ -494,11 +520,39 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
+        // Unicode properties require /u flag to work correctly
+        if (!$this->unicodeMode) {
+            $this->addIssue(
+                'regex.lint.unicode.property_without_u',
+                \sprintf('Unicode property "\\p{%s}" requires /u flag.', trim($node->prop, '^{}')),
+                $node->startPosition,
+                'Add /u flag to enable Unicode property matching.',
+                Severity::Error,
+            );
+        }
+
         if ($this->trackCaseSensitivity
             && !$this->hasCaseSensitiveChars
             && $this->unicodePropIsCaseSensitive($node->prop)
         ) {
             $this->hasCaseSensitiveChars = true;
+        }
+
+        return $node;
+    }
+
+    #[\Override]
+    public function visitCharType(CharTypeNode $node): NodeInterface
+    {
+        // Shorthands \w, \d, \s match only ASCII without /u flag
+        if (\in_array($node->value, ['w', 'd', 's', 'W', 'D', 'S'], true) && !$this->unicodeMode) {
+            $this->addIssue(
+                'regex.lint.unicode.shorthand_without_u',
+                \sprintf('Shorthand "\\%s" matches only ASCII without /u flag.', $node->value),
+                $node->startPosition,
+                'Add /u flag for Unicode support, or use \\p{L} for letters.',
+                Severity::Style,
+            );
         }
 
         return $node;
@@ -811,6 +865,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return null;
+    }
+
+    private function isBracedUnicodeEscape(string $escape): bool
+    {
+        return preg_match('/^\\\\[xu]\\{/', $escape) > 0;
     }
 
     private function stringHasCaseSensitiveLetters(string $value): bool
