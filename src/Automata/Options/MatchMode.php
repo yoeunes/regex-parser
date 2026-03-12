@@ -18,9 +18,13 @@ namespace RegexParser\Automata\Options;
  */
 enum MatchMode: string
 {
-    /** Match the full input (implicit ^...$). */
+    /**
+     * Match the full input (implicit ^...$).
+     */
     case FULL = 'full';
 
-    /** Match a substring of the input (search semantics). */
+    /**
+     * Match a substring of the input (search semantics).
+     */
     case PARTIAL = 'partial';
 }

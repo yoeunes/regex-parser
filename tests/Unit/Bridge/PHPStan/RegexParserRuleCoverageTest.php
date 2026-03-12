@@ -34,7 +34,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('strlen'), []);
         $errors = $rule->processNode($node, $scope);
@@ -46,7 +46,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Variable('preg_match'), []);
 
@@ -57,7 +57,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('preg_match'), []);
 
@@ -68,7 +68,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('preg_replace_callback_array'), [
             new Arg(new String_('/foo/')),
@@ -81,7 +81,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $array = new Array_([
             new ArrayItem(new String_('handler'), new LNumber(1)),
@@ -120,7 +120,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     {
         $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
-        $scope = $this->createMock(Scope::class);
+        $scope = $this->createStub(Scope::class);
 
         $errors = $this->invokePrivate($rule, 'validatePattern', ['', 10, $scope, 'preg_match']);
 

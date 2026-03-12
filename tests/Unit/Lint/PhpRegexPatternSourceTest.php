@@ -26,8 +26,7 @@ final class PhpRegexPatternSourceTest extends TestCase
 
     protected function setUp(): void
     {
-        $mockExtractorInterface = $this->createMock(ExtractorInterface::class);
-        $this->extractor = new RegexPatternExtractor($mockExtractorInterface);
+        $this->extractor = new RegexPatternExtractor($this->createStub(ExtractorInterface::class));
     }
 
     #[DoesNotPerformAssertions]

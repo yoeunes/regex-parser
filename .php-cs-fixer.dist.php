@@ -28,6 +28,8 @@ $finder = (new PhpCsFixer\Finder())
         __DIR__.'/benchmarks',
     ])
     ->exclude('Fixtures')
+    // Laravel bridge uses facades which must be called statically
+    ->exclude('Bridge/Laravel')
     ->notPath('Unit/Cache/FilesystemCacheTest.php')
     ->notPath('Unit/Lint/TokenBasedExtractionStrategyTest.php')
     ->name('*.php')

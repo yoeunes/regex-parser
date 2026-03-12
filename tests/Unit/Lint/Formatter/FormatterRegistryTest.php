@@ -71,7 +71,7 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_register_adds_new_formatter(): void
     {
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->register('custom', $mockFormatter);
 
@@ -83,7 +83,7 @@ final class FormatterRegistryTest extends TestCase
     public function test_register_overwrites_existing_formatter(): void
     {
         $originalFormatter = $this->registry->get('console');
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->register('console', $mockFormatter);
 
@@ -93,7 +93,7 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_override_adds_new_formatter(): void
     {
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->override('new_formatter', $mockFormatter);
 
@@ -105,7 +105,7 @@ final class FormatterRegistryTest extends TestCase
     public function test_override_overwrites_existing_formatter(): void
     {
         $originalFormatter = $this->registry->get('json');
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->override('json', $mockFormatter);
 
@@ -132,7 +132,7 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_get_names_after_register_includes_new_formatter(): void
     {
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
         $this->registry->register('test_formatter', $mockFormatter);
 
         $names = $this->registry->getNames();
@@ -143,7 +143,7 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_register_with_empty_name(): void
     {
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->register('', $mockFormatter);
 
@@ -154,7 +154,7 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_register_with_special_characters_in_name(): void
     {
-        $mockFormatter = $this->createMock(OutputFormatterInterface::class);
+        $mockFormatter = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->register('formatter-with-dashes', $mockFormatter);
 
@@ -166,8 +166,8 @@ final class FormatterRegistryTest extends TestCase
     public function test_get_exception_message_lists_all_formatters(): void
     {
         // Register a few more formatters
-        $this->registry->register('xml', $this->createMock(OutputFormatterInterface::class));
-        $this->registry->register('html', $this->createMock(OutputFormatterInterface::class));
+        $this->registry->register('xml', $this->createStub(OutputFormatterInterface::class));
+        $this->registry->register('html', $this->createStub(OutputFormatterInterface::class));
 
         try {
             $this->registry->get('nonexistent');
@@ -187,9 +187,9 @@ final class FormatterRegistryTest extends TestCase
 
     public function test_multiple_registrations_work(): void
     {
-        $formatter1 = $this->createMock(OutputFormatterInterface::class);
-        $formatter2 = $this->createMock(OutputFormatterInterface::class);
-        $formatter3 = $this->createMock(OutputFormatterInterface::class);
+        $formatter1 = $this->createStub(OutputFormatterInterface::class);
+        $formatter2 = $this->createStub(OutputFormatterInterface::class);
+        $formatter3 = $this->createStub(OutputFormatterInterface::class);
 
         $this->registry->register('fmt1', $formatter1);
         $this->registry->register('fmt2', $formatter2);

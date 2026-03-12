@@ -18,12 +18,18 @@ namespace RegexParser\Node;
  */
 enum QuantifierType: string
 {
-    /** Greedy (e.g., "*", "+"). */
+    /**
+     * Greedy (e.g., "*", "+").
+     */
     case T_GREEDY = 'greedy';
 
-    /** Lazy (non-greedy) (e.g., "*?", "+?"). */
+    /**
+     * Lazy (non-greedy) (e.g., "*?", "+?").
+     */
     case T_LAZY = 'lazy';
 
-    /** Possessive (e.g., "*+", "++"). */
+    /**
+     * Possessive (e.g., "*+", "++").
+     */
     case T_POSSESSIVE = 'possessive';
 }

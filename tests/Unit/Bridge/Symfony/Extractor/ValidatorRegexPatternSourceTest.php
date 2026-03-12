@@ -41,7 +41,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_construct_with_validator(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub();
 
         $source = new ValidatorRegexPatternSource($validator, $loader);
@@ -62,14 +62,14 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_is_supported_returns_false_when_no_loader(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $source = new ValidatorRegexPatternSource($validator);
         $this->assertFalse($source->isSupported());
     }
 
     public function test_is_supported_returns_true_when_both_present(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub();
 
         $source = new ValidatorRegexPatternSource($validator, $loader);
@@ -88,7 +88,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_empty_mapped_classes(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([]);
 
         $source = new ValidatorRegexPatternSource($validator, $loader);
@@ -241,7 +241,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_handles_invalid_mapped_classes(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([
             TestEntity::class, // Valid
             '', // Empty string
@@ -281,7 +281,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_handles_loader_exceptions(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([], new \Exception('Loader error'));
 
         $source = new ValidatorRegexPatternSource($validator, $loader);
@@ -294,7 +294,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_handles_loader_without_method(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderWithoutMappedClasses();
 
         $source = new ValidatorRegexPatternSource($validator, $loader);
@@ -329,7 +329,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_get_mapped_classes_returns_empty_for_invalid_loader_response(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = new class implements LoaderInterface {
             public function loadClassMetadata(ClassMetadata $metadata): bool
             {

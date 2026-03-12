@@ -52,5 +52,8 @@ return static function (RectorConfig $rectorConfig): void {
         FinalizeTestCaseClassRector::class,
         AddInstanceofAssertForNullableInstanceRector::class,
         __DIR__.'/tests/Fixtures',
+        // Laravel bridge tests use facades which must be called statically
+        __DIR__.'/tests/Integration/Bridge/Laravel',
+        __DIR__.'/src/Bridge/Laravel',
     ]);
 };

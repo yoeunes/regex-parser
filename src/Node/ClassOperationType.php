@@ -18,9 +18,13 @@ namespace RegexParser\Node;
  */
 enum ClassOperationType: string
 {
-    /** Intersection operation (&&). */
+    /**
+     * Intersection operation (&&).
+     */
     case INTERSECTION = 'intersection';
 
-    /** Subtraction operation (--). */
+    /**
+     * Subtraction operation (--).
+     */
     case SUBTRACTION = 'subtraction';
 }

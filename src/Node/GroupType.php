@@ -18,33 +18,53 @@ namespace RegexParser\Node;
  */
 enum GroupType: string
 {
-    /** A capturing group (...). */
+    /**
+     * A capturing group (...).
+     */
     case T_GROUP_CAPTURING = 'capturing';
 
-    /** A non-capturing group (?:...). */
+    /**
+     * A non-capturing group (?:...).
+     */
     case T_GROUP_NON_CAPTURING = 'non_capturing';
 
-    /** A named capturing group (?<name>...) or (?P<name>...). */
+    /**
+     * A named capturing group (?<name>...) or (?P<name>...).
+     */
     case T_GROUP_NAMED = 'named';
 
-    /** A positive lookahead (?=...). */
+    /**
+     * A positive lookahead (?=...).
+     */
     case T_GROUP_LOOKAHEAD_POSITIVE = 'lookahead_positive';
 
-    /** A negative lookahead (?!...). */
+    /**
+     * A negative lookahead (?!...).
+     */
     case T_GROUP_LOOKAHEAD_NEGATIVE = 'lookahead_negative';
 
-    /** A positive lookbehind (?<=...). */
+    /**
+     * A positive lookbehind (?<=...).
+     */
     case T_GROUP_LOOKBEHIND_POSITIVE = 'lookbehind_positive';
 
-    /** A negative lookbehind (?<!...). */
+    /**
+     * A negative lookbehind (?<!...).
+     */
     case T_GROUP_LOOKBEHIND_NEGATIVE = 'lookbehind_negative';
 
-    /** Inline flags (?i:...). */
+    /**
+     * Inline flags (?i:...).
+     */
     case T_GROUP_INLINE_FLAGS = 'inline_flags';
 
-    /** An atomic group (?>...). */
+    /**
+     * An atomic group (?>...).
+     */
     case T_GROUP_ATOMIC = 'atomic';
 
-    /** A branch reset group (?|...). */
+    /**
+     * A branch reset group (?|...).
+     */
     case T_GROUP_BRANCH_RESET = 'branch_reset';
 }

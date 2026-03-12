@@ -49,7 +49,7 @@ final class RouteRegexPatternSourceTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_construct_with_router(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $source = new RouteRegexPatternSource($this->normalizer, $router);
     }
 
@@ -67,7 +67,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_is_supported_returns_true_when_router_present(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $source = new RouteRegexPatternSource($this->normalizer, $router);
         $this->assertTrue($source->isSupported());
     }

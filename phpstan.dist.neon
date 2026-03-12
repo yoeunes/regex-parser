@@ -26,6 +26,9 @@ parameters:
         - tests/Integration/Bridge/PHPStan/Fixtures/
         - tests/Tools/extract_pcre_tests.php
         - tests/Tools/validate_library.php
+        # Laravel bridge - requires illuminate/* packages which are optional
+        - src/Bridge/Laravel/*
+        - tests/Integration/Bridge/Laravel/*
 
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
@@ -38,3 +41,5 @@ parameters:
             - regex.lint.unicode.shorthandWithoutU
             # PHPUnit assertions that PHPStan considers redundant
             - method.alreadyNarrowedType
+
+    reportUnmatchedIgnoredErrors: false

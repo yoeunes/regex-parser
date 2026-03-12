@@ -71,6 +71,14 @@
         "branch-alias": {
             "dev-main": "1.x-dev"
         },
+        "laravel": {
+            "providers": [
+                "RegexParser\\Bridge\\Laravel\\RegexParserServiceProvider"
+            ],
+            "aliases": {
+                "Regex": "RegexParser\\Bridge\\Laravel\\Facades\\Regex"
+            }
+        },
         "phpstan": {
             "includes": [
                 "extension.neon"
@@ -84,6 +92,9 @@
         "psr/cache": "To share AST cache via PSR-6 pools.",
         "psr/simple-cache": "To share AST cache via PSR-16 caches.",
         "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
-        "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation."
+        "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
+        "illuminate/support": "Required for Laravel integration.",
+        "illuminate/console": "Required for Laravel Artisan commands.",
+        "illuminate/routing": "Required for Laravel route analysis."
     }
 }

@@ -1,0 +1,305 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Integration\Bridge\Laravel;
+
+use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Route;
+use Orchestra\Testbench\TestCase;
+use RegexParser\Bridge\Laravel\Extractor\LaravelRouteExtractor;
+use RegexParser\Bridge\Laravel\Extractor\ValidationRuleExtractor;
+use RegexParser\Bridge\Laravel\Facades\Regex as RegexFacade;
+use RegexParser\Bridge\Laravel\RegexParserServiceProvider;
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Lint\RegexPatternSourceContext;
+
+/**
+ * Tests for Laravel pattern extractors.
+ */
+final class ExtractorsTest extends TestCase
+{
+    public function test_route_extractor_extracts_where_constraints(): void
+    {
+        // Define routes with constraints
+        Route::get('/users/{id}', static fn () => 'test')
+            ->where('id', '[0-9]+')
+            ->name('users.show');
+
+        Route::get('/posts/{slug}', static fn () => 'test')
+            ->where('slug', '[a-z0-9-]+')
+            ->name('posts.show');
+
+        /** @var Router $router */
+        $router = $this->app->make('router');
+        $extractor = new LaravelRouteExtractor($router);
+
+        $context = new RegexPatternSourceContext(
+            paths: [base_path('app')],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $this->assertNotEmpty($patterns);
+        $this->assertContainsOnlyInstancesOf(RegexPatternOccurrence::class, $patterns);
+
+        // Check that our patterns were extracted
+        $extractedPatterns = array_map(
+            static fn (RegexPatternOccurrence $p): string => $p->displayPattern ?? $p->pattern,
+            $patterns,
+        );
+
+        $this->assertContains('[0-9]+', $extractedPatterns);
+        $this->assertContains('[a-z0-9-]+', $extractedPatterns);
+    }
+
+    public function test_route_extractor_normalizes_patterns(): void
+    {
+        Route::get('/test/{id}', static fn () => 'test')
+            ->where('id', '[0-9]+')
+            ->name('test.route');
+
+        /** @var Router $router */
+        $router = $this->app->make('router');
+        $extractor = new LaravelRouteExtractor($router);
+
+        $context = new RegexPatternSourceContext(
+            paths: [base_path('app')],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        // Find the pattern we just added
+        $testPattern = null;
+        foreach ($patterns as $pattern) {
+            if (str_contains($pattern->source, 'test.route')) {
+                $testPattern = $pattern;
+
+                break;
+            }
+        }
+
+        $this->assertNotNull($testPattern);
+        // Pattern should be normalized with delimiters
+        $this->assertMatchesRegularExpression('/^[\/\#\~\!\@\%\`]/', $testPattern->pattern);
+    }
+
+    public function test_route_extractor_includes_context_info(): void
+    {
+        Route::get('/api/items/{id}', static fn () => 'test')
+            ->where('id', '\\d+')
+            ->name('api.items.show');
+
+        /** @var Router $router */
+        $router = $this->app->make('router');
+        $extractor = new LaravelRouteExtractor($router);
+
+        $context = new RegexPatternSourceContext(
+            paths: [base_path('app')],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $apiPattern = null;
+        foreach ($patterns as $pattern) {
+            if (str_contains($pattern->source, 'api.items.show')) {
+                $apiPattern = $pattern;
+
+                break;
+            }
+        }
+
+        $this->assertNotNull($apiPattern);
+        $this->assertStringContainsString('route:', $apiPattern->source);
+        $this->assertStringContainsString(':id', $apiPattern->source);
+    }
+
+    public function test_validation_extractor_extracts_regex_rules(): void
+    {
+        // Create a temporary PHP file with validation regex
+        $tempDir = sys_get_temp_dir().'/regex_validation_test_'.uniqid();
+        mkdir($tempDir, 0o777, true);
+
+        file_put_contents($tempDir.'/TestRequest.php', <<<'PHP'
+            <?php
+            namespace App\Http\Requests;
+
+            class TestRequest
+            {
+                public function rules(): array
+                {
+                    return [
+                        'email' => ['required', 'regex:/^[a-z@.]+$/'],
+                        'phone' => ['required', 'regex:/^\d{10}$/'],
+                        'code' => ['nullable', 'not_regex:/[^a-zA-Z0-9]/'],
+                    ];
+                }
+            }
+            PHP);
+
+        $extractor = new ValidationRuleExtractor();
+
+        $context = new RegexPatternSourceContext(
+            paths: [$tempDir],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $this->assertCount(3, $patterns);
+        $this->assertContainsOnlyInstancesOf(RegexPatternOccurrence::class, $patterns);
+
+        $extractedPatterns = array_map(
+            static fn (RegexPatternOccurrence $p): string => $p->displayPattern ?? $p->pattern,
+            $patterns,
+        );
+
+        $this->assertContains('/^[a-z@.]+$/', $extractedPatterns);
+        $this->assertContains('/^\d{10}$/', $extractedPatterns);
+        $this->assertContains('/[^a-zA-Z0-9]/', $extractedPatterns);
+
+        // Clean up
+        unlink($tempDir.'/TestRequest.php');
+        rmdir($tempDir);
+    }
+
+    public function test_validation_extractor_handles_not_regex_rules(): void
+    {
+        $tempDir = sys_get_temp_dir().'/regex_not_test_'.uniqid();
+        mkdir($tempDir, 0o777, true);
+
+        file_put_contents($tempDir.'/test.php', <<<'PHP'
+            <?php
+            $rules = [
+                'name' => 'not_regex:/[<>]/',
+            ];
+            PHP);
+
+        $extractor = new ValidationRuleExtractor();
+
+        $context = new RegexPatternSourceContext(
+            paths: [$tempDir],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $this->assertCount(1, $patterns);
+        $this->assertStringContainsString('not_regex', $patterns[0]->source);
+
+        // Clean up
+        unlink($tempDir.'/test.php');
+        rmdir($tempDir);
+    }
+
+    public function test_validation_extractor_includes_line_numbers(): void
+    {
+        $tempDir = sys_get_temp_dir().'/regex_line_test_'.uniqid();
+        mkdir($tempDir, 0o777, true);
+
+        file_put_contents($tempDir.'/test.php', <<<'PHP'
+            <?php
+            // Line 2
+            // Line 3
+            // Line 4
+            $rules = ['email' => 'regex:/^test$/'];
+            PHP);
+
+        $extractor = new ValidationRuleExtractor();
+
+        $context = new RegexPatternSourceContext(
+            paths: [$tempDir],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $this->assertCount(1, $patterns);
+        $this->assertSame(5, $patterns[0]->line);
+
+        // Clean up
+        unlink($tempDir.'/test.php');
+        rmdir($tempDir);
+    }
+
+    public function test_validation_extractor_respects_exclude_paths(): void
+    {
+        $tempDir = sys_get_temp_dir().'/regex_exclude_test_'.uniqid();
+        mkdir($tempDir.'/app', 0o777, true);
+        mkdir($tempDir.'/vendor', 0o777, true);
+
+        file_put_contents($tempDir.'/app/test.php', <<<'PHP'
+            <?php
+            $rules = ['field' => 'regex:/^included$/'];
+            PHP);
+
+        file_put_contents($tempDir.'/vendor/test.php', <<<'PHP'
+            <?php
+            $rules = ['field' => 'regex:/^excluded$/'];
+            PHP);
+
+        $extractor = new ValidationRuleExtractor();
+
+        $context = new RegexPatternSourceContext(
+            paths: [$tempDir.'/app', $tempDir.'/vendor'],
+            excludePaths: ['vendor'],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $extractedPatterns = array_map(
+            static fn (RegexPatternOccurrence $p): string => $p->displayPattern ?? $p->pattern,
+            $patterns,
+        );
+
+        $this->assertContains('/^included$/', $extractedPatterns);
+        $this->assertNotContains('/^excluded$/', $extractedPatterns);
+
+        // Clean up
+        unlink($tempDir.'/app/test.php');
+        unlink($tempDir.'/vendor/test.php');
+        rmdir($tempDir.'/app');
+        rmdir($tempDir.'/vendor');
+        rmdir($tempDir);
+    }
+
+    /**
+     * Get package providers.
+     *
+     * @param \Illuminate\Foundation\Application $app
+     *
+     * @return array<class-string>
+     */
+    protected function getPackageProviders($app): array
+    {
+        return [
+            RegexParserServiceProvider::class,
+        ];
+    }
+
+    /**
+     * Get package aliases.
+     *
+     * @param \Illuminate\Foundation\Application $app
+     *
+     * @return array<string, class-string>
+     */
+    protected function getPackageAliases($app): array
+    {
+        return [
+            'Regex' => RegexFacade::class,
+        ];
+    }
+}
