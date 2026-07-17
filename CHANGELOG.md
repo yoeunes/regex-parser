@@ -71,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
 ### Fixed
+- Optimizer suggestions no longer un-escape literal `\{n\}` sequences into quantifiers: `/^(\{0\}.+)/` was rewritten to the non-compiling `/^({0}.+)/`. Found by proving all 435 corpus optimization suggestions against PCRE + automata equivalence (253 proven equivalent, 0 divergent, 2 invalid — both this bug).
+- `SolverOptions::$maxTransitionsProcessed` now defaults to a finite 1,000,000 instead of unlimited; pathological patterns could previously spin the determinization loop for tens of minutes.
 - `--generate-baseline` combined with `--baseline` now writes a baseline covering the full report; previously issues suppressed by the old baseline silently vanished from the newly generated one.
 - The AST cache key now always includes the effective PHP version, so a cache directory shared across PHP upgrades cannot serve ASTs parsed under a different version.
 - Non-UTF-8 (byte-mode) patterns like `"@^[ \t!-~\x80-\xFF]*$@"` are now tokenized byte by byte and analyzed, exactly as PCRE compiles them without the `u` modifier, instead of being rejected with "Input string is not valid UTF-8". Combining invalid UTF-8 with the `u` flag still errors, like PCRE.

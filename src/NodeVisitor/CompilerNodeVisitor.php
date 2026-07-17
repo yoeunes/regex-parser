@@ -608,11 +608,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      */
     private function escapeString(string $value): string
     {
-        // Check if the entire value is a valid quantifier pattern - don't escape it
-        if (!$this->inCharClass && preg_match('/^\{\d+(?:,\d*)?\}$/', $value)) {
-            return $value;
-        }
-
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
         $escapeExtended = str_contains($this->flags, 'x') && !$this->inCharClass;
         $unicodeMode = str_contains($this->flags, 'u');

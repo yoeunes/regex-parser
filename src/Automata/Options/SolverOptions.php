@@ -27,7 +27,7 @@ final readonly class SolverOptions
      * @param int                      $maxDfaStates             Maximum allowed DFA states
      * @param bool                     $minimizeDfa              Whether to minimize DFAs after determinization
      * @param MinimizationAlgorithm    $minimizationAlgorithm    Strategy used for DFA minimization
-     * @param int|null                 $maxTransitionsProcessed  Hard limit on transition work (determinize/minimize)
+     * @param int|null                 $maxTransitionsProcessed  Hard limit on transition work (determinize/minimize); null disables the guard
      * @param DeterminizationAlgorithm $determinizationAlgorithm Strategy used for NFA determinization
      */
     public function __construct(
@@ -36,7 +36,9 @@ final readonly class SolverOptions
         public int $maxDfaStates = 10000,
         public bool $minimizeDfa = true,
         public MinimizationAlgorithm $minimizationAlgorithm = MinimizationAlgorithm::HOPCROFT,
-        public ?int $maxTransitionsProcessed = null,
+        // A finite default: with no cap, pathological real-world patterns can
+        // spin the determinization loop for tens of minutes.
+        public ?int $maxTransitionsProcessed = 1_000_000,
         public DeterminizationAlgorithm $determinizationAlgorithm = DeterminizationAlgorithm::SUBSET_INDEXED,
     ) {}
 }
