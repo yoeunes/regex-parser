@@ -143,6 +143,8 @@ final class Lexer
 
     private bool $inCommentMode = false;
 
+    private bool $byteMode = false;
+
     /**
      * @var array<int>
      */
@@ -155,7 +157,11 @@ final class Lexer
 
     public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
-        if (!preg_match('//u', $pattern)) {
+        // Patterns that are not valid UTF-8 are tokenized byte by byte, the
+        // way PCRE compiles them without the /u modifier. With /u, PCRE
+        // itself refuses such patterns.
+        $this->byteMode = !preg_match('//u', $pattern);
+        if ($this->byteMode && str_contains($flags, 'u')) {
             throw LexerException::withContext('Input string is not valid UTF-8.', 0, $pattern);
         }
 
@@ -184,12 +190,16 @@ final class Lexer
 
     private function getRegexOutside(): string
     {
-        return self::$regexOutside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
+        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+
+        return self::$regexOutside[$key] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
     }
 
     private function getRegexInside(): string
     {
-        return self::$regexInside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_INSIDE);
+        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+
+        return self::$regexInside[$key] ??= $this->compilePattern(self::PATTERNS_INSIDE);
     }
 
     /**
@@ -204,7 +214,7 @@ final class Lexer
             $regexParts[] = "(?<{$name}> {$pattern} )";
         }
 
-        return '/(?:'.implode('|', $regexParts).')/xsuA';
+        return '/(?:'.implode('|', $regexParts).')/xsA'.($this->byteMode ? '' : 'u');
     }
 
     /**

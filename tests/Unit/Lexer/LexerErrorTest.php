@@ -21,16 +21,16 @@ use RegexParser\Token;
 
 final class LexerErrorTest extends TestCase
 {
-    public function test_reset_throws_on_invalid_utf8(): void
+    public function test_reset_tokenizes_invalid_utf8_in_byte_mode(): void
     {
         $lexer = new Lexer();
         $lexer->tokenize('valid');
 
-        $this->expectException(LexerException::class);
-        $this->expectExceptionMessage('Input string is not valid UTF-8.');
+        // \xFF is invalid UTF-8; without the /u modifier the lexer treats
+        // the pattern as bytes, like PCRE.
+        $tokens = $lexer->tokenize("\xFF")->getTokens();
 
-        // \xFF is guaranteed invalid in UTF-8
-        $lexer->tokenize("\xFF");
+        $this->assertCount(2, $tokens); // \xFF, EOF
     }
 
     public function test_tokenize_throws_on_unclosed_char_class(): void

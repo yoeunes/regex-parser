@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
 ### Fixed
+- Non-UTF-8 (byte-mode) patterns like `"@^[ \t!-~\x80-\xFF]*$@"` are now tokenized byte by byte and analyzed, exactly as PCRE compiles them without the `u` modifier, instead of being rejected with "Input string is not valid UTF-8". Combining invalid UTF-8 with the `u` flag still errors, like PCRE.
 - Unicode conformance: `\o{...}` above 0xFF is accepted under `/u` (any valid codepoint) and rejected without it; `\N{U+hhhh}` is now actually lexed as a codepoint escape (it was silently parsed as literal text), requires the `u` flag like PCRE, and resolves its codepoint directly; `\p{L}` end positions are no longer off by two bytes; `\P{...}` compiles back byte-identically instead of being rewritten to `\p{^...}`.
 - PCRE conformance (validated differentially against the real engine): quoted references `\g'1'` / `\k'name'` and relative subroutine calls `\g<-1>`, `\g<+1>`, `(?+1)` are now accepted; a quantifier after `\Q...\E` applies to the quoted literal (`/\Q+\E*/`); `\c` at end of pattern, empty `\x{}`, quantifiers above 65535 (`a{65536}`), invalid group names (`(?<a-b>x)`), and unbalanced bracket delimiters (`{a{b}`) are now rejected like PCRE does.
 - Parser exceptions from named-Unicode validation and pattern-level flag errors now carry the pattern, position, and caret snippet like every other error.
