@@ -375,7 +375,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): string
     {
-        return '';
+        return $node->content?->accept($this) ?? '';
     }
 
     #[\Override]

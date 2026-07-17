@@ -251,7 +251,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): array
     {
-        return [0, null]; // Script run content length is not tracked
+        return $node->content?->accept($this) ?? [0, null];
     }
 
     #[\Override]

@@ -68,6 +68,21 @@ final class Parser
     private const CALLOUT_WRAPPER_LENGTH = 4; // (?C...)
     private const POSIX_CLASS_WRAPPER_LENGTH = 4; // [[:...:]]
 
+    /**
+     * PCRE2 10.32+ alphabetic assertion verbs and their group equivalents.
+     */
+    private const ALPHABETIC_ASSERTION_VERBS = [
+        'positive_lookahead' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+        'pla' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+        'negative_lookahead' => GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+        'nla' => GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+        'positive_lookbehind' => GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+        'plb' => GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+        'negative_lookbehind' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+        'nlb' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+        'atomic' => GroupType::T_GROUP_ATOMIC,
+    ];
+
     private TokenStream $stream;
 
     private string $pattern = '';
@@ -1017,10 +1032,47 @@ final class Parser
         );
     }
 
+    /**
+     * Parses a raw sub-pattern string (e.g. the payload of an alphabetic
+     * assertion verb) into an AST. Node positions inside the sub-pattern are
+     * relative to the payload, not to the enclosing pattern.
+     */
+    private function parseSubPattern(string $payload, int $absoluteOffset): NodeInterface
+    {
+        if ('' === $payload) {
+            return $this->createEmptyLiteralNodeAt($absoluteOffset);
+        }
+
+        $stream = (new Lexer($this->phpVersionId))->tokenize($payload, $this->flags);
+        $parser = new Parser($this->maxRecursionDepth, $this->phpVersionId);
+
+        return $parser->parse($stream, $this->flags, '/', \strlen($payload))->pattern;
+    }
+
     private function createPcreVerbNode(string $verb, int $startPosition, int $endPosition): NodeInterface
     {
         if ('' !== $verb && (str_starts_with($verb, ':') || str_starts_with($verb, '='))) {
             $verb = 'MARK'.$verb;
+        }
+
+        // Alphabetic assertion verbs: (*pla:...), (*atomic:...), etc. are
+        // synonyms for the classic lookaround / atomic group syntax.
+        $colon = strpos($verb, ':');
+        if (false !== $colon) {
+            $verbName = strtolower(substr($verb, 0, $colon));
+            if (isset(self::ALPHABETIC_ASSERTION_VERBS[$verbName])) {
+                $payload = substr($verb, $colon + 1);
+                $child = $this->parseSubPattern($payload, $startPosition + 2 + $colon + 1);
+
+                return new GroupNode(
+                    $child,
+                    self::ALPHABETIC_ASSERTION_VERBS[$verbName],
+                    null,
+                    null,
+                    $startPosition,
+                    $endPosition,
+                );
+            }
         }
 
         if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
@@ -1031,13 +1083,13 @@ final class Parser
         if (str_starts_with($lowerVerb, 'script_run:')) {
             $payload = substr($verb, \strlen('script_run:'));
             if ('' !== $payload) {
-                return new ScriptRunNode($payload, $startPosition, $endPosition);
+                return new ScriptRunNode($payload, $startPosition, $endPosition, $this->parseSubPattern($payload, $startPosition));
             }
         }
         if (str_starts_with($lowerVerb, 'sr:')) {
             $payload = substr($verb, \strlen('sr:'));
             if ('' !== $payload) {
-                return new ScriptRunNode($payload, $startPosition, $endPosition);
+                return new ScriptRunNode($payload, $startPosition, $endPosition, $this->parseSubPattern($payload, $startPosition));
             }
         }
 

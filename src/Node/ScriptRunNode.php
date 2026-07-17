@@ -26,7 +26,12 @@ final readonly class ScriptRunNode extends AbstractNode
     public function __construct(
         public string $script,
         int $startPosition,
-        int $endPosition
+        int $endPosition,
+        /**
+         * Parsed content of the script run, when available. Positions inside
+         * are relative to the payload text.
+         */
+        public ?NodeInterface $content = null,
     ) {
         parent::__construct($startPosition, $endPosition);
     }

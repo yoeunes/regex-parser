@@ -491,7 +491,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): ReDoSSeverity
     {
-        return ReDoSSeverity::SAFE;
+        return $node->content?->accept($this) ?? ReDoSSeverity::SAFE;
     }
 
     #[\Override]

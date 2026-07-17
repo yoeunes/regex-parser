@@ -53,11 +53,24 @@ final class PcreConformanceTest extends TestCase
             // Bracket delimiters require balanced nesting
             '{a{b}',
             '{a{b}c}',
+            // Alphabetic assertion verbs (PCRE2 10.32+)
+            '/(*pla:ab)c/',
+            '/(*positive_lookahead:ab)c/',
+            '/(*negative_lookbehind:x)y/',
+            '/(*atomic:a+)b/',
+            '/(*sr:(a+)+b)/',
         ];
 
         foreach ($patterns as $pattern) {
             yield $pattern => [$pattern];
         }
+    }
+
+    public function test_script_run_content_is_analyzed(): void
+    {
+        $analysis = Regex::create()->redos('/(*sr:(a+)+b)/');
+
+        $this->assertSame('critical', $analysis->severity->value);
     }
 
     #[DataProvider('provide_patterns')]

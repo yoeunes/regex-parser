@@ -284,7 +284,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): int
     {
-        return self::COMPLEX_CONSTRUCT_SCORE;
+        return self::COMPLEX_CONSTRUCT_SCORE + ($node->content?->accept($this) ?? 0);
     }
 
     #[\Override]
