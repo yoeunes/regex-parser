@@ -35,6 +35,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -1297,24 +1298,12 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
      */
     private function parseRangeQuantifier(string $quantifier): ?array
     {
-        if (preg_match('/^\{(\d+)\}$/', $quantifier, $matches)) {
-            $value = (int) $matches[1];
-
-            return [$value, $value];
+        if (!str_starts_with($quantifier, '{')) {
+            return null;
         }
 
-        if (preg_match('/^\{(\d+),\}$/', $quantifier, $matches)) {
-            return [(int) $matches[1], null];
-        }
+        $bounds = QuantifierBounds::parse($quantifier);
 
-        if (preg_match('/^\{,(\d+)\}$/', $quantifier, $matches)) {
-            return [0, (int) $matches[1]];
-        }
-
-        if (preg_match('/^\{(\d+),(\d+)\}$/', $quantifier, $matches)) {
-            return [(int) $matches[1], (int) $matches[2]];
-        }
-
-        return null;
+        return null === $bounds ? null : [$bounds->min, $bounds->max];
     }
 }

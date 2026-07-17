@@ -40,6 +40,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -1043,20 +1044,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private function parseQuantifierBounds(string $q): array
     {
-        return match ($q) {
-            '*' => [0, -1],
-            '+' => [1, -1],
-            '?' => [0, 1],
-            default => preg_match('/^\\{(\\d*?)(?:,(\\d*?))?\\}$/', $q, $m) ?
-                (
-                    ('' === $m[1] && (!isset($m[2]) || '' === $m[2]))
-                        ? [1, 1] // entirely empty braces remain invalid/fallback
-                        : (isset($m[2])
-                            ? ('' === $m[2] ? [(int) $m[1] ?: 0, -1] : [(int) $m[1] ?: 0, (int) $m[2]]) // {n,} or {n,m} or {,m}
-                            : [(int) $m[1] ?: 0, (int) $m[1] ?: 0]) // {n}
-                )
-                : [1, 1], // Should be impossible if Lexer is correct
-        };
+        $bounds = QuantifierBounds::parse($q);
+
+        return null === $bounds ? [1, 1] : [$bounds->min, $bounds->max ?? -1];
     }
 
     private function calculateFixedLength(NodeInterface $node): ?int

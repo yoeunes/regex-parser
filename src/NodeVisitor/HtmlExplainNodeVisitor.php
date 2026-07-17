@@ -36,6 +36,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
@@ -522,18 +523,15 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
 
     private function explainQuantifierValue(string $q, QuantifierType $type): string
     {
-        $desc = match ($q) {
-            '*' => 'zero or more times',
-            '+' => 'one or more times',
-            '?' => 'once or not at all',
-            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    \sprintf('at least %d times', $m[1]) :
-                    \sprintf('at least %d but not more than %d times', $m[1], $m[2])
-                ) :
-                    \sprintf('exactly %d times', $m[1])
-                ) :
-                'with quantifier '.$q, // Fallback
+        $bounds = QuantifierBounds::parse($q);
+        $desc = match (true) {
+            '*' === $q => 'zero or more times',
+            '+' === $q => 'one or more times',
+            '?' === $q => 'once or not at all',
+            null === $bounds => 'with quantifier '.$q, // Fallback
+            $bounds->min === $bounds->max => \sprintf('exactly %d times', $bounds->min),
+            null === $bounds->max => \sprintf('at least %d times', $bounds->min),
+            default => \sprintf('at least %d but not more than %d times', $bounds->min, $bounds->max),
         };
 
         $desc .= match ($type) {

@@ -39,6 +39,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
@@ -2944,17 +2945,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     private function parseQuantifierRange(string $quantifier): array
     {
-        return match ($quantifier) {
-            '*' => [0, null],
-            '+' => [1, null],
-            '?' => [0, 1],
-            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $quantifier, $m) ?
-                (isset($m[2]) ?
-                    ('' === $m[2] ? [(int) $m[1], null] : [(int) $m[1], (int) $m[2]]) :
-                    [(int) $m[1], (int) $m[1]]
-                ) :
-                [1, 1],
-        };
+        $bounds = QuantifierBounds::parse($quantifier);
+
+        return null === $bounds ? [1, 1] : [$bounds->min, $bounds->max];
     }
 
     // Add other visit methods as needed, default to no-op

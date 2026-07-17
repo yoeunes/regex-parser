@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backreference/octal disambiguation now follows PCRE**: `(a)\11` is the octal escape `\011` (TAB), not an invalid backreference; `\19` is octal `\1` + literal `9`; `\81` remains an error. Previously all multi-digit `\NN` were treated as backreferences and wrongly rejected.
 
 ### Changed
+- **Unified quantifier parsing** via a new `QuantifierBounds` value object. Previously ~20 inline re-implementations disagreed: `{,5}` meant "0 to 5" to the validator but "exactly once" to the length/lint analyzers and "never" to the sample generator; `{ 2 }` (extended mode) was only understood by the validator. All visitors (length ranges, ReDoS, linter, sample/test-case generators, optimizer, explain, railroad) now share one canonical parser.
 - **Stricter (PCRE-conformant) character class ranges**: a character type, POSIX class, or Unicode property can no longer be a range endpoint. Patterns like `[\w-_]`, `[\d-z]`, `[a-\d]` — which PCRE rejects at compile time — now fail to parse instead of being silently re-interpreted with a literal hyphen. Literal hyphens at class edges (`[-a]`, `[\d-]`) are unaffected.
 
 ### Documentation

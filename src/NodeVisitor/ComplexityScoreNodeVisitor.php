@@ -34,6 +34,7 @@ use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -322,14 +323,6 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
             return self::$unboundedQuantifierCache[$quant];
         }
 
-        // Fast array lookup for common cases
-        if (\in_array($quant, ['*', '+'], true)) {
-            return self::$unboundedQuantifierCache[$quant] = true;
-        }
-
-        // Regex check for {n,} pattern
-        $isUnbounded = 1 === preg_match('/^\{\d++,\}$/', $quant);
-
-        return self::$unboundedQuantifierCache[$quant] = $isUnbounded;
+        return self::$unboundedQuantifierCache[$quant] = QuantifierBounds::parse($quant)?->isUnbounded() ?? false;
     }
 }

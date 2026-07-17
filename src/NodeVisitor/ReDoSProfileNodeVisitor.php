@@ -35,6 +35,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
@@ -590,16 +591,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     private function isUnbounded(string $quantifier): bool
     {
-        if (str_contains($quantifier, '*') || str_contains($quantifier, '+')) {
-            return true;
-        }
-
-        if (str_contains($quantifier, ',')) {
-            // Check for {n,} (unbounded upper limit)
-            return !preg_match('/,\d++\}$/', $quantifier);
-        }
-
-        return false;
+        return QuantifierBounds::parse($quantifier)?->isUnbounded() ?? false;
     }
 
     /**
@@ -607,13 +599,9 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     private function isLargeBounded(string $quantifier): bool
     {
-        if (preg_match('/\{(\d++)(?:,(\d++))?\}/', $quantifier, $m)) {
-            $max = isset($m[2]) ? (int) $m[2] : (int) $m[1];
+        $bounds = QuantifierBounds::parse($quantifier);
 
-            return $max > 1000;
-        }
-
-        return false;
+        return null !== $bounds && null !== $bounds->max && $bounds->max > 1000;
     }
 
     /**
@@ -1075,29 +1063,9 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     private function quantifierBounds(string $quantifier): array
     {
-        if ('*' === $quantifier) {
-            return [0, null];
-        }
-        if ('+' === $quantifier) {
-            return [1, null];
-        }
-        if ('?' === $quantifier) {
-            return [0, 1];
-        }
+        $bounds = QuantifierBounds::parse($quantifier);
 
-        if (preg_match('/^\\{(\\d++),(\\d++)\\}$/', $quantifier, $m)) {
-            return [(int) $m[1], (int) $m[2]];
-        }
-
-        if (preg_match('/^\\{(\\d++),\\}$/', $quantifier, $m)) {
-            return [(int) $m[1], null];
-        }
-
-        if (preg_match('/^\\{(\\d++)\\}$/', $quantifier, $m)) {
-            return [(int) $m[1], (int) $m[1]];
-        }
-
-        return [0, null];
+        return null === $bounds ? [0, null] : [$bounds->min, $bounds->max];
     }
 
     private function shouldFlagEmptyRepeat(NodeInterface $node, ?int $max): bool

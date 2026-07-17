@@ -34,6 +34,7 @@ use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -134,9 +135,11 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): LiteralSet
     {
+        $bounds = QuantifierBounds::parse($node->quantifier);
+
         // Case 1: Exact quantifier {n} -> repeat literals n times
-        if (preg_match('/^\{(\d++)\}$/', $node->quantifier, $m)) {
-            $count = (int) $m[1];
+        if (null !== $bounds && $bounds->min === $bounds->max) {
+            $count = $bounds->min;
             if (0 === $count) {
                 return LiteralSet::fromString(''); // Matches empty string
             }
@@ -156,9 +159,9 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
             return $result;
         }
 
-        // Case 2: + or {n,} (At least 1)
+        // Case 2: + or {n,} or {n,m} with n >= 1 (At least 1)
         // We can extract the literal from the node, but it's not complete anymore because of the tail
-        if ('+' === $node->quantifier || preg_match('/^\{(\d++),/', $node->quantifier)) {
+        if (null !== $bounds && $bounds->min >= 1) {
             /** @var LiteralSet $childSet */
             $childSet = $node->node->accept($this);
 

@@ -37,6 +37,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
@@ -676,7 +677,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private function isPossessifyCandidate(QuantifierNode $node): bool
     {
         if (!\in_array($node->quantifier, ['+', '*'], true)) {
-            return 1 === preg_match('/^\{\d+,\}$/', $node->quantifier);
+            return QuantifierBounds::parse($node->quantifier)?->isUnbounded() ?? false;
         }
 
         return true;
@@ -799,17 +800,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private function quantifierAllowsZero(string $quantifier): bool
     {
-        if ('*' === $quantifier || '?' === $quantifier) {
-            return true;
-        }
+        $bounds = QuantifierBounds::parse($quantifier);
 
-        if (preg_match('/^\{(\d*+)(?:,(\d*+))?\}$/', $quantifier, $matches)) {
-            $min = '' === $matches[1] ? 0 : (int) $matches[1];
-
-            return 0 === $min;
-        }
-
-        return false;
+        return null !== $bounds && 0 === $bounds->min;
     }
 
     /**
@@ -1174,18 +1167,16 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private function parseQuantifierCount(string $quantifier): ?int
     {
-        if (preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $quantifier, $matches)) {
-            $min = (int) $matches[1];
-            $max = isset($matches[2]) ? ('' === $matches[2] ? \PHP_INT_MAX : (int) $matches[2]) : $min;
-            if ($min === $max) {
-                return $min;
-            }
-
-            // For ranges, don't merge
+        // Only merge exact {n} counts; ranges and * + ? never merge.
+        if (!str_starts_with($quantifier, '{')) {
             return null;
         }
 
-        // For * + ?, don't merge
+        $bounds = QuantifierBounds::parse($quantifier);
+        if (null !== $bounds && $bounds->min === $bounds->max) {
+            return $bounds->min;
+        }
+
         return null;
     }
 

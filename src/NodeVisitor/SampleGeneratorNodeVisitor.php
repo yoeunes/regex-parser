@@ -38,6 +38,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierBounds;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -561,27 +562,16 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
      */
     private function parseQuantifierRange(string $q): array
     {
-        $range = match ($q) {
-            '*' => [0, $this->maxRepetition],
-            '+' => [1, $this->maxRepetition],
-            '?' => [0, 1],
-            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
-                    [(int) $m[1], (int) $m[2]] // {n,m}
-                ) :
-                    [(int) $m[1], (int) $m[1]] // {n}
-                ) :
-                [0, 0], // Fallback
-        };
+        $bounds = QuantifierBounds::parse($q);
+        if (null === $bounds) {
+            return [0, 0];
+        }
+
+        $max = $bounds->max ?? $bounds->min + $this->maxRepetition;
 
         // Ensure min <= max, as Validator may not have run.
         // This handles invalid cases like {5,2} and silences PHPStan
-        if ($range[1] < $range[0]) {
-            $range[1] = $range[0];
-        }
-
-        return $range;
+        return [$bounds->min, max($max, $bounds->min)];
     }
 
     /**
