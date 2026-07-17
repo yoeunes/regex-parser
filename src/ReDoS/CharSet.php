@@ -160,6 +160,6 @@ final readonly class CharSet
             return null;
         }
 
-        return \chr($value);
+        return \chr($value & 0xFF);
     }
 }

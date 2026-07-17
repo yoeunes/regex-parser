@@ -310,7 +310,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             $ord1 = \ord($node->start->value);
             $ord2 = \ord($node->end->value);
 
-            return \chr($this->randomInt($ord1, $ord2));
+            return \chr($this->randomInt($ord1, $ord2) & 0xFF);
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;

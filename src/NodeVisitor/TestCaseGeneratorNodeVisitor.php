@@ -201,7 +201,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
             $chars = str_split($value);
             for ($i = 0; $i < min(\strlen($value), 2); $i++) {
                 $modified = $chars;
-                $modified[$i] = \chr(\ord($chars[$i]) + 1);
+                $modified[$i] = \chr((\ord($chars[$i]) + 1) & 0xFF);
                 $nonMatching[] = implode('', $modified);
             }
         }
@@ -328,7 +328,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
         $start = $node->start->value;
         $end = $node->end->value;
         $sample = $start;
-        $nonMatching = \chr(\ord($end) + 1);
+        $nonMatching = \chr((\ord($end) + 1) & 0xFF);
 
         return [
             'matching' => [$sample],
@@ -349,7 +349,9 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node): array
     {
-        $char = \chr($node->codePoint);
+        $char = $node->codePoint >= 0 && $node->codePoint <= 0xFF
+            ? \chr($node->codePoint)
+            : (mb_chr($node->codePoint, 'UTF-8') ?: '?');
 
         return [
             'matching' => [$char],
