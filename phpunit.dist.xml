@@ -9,7 +9,6 @@
          displayDetailsOnAllIssues="true"
          displayDetailsOnIncompleteTests="true"
          displayDetailsOnPhpunitDeprecations="true"
-         displayDetailsOnPhpunitNotices="true"
          displayDetailsOnSkippedTests="true"
          displayDetailsOnTestsThatTriggerDeprecations="true"
          displayDetailsOnTestsThatTriggerErrors="true"
