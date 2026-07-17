@@ -43,6 +43,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -375,6 +376,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function visitControlChar(ControlCharNode $node): string
     {
         return '\\c'.$node->char;
+    }
+
+    #[\Override]
+    public function visitUnicode(UnicodeNode $node): string
+    {
+        // PCRE has no \u escape; emit the equivalent \x{...} form.
+        return '\x{'.ltrim($node->code, '{}').'}';
     }
 
     #[\Override]

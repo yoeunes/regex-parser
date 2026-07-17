@@ -22,8 +22,10 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -36,10 +38,12 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Collects structural metrics about an AST (node counts and depth).
@@ -179,6 +183,30 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): array
     {
         return $this->record($node);
     }

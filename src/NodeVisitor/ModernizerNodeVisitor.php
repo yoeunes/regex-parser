@@ -41,6 +41,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -226,6 +227,12 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node): NodeInterface
+    {
+        return $node;
+    }
+
+    #[\Override]
+    public function visitUnicode(UnicodeNode $node): NodeInterface
     {
         return $node;
     }

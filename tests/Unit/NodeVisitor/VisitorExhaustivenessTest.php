@@ -96,6 +96,73 @@ final class VisitorExhaustivenessTest extends TestCase
         $this->assertGreaterThan(0, $visited);
     }
 
+    /**
+     * Constructs one instance of EVERY concrete node type (including ones the
+     * parser cannot currently emit, like UnicodeNode) and runs every visitor
+     * over it, so a new node type cannot silently fall through to the null
+     * default of AbstractNodeVisitor in any typed visitor.
+     */
+    #[Test]
+    public function test_every_visitor_handles_synthetic_instances_of_all_node_types(): void
+    {
+        $literal = new \RegexParser\Node\LiteralNode('a', 0, 1);
+        $nodes = [
+            new \RegexParser\Node\AlternationNode([$literal], 0, 1),
+            new \RegexParser\Node\AnchorNode('^', 0, 1),
+            new \RegexParser\Node\AssertionNode('b', 0, 2),
+            new \RegexParser\Node\BackrefNode('\\1', 0, 2),
+            new \RegexParser\Node\CalloutNode(1, false, 0, 5),
+            new \RegexParser\Node\CharClassNode($literal, false, 0, 3),
+            new \RegexParser\Node\CharLiteralNode('\\x41', 65, \RegexParser\Node\CharLiteralType::UNICODE, 0, 4),
+            new \RegexParser\Node\CharTypeNode('d', 0, 2),
+            new \RegexParser\Node\ClassOperationNode(\RegexParser\Node\ClassOperationType::INTERSECTION, $literal, $literal, 0, 6),
+            new \RegexParser\Node\CommentNode('c', 0, 5),
+            new \RegexParser\Node\ConditionalNode($literal, $literal, $literal, 0, 9),
+            new \RegexParser\Node\ControlCharNode('A', 1, 0, 3),
+            new \RegexParser\Node\DefineNode($literal, 0, 12),
+            new \RegexParser\Node\DotNode(0, 1),
+            new \RegexParser\Node\GroupNode($literal, \RegexParser\Node\GroupType::T_GROUP_CAPTURING, null, null, 0, 3),
+            new \RegexParser\Node\KeepNode(0, 2),
+            new \RegexParser\Node\LimitMatchNode(10, 0, 16),
+            $literal,
+            new \RegexParser\Node\PcreVerbNode('FAIL', 0, 7),
+            new \RegexParser\Node\PosixClassNode('alpha', 0, 9),
+            new \RegexParser\Node\QuantifierNode($literal, '+', \RegexParser\Node\QuantifierType::T_GREEDY, 0, 2),
+            new \RegexParser\Node\RangeNode($literal, new \RegexParser\Node\LiteralNode('z', 2, 3), 0, 3),
+            new \RegexParser\Node\ScriptRunNode('Greek', 0, 12),
+            new \RegexParser\Node\SequenceNode([$literal], 0, 1),
+            new \RegexParser\Node\SubroutineNode('1', 'g', 0, 5),
+            new \RegexParser\Node\UnicodeNode('0041', 0, 6),
+            new \RegexParser\Node\UnicodePropNode('L', false, 0, 3),
+            new \RegexParser\Node\VersionConditionNode('>=', '10.4', 0, 16),
+        ];
+        $nodes[] = new \RegexParser\Node\RegexNode($literal, '', '/', 0, 3);
+
+        // Every concrete node type must appear above.
+        $covered = array_map(static fn (NodeInterface $n): string => $n::class, $nodes);
+        foreach (glob(__DIR__.'/../../../src/Node/*Node.php') ?: [] as $file) {
+            $class = 'RegexParser\Node\\'.basename($file, '.php');
+            if (!is_subclass_of($class, NodeInterface::class) || (new \ReflectionClass($class))->isAbstract()) {
+                continue;
+            }
+            $this->assertContains($class, $covered, 'Add a synthetic instance for '.$class);
+        }
+
+        foreach (self::instantiableVisitors() as $class => $visitor) {
+            foreach ($nodes as $node) {
+                try {
+                    $node->accept($visitor);
+                } catch (RegexException|\LogicException|\RuntimeException) {
+                    // Domain errors are fine; we only guard against engine-level crashes.
+                } catch (\Error $e) {
+                    $this->fail(\sprintf('%s crashed on %s: %s', $class, $node::class, $e->getMessage()));
+                }
+            }
+        }
+
+        $this->assertGreaterThan(0, \count($nodes));
+    }
+
     #[Test]
     public function test_pattern_corpus_covers_all_parser_producible_node_types(): void
     {
