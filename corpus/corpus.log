@@ -241,9 +241,6 @@
          ↳ Backreferences do not work inside character classes. If you intended to match the same text as group 1, move the check outside the class.
      WARN  Suspicious \5 inside character class: this is octal (\x05), not a backreference to group 5.
          ↳ Backreferences do not work inside character classes. If you intended to match the same text as group 5, move the check outside the class.
-     TIP 
-         - /(?:--[^\s=]+=(["'])((\{2})*|[^\\](?:\{2})*|(?:[^\1]+?[^\\](\{2})*))\1|--[^\s=]+=[^\s]+|--[^\s=]+|(["'])((\{2})*|[^\\](?:\{2})*|(?:[^\5]+?[^\\](\{2})*))\5|[^\s]+)/
-         + /(?:--[^\s=]+=(["'])(({2})*|[^\\](?:{2})*|(?:[^\1]+?[^\\]({2})*))\1|--[^\s=]+=[^\s]+|--[^\s=]+|(["'])(({2})*|[^\\](?:{2})*|(?:[^\5]+?[^\\]({2})*))\5|[^\s]+)/
 
   corpus/wp-cli/php/utils.php:1332:14
       → #^((docker|docker\-compose|docker\-compose\-run|ssh|vagrant):)?(([^@:]+)@)?([^:/~]+)(:([\d]*))?((/|~)(.+))?$#
@@ -5212,12 +5209,6 @@
      TIP 
          - /\s{1,}/
          + /\s+/
-
-  corpus/shopware/src/Core/System/Snippet/SnippetValidator.php:257:48
-      → /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
-     TIP 
-         - /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
-         + /^({0}.+\|)?({1}.+\|)(\[0,inf\[.+)/i
 
   corpus/paratest/test/Unit/WrapperRunner/WrapperRunnerTest.php:255:32
       → /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-\w+)?\n\n/
