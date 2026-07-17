@@ -46,7 +46,7 @@ final class RegexRoutesCommandTest extends TestCase
         $collection->add('api_user_show', new Route('/users/{id}'));
         $collection->add('api_user_list', new Route('/users/list'));
 
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $router->method('getRouteCollection')->willReturn($collection);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());
@@ -71,7 +71,7 @@ final class RegexRoutesCommandTest extends TestCase
         $collection->add('api_user_show', $route);
         $collection->add('api_user_list', new Route('/users/list'));
 
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $router->method('getRouteCollection')->willReturn($collection);
 
         $analyzer = new RouteConflictAnalyzer(Regex::create());

@@ -158,7 +158,7 @@ final class PatternParserTest extends TestCase
         $reflectionMethod = new \ReflectionMethod(PatternParser::class, 'supportsModifierR');
 
         $supportsModifierRProperty = new \ReflectionProperty(PatternParser::class, 'supportsModifierR');
-        $supportsModifierRProperty->setValue([]);
+        $supportsModifierRProperty->setValue(null, []);
 
         $result = $reflectionMethod->invoke(null, null);
 
@@ -170,7 +170,7 @@ final class PatternParserTest extends TestCase
         $reflectionMethod = new \ReflectionMethod(PatternParser::class, 'supportsModifierE');
 
         $supportsModifierEProperty = new \ReflectionProperty(PatternParser::class, 'supportsModifierE');
-        $supportsModifierEProperty->setValue([]);
+        $supportsModifierEProperty->setValue(null, []);
 
         $result = $reflectionMethod->invoke(null, null);
 

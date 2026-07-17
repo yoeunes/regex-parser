@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\RegexPatternExtractor;
@@ -22,13 +22,13 @@ use RegexParser\Tests\Support\LintFunctionOverrides;
 
 final class RegexPatternExtractorTest extends TestCase
 {
-    private ExtractorInterface&MockObject $extractor;
+    private ExtractorInterface&Stub $extractor;
 
     private RegexPatternExtractor $patternExtractor;
 
     protected function setUp(): void
     {
-        $this->extractor = $this->createMock(ExtractorInterface::class);
+        $this->extractor = $this->createStub(ExtractorInterface::class);
         $this->patternExtractor = new RegexPatternExtractor($this->extractor);
     }
 

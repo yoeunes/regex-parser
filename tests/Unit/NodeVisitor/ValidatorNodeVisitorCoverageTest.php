@@ -52,10 +52,10 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
 
         $unicodePropCache = $ref->getProperty('unicodePropCache');
-        $unicodePropCache->setValue(['p{X}' => true]);
+        $unicodePropCache->setValue(null, ['p{X}' => true]);
 
         $quantifierBoundsCache = $ref->getProperty('quantifierBoundsCache');
-        $quantifierBoundsCache->setValue(['{1,2}' => [1, 2]]);
+        $quantifierBoundsCache->setValue(null, ['{1,2}' => [1, 2]]);
 
         ValidatorNodeVisitor::clearCaches();
 
@@ -185,7 +185,7 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         $validator = new ValidatorNodeVisitor();
         $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
         $unicodePropCache = $ref->getProperty('unicodePropCache');
-        $unicodePropCache->setValue(['p{Letter}' => false]);
+        $unicodePropCache->setValue(null, ['p{Letter}' => false]);
 
         $node = new UnicodePropNode('Letter', false, 0, 0);
 
@@ -204,7 +204,7 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         for ($i = 0; $i < 1000; $i++) {
             $cache['p{X'.$i.'}'] = true;
         }
-        $unicodePropCache->setValue($cache);
+        $unicodePropCache->setValue(null, $cache);
 
         $node = new UnicodePropNode('Z', true, 0, 0);
         $node->accept($validator);
@@ -485,7 +485,7 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         for ($i = 0; $i < 1000; $i++) {
             $cache['{'.$i.',}'] = [$i, -1];
         }
-        $quantifierCache->setValue($cache);
+        $quantifierCache->setValue(null, $cache);
 
         $method = $ref->getMethod('getQuantifierBounds');
 

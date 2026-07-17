@@ -6,6 +6,15 @@
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".cache/phpunit/"
          executionOrder="random"
+         displayDetailsOnAllIssues="true"
+         displayDetailsOnIncompleteTests="true"
+         displayDetailsOnPhpunitDeprecations="true"
+         displayDetailsOnPhpunitNotices="true"
+         displayDetailsOnSkippedTests="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
          resolveDependencies="true">
     <php>
         <ini name="intl.default_locale" value="en"/>

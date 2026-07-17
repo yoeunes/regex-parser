@@ -115,15 +115,15 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_regex_constraint(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         // Mock metadata for a class
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([]);
         $metadata->method('getConstrainedProperties')->willReturn(['email']);
 
-        $propertyMetadata = $this->createMock(PropertyMetadataInterface::class);
+        $propertyMetadata = $this->createStub(PropertyMetadataInterface::class);
         $propertyMetadata->method('getPropertyName')->willReturn('email');
         $propertyMetadata->method('getConstraints')->willReturn([
             new Regex(pattern: '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'),
@@ -144,12 +144,12 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_class_level_regex_constraint(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         $regexConstraint = new Regex(pattern: '/^valid$/');
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([$regexConstraint]);
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
@@ -166,13 +166,13 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_ignores_null_patterns(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         $regexConstraint = new Regex(pattern: '/placeholder/');
         $regexConstraint->pattern = null;
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([$regexConstraint]);
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
@@ -187,12 +187,12 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_ignores_empty_patterns(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         $regexConstraint = new Regex(pattern: '');
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([$regexConstraint]);
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
@@ -207,12 +207,12 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_ignores_non_regex_constraints(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         $notConstraint = new NotBlank();
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([$notConstraint]);
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
@@ -227,7 +227,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_handles_metadata_exceptions(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
         $validator->method('getMetadataFor')->willThrowException(new \Exception('Metadata not found'));
@@ -260,10 +260,10 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_class_file(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([
             new Regex(pattern: '/test/'),
         ]);
@@ -351,10 +351,10 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_non_property_metadata_entries(): void
     {
-        $validator = $this->createMock(ValidatorInterface::class);
+        $validator = $this->createStub(ValidatorInterface::class);
         $loader = $this->createLoaderStub([TestEntity::class]);
 
-        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata = $this->createStub(ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([]);
         $metadata->method('getConstrainedProperties')->willReturn(['email']);
         $metadata->method('getPropertyMetadata')->willReturn([new \stdClass()]);

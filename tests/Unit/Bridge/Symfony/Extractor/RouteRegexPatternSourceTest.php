@@ -84,7 +84,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_empty_route_collection(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
         $router->method('getRouteCollection')->willReturn($collection);
 
@@ -98,7 +98,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_route_having_requirements(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}');
@@ -122,7 +122,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_non_scalar_requirements(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}');
@@ -142,7 +142,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_route_having_controller(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}');
@@ -163,7 +163,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_multiple_requirements(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}/{slug}');
@@ -188,7 +188,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_ignores_empty_requirements(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}/{slug}');
@@ -215,7 +215,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/test_content.yaml', $tempYaml);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new RouteCollection();
 
             $route = new Route('/test/{id}');
@@ -249,7 +249,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/test_content2.yaml', $tempYaml2);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new RouteCollection();
 
             $route = new Route('/test/{id}');
@@ -283,7 +283,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/routes.xml', $tempXml);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new RouteCollection();
 
             $route = new Route('/test/{id}');
@@ -311,7 +311,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_already_delimited_patterns(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{id}');
@@ -331,7 +331,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_anchor_patterns(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $route = new Route('/test/{slug}');
@@ -362,7 +362,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/yaml_content.yaml', $tempYaml);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new RouteCollection();
 
             // Add a route with the same name as in YAML
@@ -459,7 +459,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_yaml_requirement_when_line_mismatch(): void
     {
-        $router = $this->createMock(RouterInterface::class);
+        $router = $this->createStub(RouterInterface::class);
         $collection = new RouteCollection();
 
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
@@ -500,7 +500,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/inline_requirements.yaml', $tempYaml);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new NullGetRouteCollection();
 
             $route = new Route('/test/{id}');
@@ -526,7 +526,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         copy(__DIR__.'/../../../../Fixtures/Symfony/complex_yaml.yaml', $tempYaml);
 
         try {
-            $router = $this->createMock(RouterInterface::class);
+            $router = $this->createStub(RouterInterface::class);
             $collection = new RouteCollection();
 
             // Add a route with the same name as in YAML
