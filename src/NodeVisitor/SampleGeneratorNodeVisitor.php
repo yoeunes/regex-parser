@@ -310,7 +310,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             $ord1 = \ord($node->start->value);
             $ord2 = \ord($node->end->value);
 
-            return \chr($this->randomInt($ord1, $ord2));
+            return \chr($this->randomInt($ord1, $ord2) & 0xFF);
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
@@ -523,12 +523,12 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
      */
     private function sampleForNegatedClass(CharClassNode $node): string
     {
-        $candidates = array_merge(
-            range('a', 'e'),
-            range('A', 'E'),
-            range('0', '4'),
-            ['!', '?', '_', '-', ' ', "\t", 'é', '☃'],
-        );
+        $candidates = [
+            'a', 'b', 'c', 'd', 'e',
+            'A', 'B', 'C', 'D', 'E',
+            '0', '1', '2', '3', '4',
+            '!', '?', '_', '-', ' ', "\t", 'é', '☃',
+        ];
 
         try {
             $compiled = $node->accept(new CompilerNodeVisitor());

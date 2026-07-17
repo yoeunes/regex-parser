@@ -888,7 +888,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
         $charCode = (int) hexdec($hexDigits);
 
-        return ['value' => \chr($charCode), 'newIndex' => $pos];
+        return ['value' => \chr($charCode & 0xFF), 'newIndex' => $pos];
     }
 
     /**
@@ -944,16 +944,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     private function codepointToUtf8(int $codepoint): string
     {
         if ($codepoint < 0x80) {
-            return \chr($codepoint);
+            return \chr($codepoint & 0x7F);
         }
         if ($codepoint < 0x800) {
-            return \chr(0xC0 | ($codepoint >> 6)).\chr(0x80 | ($codepoint & 0x3F));
+            return \chr((0xC0 | ($codepoint >> 6)) & 0xFF).\chr(0x80 | ($codepoint & 0x3F));
         }
         if ($codepoint < 0x10000) {
-            return \chr(0xE0 | ($codepoint >> 12)).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
+            return \chr((0xE0 | ($codepoint >> 12)) & 0xFF).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
         }
 
-        return \chr(0xF0 | ($codepoint >> 18)).\chr(0x80 | (($codepoint >> 12) & 0x3F)).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
+        return \chr((0xF0 | ($codepoint >> 18)) & 0xFF).\chr(0x80 | (($codepoint >> 12) & 0x3F)).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
     }
 
     /**
