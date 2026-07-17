@@ -1,1 +1,1 @@
-wrongchecksum  regex.phar
+deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef  regex.phar

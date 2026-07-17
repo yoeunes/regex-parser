@@ -362,6 +362,21 @@ final class Parser
             $startPosition = $node->getStartPosition();
             $endPosition = $token->position + \strlen($token->value);
 
+            // In extended (/x) mode, whitespace may separate a quantifier from
+            // its lazy/possessive modifier: "a* +" means "a*+" to PCRE.
+            if (QuantifierType::T_GREEDY === $type && str_contains($this->flags, 'x') && !$this->inQuoteMode) {
+                $skippedModifier = $this->skipExtendedModeContent();
+                if ($this->check(TokenType::T_QUANTIFIER) && \in_array($this->current()->value, ['+', '?'], true)) {
+                    $modifier = $this->current()->value;
+                    $type = '+' === $modifier ? QuantifierType::T_POSSESSIVE : QuantifierType::T_LAZY;
+                    $endPosition = $this->current()->position + 1;
+                    $this->advance();
+                } elseif ($skippedModifier > 0) {
+                    $this->stream->rewind($skippedModifier);
+                    $this->currentTokenValid = false;
+                }
+            }
+
             return new QuantifierNode($node, $quantifier, $type, $startPosition, $endPosition);
         }
 

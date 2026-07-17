@@ -133,6 +133,8 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Phar readonly is enabled.');
         }
 
+        $this->expectNotToPerformAssertions();
+
         $updater = new SelfUpdater();
         $method = new \ReflectionMethod(SelfUpdater::class, 'validateDownloadedPhar');
 

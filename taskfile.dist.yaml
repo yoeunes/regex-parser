@@ -66,7 +66,7 @@ tasks:
 
   phpunit:
     cmds:
-      - cmd: tools/phpunit/vendor/bin/phpunit {{.CLI_ARGS}}
+      - cmd: php -d phar.readonly=0 tools/phpunit/vendor/bin/phpunit {{.CLI_ARGS}}
       - cmd: touch .task/phpunit.success
     sources:
       - phpunit.dist.xml

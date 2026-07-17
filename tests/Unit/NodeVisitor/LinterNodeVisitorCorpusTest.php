@@ -32,8 +32,19 @@ final class LinterNodeVisitorCorpusTest extends TestCase
     {
         try {
             $regex = Regex::create(['max_recursion_depth' => 4096])->parse($pattern);
-        } catch (SyntaxErrorException) {
-            $this->markTestSkipped('Parser cannot handle this complex pattern');
+        } catch (SyntaxErrorException $e) {
+            // The log-based pattern reconstruction is lossy; only skip when
+            // PCRE itself also rejects the reconstructed text. If PCRE
+            // accepts it, our parser has a real gap and must fail loudly.
+            set_error_handler(static fn (): bool => true);
+            $pcreAccepts = false !== @preg_match($pattern, '');
+            restore_error_handler();
+
+            if ($pcreAccepts) {
+                $this->fail('PCRE accepts this pattern but the parser rejects it: '.$e->getMessage());
+            }
+
+            $this->markTestSkipped('Pattern is invalid for PCRE as well (lossy log reconstruction)');
         }
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);

@@ -23,6 +23,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: phar.readonly=0
 
       - name: Install Dependencies (${{ matrix.dependency }})
         run: |
@@ -57,6 +58,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: phar.readonly=0
 
       - name: Install Dependencies (${{ matrix.dependency }})
         run: |
@@ -131,6 +133,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: phar.readonly=0
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
@@ -154,6 +157,7 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: phar.readonly=0
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
