@@ -58,7 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SecurityAccessControlAnalyzer` now uses `MatchMode::FULL` instead of `MatchMode::PARTIAL`, avoiding redundant NFA self-loops since patterns are already manually wrapped with `.*` by `normalizeSearchPattern()`.
 - `RegexSolver::findExample()` product-automaton BFS now uses integer pair keys instead of string concatenation, reducing allocation overhead during DFA intersection/subset/equivalence checks.
 
+### Removed
+- Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
+
 ### Fixed
+- Parser exceptions from named-Unicode validation and pattern-level flag errors now carry the pattern, position, and caret snippet like every other error.
 - Visitors now cover every AST node type: `CompilerNodeVisitor` no longer silently drops `UnicodeNode` from compiled patterns; `MetricsNodeVisitor` counts class operations, control chars, script runs, and version conditionals; `ModernizerNodeVisitor` passes `UnicodeNode` through. A synthetic all-node exhaustiveness test guards every visitor against future node additions.
 - CLI lint config now honors `verifyWithAutomata` when provided in optimization settings.
 - **Visitor crashes on newer node types**: visitors with typed returns (`optimize()`, `literals()`, `generate()`, complexity scoring, length ranges, HTML explain, test-case generation) crashed with a `TypeError` on patterns containing control chars (`\cA`), class operations (`[a&&b]`), script runs (`(*sr:...)`), or version conditionals (`(?(VERSION>=...))`). `validate('/\cA/')` also wrongly reported valid patterns as invalid. All visitors now handle every node type; a new exhaustiveness test guards against future drift.

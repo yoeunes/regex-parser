@@ -40,7 +40,7 @@ final class PatternParser
 
         $len = \strlen($regex);
         if ($len < 2) {
-            throw new ParserException('Regex is too short. It must include delimiters.');
+            throw new ParserException('Regex is too short. It must include delimiters, e.g. "/abc/".', 0, $regex);
         }
 
         $delimiter = $regex[0];
@@ -87,14 +87,16 @@ final class PatternParser
                         // Find the invalid flag for a better error message
                         $invalid = preg_replace('/['.preg_quote($allowedFlags, '/').']/', '', $flags);
 
+                        $flagsPosition = \strlen($regex) - \strlen($flags);
+
                         if (str_contains((string) $invalid, 'e')) {
-                            throw new ParserException('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+                            throw new ParserException('The \'e\' flag (preg_replace /e) was removed in PHP 7.0; use preg_replace_callback() instead.', $flagsPosition, $regex);
                         }
 
                         // Format each invalid flag individually with quotes
                         $formattedFlags = implode(', ', array_map(static fn (string $flag): string => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
 
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: %s', $formattedFlags));
+                        throw new ParserException(\sprintf('Unknown regex flag(s) found: %s', $formattedFlags), $flagsPosition, $regex);
                     }
 
                     return [$pattern, $flags, $delimiter];

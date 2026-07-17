@@ -39,7 +39,7 @@ final class PatternParserTest extends TestCase
     public function test_rejects_modifier_e_with_improved_message(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed in PHP 7.0; use preg_replace_callback() instead.');
 
         PatternParser::extractPatternAndFlags('/a/e');
     }
@@ -80,7 +80,7 @@ final class PatternParserTest extends TestCase
         // This test triggers the runtime detection code in supportsModifierE
         // On PHP 7.0+, this should reject 'e' modifier
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed in PHP 7.0; use preg_replace_callback() instead.');
 
         // This call will trigger the runtime detection code
         PatternParser::extractPatternAndFlags('/a/e');
@@ -109,7 +109,7 @@ final class PatternParserTest extends TestCase
         // where phpVersionId is null for modifier 'e'
         // PHP 7.0+ should reject the 'e' modifier at runtime
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed in PHP 7.0; use preg_replace_callback() instead.');
 
         // This call will trigger the runtime detection code
         PatternParser::extractPatternAndFlags('/a/e');
@@ -149,7 +149,7 @@ final class PatternParserTest extends TestCase
         $this->assertSame(['a', 'e', '/'], PatternParser::extractPatternAndFlags('/a/e', 50500));
 
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed in PHP 7.0; use preg_replace_callback() instead.');
         PatternParser::extractPatternAndFlags('/a/e', 70000);
     }
 

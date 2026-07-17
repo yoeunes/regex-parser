@@ -931,14 +931,14 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         // Extract the Unicode name from the representation
         if (!preg_match('/^\\\\N\\{(.+)}$/', $node->originalRepresentation, $matches)) {
-            throw new ParserException("Invalid Unicode named character format: {$node->originalRepresentation}", $node->getStartPosition());
+            throw new ParserException("Invalid Unicode named character format: {$node->originalRepresentation}", $node->getStartPosition(), $this->pattern);
         }
 
         $name = $matches[1];
 
         // If the codePoint is -1, the name could not be resolved
         if (-1 === $node->codePoint) {
-            throw new ParserException("Invalid Unicode character name: {$name}", $node->getStartPosition());
+            throw new ParserException("Invalid Unicode character name: {$name}", $node->getStartPosition(), $this->pattern);
         }
     }
 
