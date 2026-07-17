@@ -248,6 +248,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             );
         }
 
+        // PCRE caps repetition counts at 65535.
+        if ($min > 65535 || $max > 65535) {
+            $this->raiseSemanticError(
+                \sprintf('Number too big in "%s" quantifier: PCRE allows at most 65535 repetitions.', $node->quantifier),
+                $node->startPosition,
+                'regex.quantifier.too_big',
+            );
+        }
+
         $node->node->accept($this);
     }
 
@@ -455,9 +464,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        // \g backreference with optimized validation
-        if (preg_match('/^\\\\g\{?(?<num>[0-9+-]++)\}?$/', $ref, $matches)) {
-            $numStr = $matches['num'];
+        // \g backreference with optimized validation (\g1, \g{1}, \g'1')
+        if (preg_match('/^\\\\g(?:\{([0-9+-]++)\}|\'([0-9+-]++)\'|([0-9+-]++))$/', $ref, $matches)) {
+            $numStr = ('' !== $matches[1]) ? $matches[1] : (('' !== ($matches[2] ?? '')) ? $matches[2] : ($matches[3] ?? ''));
             if ('0' === $numStr || '+0' === $numStr || '-0' === $numStr) {
                 $this->raiseSemanticError(
                     'Backreference \\g{0} is not valid.',
@@ -697,16 +706,16 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        // Numeric reference: (?1), (?-1)
-        if (ctype_digit($ref) || (str_starts_with($ref, '-') && ctype_digit(substr($ref, 1)))) {
+        // Numeric reference: (?1), (?-1), (?+1), \g<-1>, \g<+1>
+        if (1 === preg_match('/^[+-]?\d+$/', $ref)) {
             $num = (int) $ref;
             if (0 === $num) {
                 return; // (?0) is an alias for (?R)
             }
-            if ($num > 0) {
-                $this->assertAbsoluteReferenceExists($num, $node->startPosition, 'regex.subroutine.missing_group', 'Subroutine call');
-            } else {
+            if (str_starts_with($ref, '+') || str_starts_with($ref, '-')) {
                 $this->assertRelativeReferenceExists($num, $node->startPosition, 'regex.subroutine.relative_missing', 'Subroutine call');
+            } else {
+                $this->assertAbsoluteReferenceExists($num, $node->startPosition, 'regex.subroutine.missing_group', 'Subroutine call');
             }
 
             return;

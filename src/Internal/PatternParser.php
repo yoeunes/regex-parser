@@ -56,9 +56,41 @@ final class PatternParser
         // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
         $closingDelimiter = self::closingDelimiter($delimiter);
 
-        // Find the last occurrence of the closing delimiter that is NOT escaped
-        // We scan from the end to optimize for flags
-        for ($i = $len - 1; $i > 0; $i--) {
+        // For bracket-style delimiters, PHP requires balanced nesting: the
+        // pattern ends at the closer matching the opening bracket, so
+        // "{a{b}" has no ending delimiter. Scan forward, tracking depth.
+        if ($delimiter !== $closingDelimiter) {
+            $endIndex = null;
+            $depth = 1;
+            for ($k = 1; $k < $len; $k++) {
+                $ch = $regex[$k];
+                if ('\\' === $ch) {
+                    $k++;
+
+                    continue;
+                }
+                if ($ch === $delimiter) {
+                    $depth++;
+                } elseif ($ch === $closingDelimiter && 0 === --$depth) {
+                    $endIndex = $k;
+
+                    break;
+                }
+            }
+
+            $candidates = null === $endIndex ? [] : [$endIndex];
+        } else {
+            // Find the last occurrence of the closing delimiter that is NOT
+            // escaped; scan from the end to optimize for flags.
+            $candidates = [];
+            for ($k = $len - 1; $k > 0; $k--) {
+                if ($regex[$k] === $closingDelimiter) {
+                    $candidates[] = $k;
+                }
+            }
+        }
+
+        foreach ($candidates as $i) {
             if ($regex[$i] === $closingDelimiter) {
                 // Check if escaped (count odd number of backslashes before it)
                 $escapes = 0;

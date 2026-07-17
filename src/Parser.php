@@ -174,6 +174,16 @@ final class Parser
             if ($this->match(TokenType::T_QUOTE_MODE_END)) {
                 $this->inQuoteMode = false;
 
+                // A quantifier directly after \Q...\E applies to the last
+                // quoted character, as in PCRE (/\Q+\E*/ repeats "+").
+                if ([] !== $nodes && $this->match(TokenType::T_QUANTIFIER)) {
+                    $token = $this->previous();
+                    $last = array_pop($nodes);
+                    $this->assertQuantifierCanApply($last, $token);
+                    [$quantifier, $type] = $this->parseQuantifierValue($token->value);
+                    $nodes[] = new QuantifierNode($last, $quantifier, $type, $last->getStartPosition(), $token->position + \strlen($token->value));
+                }
+
                 continue;
             }
 
@@ -646,13 +656,17 @@ final class Parser
         $value = $token->value;
         $endPosition = $startPosition + \strlen($value);
 
-        // \g{N} or \gN (numeric, incl. relative) -> Backreference
-        if (preg_match('/^\\\\g\{?([0-9+-]++)\}?$/', $value, $m)) {
+        // \g{N}, \gN or \g'N' (numeric, incl. relative) -> Backreference
+        if (preg_match('/^\\\\g(?:\{([0-9+-]++)\}|\'([0-9+-]++)\'|([0-9+-]++))$/', $value, $m)) {
             return new BackrefNode($value, $startPosition, $endPosition);
         }
 
-        // \g<name> or \g{name} (non-numeric) -> Subroutine
-        if (preg_match('/^\\\\g<(\w++)>$/', $value, $m)) {
+        // \g<name>, \g'name' or \g{name} (non-numeric) -> Subroutine
+        if (preg_match('/^\\\\g<([+-]?\w++)>$/', $value, $m)) {
+            return new SubroutineNode($m[1], 'g', $startPosition, $endPosition);
+        }
+
+        if (preg_match('/^\\\\g\'([+-]?\w++)\'$/', $value, $m)) {
             return new SubroutineNode($m[1], 'g', $startPosition, $endPosition);
         }
 
@@ -1171,6 +1185,12 @@ final class Parser
         if ($this->matchLiteral('-')) {
             $num = '-';
             $tokensConsumed++;
+        } elseif ($this->check(TokenType::T_QUANTIFIER) && '+' === $this->current()->value) {
+            // "+" after "(?" is lexed as a quantifier token; here it is the
+            // sign of a relative subroutine call like (?+1).
+            $this->advance();
+            $num = '+';
+            $tokensConsumed++;
         }
 
         if ($this->isLiteralDigitToken()) {
@@ -1194,8 +1214,8 @@ final class Parser
             // Not a valid subroutine, rewind all consumed tokens
             $this->stream->rewind($tokensConsumed);
             $this->currentTokenValid = false;
-        } elseif ('-' === $num) {
-            // Only consumed the minus sign, rewind it
+        } elseif ('-' === $num || '+' === $num) {
+            // Only consumed the sign, rewind it
             $this->stream->rewind(1);
             $this->currentTokenValid = false;
         }
@@ -1820,6 +1840,14 @@ final class Parser
         if ('' === $name) {
             throw $this->parserException(
                 \sprintf('Expected group name at position %d', $nameStartPosition),
+                $nameStartPosition,
+            );
+        }
+
+        // PCRE group names are word characters only and must not start with a digit.
+        if (1 !== preg_match('/^[A-Za-z_]\w*+$/', $name)) {
+            throw $this->parserException(
+                \sprintf('Invalid group name "%s": names must contain only word characters and must not start with a digit.', $name),
                 $nameStartPosition,
             );
         }

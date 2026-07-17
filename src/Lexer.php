@@ -57,8 +57,8 @@ final class Lexer
         'T_ASSERTION' => '\\\\ (?: b\\{g\\} | B\\{g\\} | [AzZGbB] )',
         'T_KEEP' => '\\\\ K',
         'T_CHAR_TYPE' => '\\\\ (?: N(?!\\{) | [dswDSWhvRCXHV] )',
-        'T_G_REFERENCE' => '\\\\ g (?: \\{[a-zA-Z0-9_+-]+\\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )?',
-        'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
+        'T_G_REFERENCE' => '\\\\ g (?: \\{[a-zA-Z0-9_+-]+\\} | <[a-zA-Z0-9_+-]+> | \'[a-zA-Z0-9_+-]+\' | [0-9+-]+ )?',
+        'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\} | \'[a-zA-Z0-9_]+\') | (?<v_backref_num> [1-9]\\d*) )',
         'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u [0-9a-fA-F]{4} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
@@ -323,6 +323,27 @@ final class Lexer
 
             if ($token = $this->handleStatefulToken($type, $matchedValue, $startPos, $currentTokens)) {
                 return $token;
+            }
+
+            if (TokenType::T_LITERAL_ESCAPED === $type) {
+                // "\c" only falls through to an escaped literal when no ASCII
+                // character follows it; PCRE rejects that.
+                if ('\\c' === $matchedValue) {
+                    throw LexerException::withContext(
+                        '\\c must be followed by a printable ASCII character.',
+                        $startPos,
+                        $this->pattern,
+                    );
+                }
+
+                // "\x{}" (empty braces) is a PCRE compile error.
+                if ('\\x' === $matchedValue && '{}' === substr($this->pattern, $startPos + 2, 2)) {
+                    throw LexerException::withContext(
+                        'Invalid hex escape "\\x{}": at least one hexadecimal digit is required.',
+                        $startPos,
+                        $this->pattern,
+                    );
+                }
             }
 
             $value = $this->extractTokenValue($type, $matchedValue, $matches);
