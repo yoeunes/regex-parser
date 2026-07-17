@@ -744,13 +744,12 @@ final readonly class Regex
 
     private function getCacheSeed(string $regex): string
     {
-        $seed = $regex."\n".self::CACHE_VERSION_PREFIX.self::CACHE_VERSION;
-
-        if (!$this->phpVersionExplicit) {
-            return $seed;
-        }
-
-        return $seed."\n".self::PHP_VERSION_PREFIX.$this->phpVersionId;
+        // The effective PHP version always influences parsing, so it must
+        // always be part of the key — a shared cache directory must not serve
+        // ASTs parsed under a different PHP version.
+        return $regex
+            ."\n".self::CACHE_VERSION_PREFIX.self::CACHE_VERSION
+            ."\n".self::PHP_VERSION_PREFIX.$this->phpVersionId;
     }
 
     private function getParserPhpVersionId(): ?int

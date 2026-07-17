@@ -248,6 +248,14 @@ final class LintCommand extends AbstractCommand implements CommandInterface
 
         $analysisTime = (float) microtime(true) - $analysisStartTime;
 
+        // A generated baseline must cover the FULL report, before any
+        // existing baseline filters issues out — otherwise previously
+        // baselined issues silently vanish from the new baseline.
+        if ($arguments->generateBaseline) {
+            $baseline = $this->generateBaseline($report);
+            file_put_contents($arguments->generateBaseline, json_encode($baseline, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES));
+        }
+
         if ($arguments->baseline) {
             $baseline = $this->loadBaseline($arguments->baseline);
             $report = $this->filterReportByBaseline($report, $baseline);
@@ -269,14 +277,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
 
         if ($arguments->generateBaseline) {
-            $baseline = $this->generateBaseline($report);
-            file_put_contents($arguments->generateBaseline, json_encode($baseline, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES));
             $output->write("Baseline generated at {$arguments->generateBaseline}\n");
-        }
-
-        if ($arguments->baseline) {
-            $baseline = $this->loadBaseline($arguments->baseline);
-            $report = $this->filterReportByBaseline($report, $baseline);
         }
 
         if (null !== $outputFile) {
