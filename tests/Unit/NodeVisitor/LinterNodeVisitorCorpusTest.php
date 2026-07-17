@@ -122,7 +122,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
                 }
 
                 $currentPattern = self::normalizePatternNewlines(implode("\n", $patternLines));
-                if (!isset($cases[$currentPattern])) {
+                if (null !== $currentPattern && !isset($cases[$currentPattern])) {
                     $cases[$currentPattern] = [];
                     $order[] = $currentPattern;
                 }
@@ -148,7 +148,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
 
         if ($collectingPattern) {
             $currentPattern = self::normalizePatternNewlines(implode("\n", $patternLines));
-            if (!isset($cases[$currentPattern])) {
+            if (null !== $currentPattern && !isset($cases[$currentPattern])) {
                 $cases[$currentPattern] = [];
                 $order[] = $currentPattern;
             }
@@ -185,7 +185,13 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         return ltrim($line, ' ');
     }
 
-    private static function normalizePatternNewlines(string $pattern): string
+    /**
+     * Returns null when the log rendering is ambiguous: for /x patterns that
+     * mix comments with "\n" text, the log cannot distinguish real newlines
+     * (needed to terminate comments) from literal \n escapes, so the pattern
+     * cannot be reconstructed faithfully.
+     */
+    private static function normalizePatternNewlines(string $pattern): ?string
     {
         if (!str_contains($pattern, '\\n')) {
             return $pattern;
@@ -205,7 +211,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return $pattern;
         }
 
-        return str_replace('\\n', "\n", $pattern);
+        return null;
     }
 
     /**
