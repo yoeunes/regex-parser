@@ -29,7 +29,9 @@ jobs:
           composer update --${{ matrix.dependency }} --prefer-dist --no-interaction
 
       - name: Install PHPUnit Tooling
-        run: composer install -d tools/phpunit --no-interaction --no-progress
+        # On dev PHP versions, some transitive deps have not raised their PHP
+        # ceiling yet (e.g. nette/schema); ignore the platform PHP requirement.
+        run: composer install -d tools/phpunit --no-interaction --no-progress ${{ matrix.php == '8.6' && '--ignore-platform-req=php+' || '' }}
 
       - name: Run Unit Tests
         run: tools/phpunit/vendor/bin/phpunit tests/Unit/ --colors=always
@@ -61,9 +63,11 @@ jobs:
           composer update --${{ matrix.dependency }} --prefer-dist --no-interaction
 
       - name: Install PHPStan Tooling
+        # On dev PHP versions, some transitive deps have not raised their PHP
+        # ceiling yet (e.g. nette/schema); ignore the platform PHP requirement.
         run: |
-          composer install -d tools/phpunit --no-interaction --no-progress
-          composer install -d tools/phpstan --no-interaction --no-progress
+          composer install -d tools/phpunit --no-interaction --no-progress ${{ matrix.php == '8.6' && '--ignore-platform-req=php+' || '' }}
+          composer install -d tools/phpstan --no-interaction --no-progress ${{ matrix.php == '8.6' && '--ignore-platform-req=php+' || '' }}
 
       - name: Run PHPStan
         run: tools/phpstan/vendor/bin/phpstan analyse
