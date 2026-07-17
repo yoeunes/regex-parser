@@ -402,6 +402,17 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
 
+        if ($node->negatedSyntax) {
+            // Undo the "^" normalization so \P{L} round-trips byte-identically.
+            $inner = str_starts_with($prop, '^') ? substr($prop, 1) : '^'.$prop;
+
+            if ($node->hasBraces || \strlen($inner) > 1 || str_starts_with($inner, '^')) {
+                return '\P{'.$inner.'}';
+            }
+
+            return '\P'.$inner;
+        }
+
         if ($node->hasBraces || \strlen($prop) > 1 || str_starts_with($prop, '^')) {
             return '\p{'.$prop.'}';
         }

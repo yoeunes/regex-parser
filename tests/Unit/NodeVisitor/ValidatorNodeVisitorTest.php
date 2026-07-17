@@ -83,7 +83,7 @@ final class ValidatorNodeVisitorTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_valid_unicode_named_character(): void
     {
-        $this->validate('/\N{U+0041}/');
+        $this->validate('/\N{U+0041}/u');
     }
 
     #[DoesNotPerformAssertions]
@@ -284,7 +284,7 @@ final class ValidatorNodeVisitorTest extends TestCase
     {
         $this->expectException(SemanticErrorException::class);
         // Octal 77777777 = 16777215 decimal = 0xFFFFFF, which exceeds 0xFF (PCRE limit for \o{})
-        $this->expectExceptionMessage('Invalid octal codepoint "\o{77777777}".');
+        $this->expectExceptionMessage('Invalid octal codepoint "\o{77777777}" (out of Unicode range).');
         $this->validate('/\o{77777777}/u');
     }
 

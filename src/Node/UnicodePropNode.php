@@ -26,7 +26,11 @@ final readonly class UnicodePropNode extends AbstractNode
         public string $prop,
         int|bool $hasBraces,
         int $startPosition,
-        ?int $endPosition = null
+        ?int $endPosition = null,
+        /**
+         * Whether the source used the \P negated syntax (vs \p{^...}).
+         */
+        public bool $negatedSyntax = false,
     ) {
         // Backward compatibility: allow 3-argument form new UnicodePropNode($prop, $start, $end)
         if (null === $endPosition && \is_int($hasBraces)) {

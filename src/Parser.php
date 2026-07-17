@@ -555,14 +555,17 @@ final class Parser
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
-            // Calculate end pos based on original syntax (\p{L} vs \pL)
-            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value); // \p or \P + value
-            if (\strlen($token->value) > 1 || str_starts_with($token->value, '^')) {
-                $len += 2; // for {}
+            // The token value carries braces and a normalized "^" negation
+            // marker; recover the original source length from the \p / \P
+            // syntax at the token position.
+            $negatedSyntax = 'P' === ($this->pattern[$startPosition + 1] ?? 'p');
+            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value);
+            if ($negatedSyntax) {
+                $len += str_contains($token->value, '^') ? -1 : 1;
             }
             $endPosition = $startPosition + $len;
 
-            return new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition);
+            return new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition, $negatedSyntax);
         }
 
         if ($this->match(TokenType::T_KEEP)) {
@@ -814,6 +817,12 @@ final class Parser
         }
 
         $name = $matches[1];
+
+        // \N{U+hhhh} form: the codepoint is given directly.
+        if (1 === preg_match('/^U\+([0-9a-fA-F]+)$/', $name, $hex)) {
+            return (int) hexdec($hex[1]);
+        }
+
         if (class_exists(\IntlChar::class)) {
             $char = \IntlChar::charFromName($name);
             if (null !== $char) {
@@ -1997,12 +2006,15 @@ final class Parser
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
-            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value)
-                + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
+            $negatedSyntax = 'P' === ($this->pattern[$startPosition + 1] ?? 'p');
+            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value);
+            if ($negatedSyntax) {
+                $len += str_contains($token->value, '^') ? -1 : 1;
+            }
             $endPosition = $startPosition + $len;
 
             return [
-                new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition),
+                new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition, $negatedSyntax),
                 $endPosition,
             ];
         }

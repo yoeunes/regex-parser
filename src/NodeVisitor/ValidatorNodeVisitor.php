@@ -113,6 +113,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private bool $inLookbehind = false;
 
+    private bool $unicodeMode = false;
+
     private GroupNumbering $groupNumbering;
 
     /**
@@ -157,6 +159,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(RegexNode $node): void
     {
         $this->inLookbehind = false;
+        $this->unicodeMode = str_contains($node->flags, 'u');
         $this->groupNumbering = (new GroupNumberingCollector())->collect($node);
         $this->captureSequence = $this->groupNumbering->captureSequence;
         $this->captureIndex = 0;
@@ -914,7 +917,20 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private function validateOctal(CharLiteralNode $node): void
     {
-        // PCRE limits \o{} to single-byte values (0-255)
+        // Without /u, PCRE limits \o{} to single-byte values (0-255); in
+        // Unicode mode any valid codepoint is allowed.
+        if ($this->unicodeMode) {
+            if ($node->codePoint > 0x10FFFF) {
+                $this->raiseSemanticError(
+                    \sprintf('Invalid octal codepoint "%s" (out of Unicode range).', $node->originalRepresentation),
+                    $node->startPosition,
+                    'regex.octal.out_of_range',
+                );
+            }
+
+            return;
+        }
+
         if ($node->codePoint > 0xFF) {
             $this->raiseSemanticError(
                 \sprintf('Invalid octal codepoint "%s".', $node->originalRepresentation),
@@ -944,6 +960,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         $name = $matches[1];
+
+        // PCRE only supports \N{U+hhhh} in Unicode (/u) mode.
+        if (!$this->unicodeMode && 1 === preg_match('/^U\+[0-9A-Fa-f]+$/', $name)) {
+            $this->raiseSemanticError(
+                \sprintf('\N{%s} is only supported in Unicode mode; add the "u" flag.', $name),
+                $node->getStartPosition(),
+                'regex.unicode_named.requires_utf',
+            );
+        }
 
         // If the codePoint is -1, the name could not be resolved
         if (-1 === $node->codePoint) {

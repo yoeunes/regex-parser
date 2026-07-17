@@ -158,15 +158,15 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public static function provideUnicodePropertyPatterns(): \Iterator
     {
         yield 'general_category' => ['/\p{L}/', '/\p{L}/'];
-        yield 'general_category_negated' => ['/\P{L}/', '/\p{^L}/'];
+        yield 'general_category_negated' => ['/\P{L}/', '/\P{L}/'];
         yield 'script' => ['/\p{Arabic}/', '/\p{Arabic}/'];
-        yield 'script_negated' => ['/\P{Arabic}/', '/\p{^Arabic}/'];
+        yield 'script_negated' => ['/\P{Arabic}/', '/\P{Arabic}/'];
         yield 'property' => ['/\p{Alpha}/', '/\p{Alpha}/'];
         yield 'combined' => ['/[\p{L}\p{M}]/', '/[\p{L}\p{M}]/'];
         yield 'with_braces' => ['/\p{Latin}/', '/\p{Latin}/'];
-        yield 'negated_with_braces' => ['/\P{Latin}/', '/\p{^Latin}/'];
+        yield 'negated_with_braces' => ['/\P{Latin}/', '/\P{Latin}/'];
         yield 'short_form' => ['/\pL/', '/\pL/'];
-        yield 'short_form_negated' => ['/\PL/', '/\p{^L}/'];
+        yield 'short_form_negated' => ['/\PL/', '/\PL/'];
     }
 
     #[DataProvider('providePcre84Features')]
