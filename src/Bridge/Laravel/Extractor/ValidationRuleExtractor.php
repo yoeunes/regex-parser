@@ -101,12 +101,14 @@ final readonly class ValidationRuleExtractor implements RegexPatternSourceInterf
         $patterns = [];
 
         // Match Laravel validation regex rules: 'regex:/pattern/' or "regex:/pattern/"
-        // Also matches not_regex variant
-        $regexPattern = '/[\'"](?:not_)?regex:([^\'"]+)[\'"]/';
+        // Also matches not_regex variant. The pattern runs until the quote that
+        // opened the string literal, so the other quote character (and escaped
+        // quotes) may appear inside the pattern, e.g. 'regex:/^[^"]+$/'.
+        $regexPattern = '/([\'"])(?:not_)?regex:((?:\\\\.|(?!\1).)+)\1/';
 
         if (preg_match_all($regexPattern, $content, $matches, \PREG_OFFSET_CAPTURE)) {
-            foreach ($matches[1] as $index => $match) {
-                $pattern = $match[0];
+            foreach ($matches[2] as $index => $match) {
+                $pattern = $this->unescapeStringLiteral($match[0], $matches[1][$index][0]);
                 $offset = $match[1];
 
                 // Calculate line number from offset
@@ -140,6 +142,15 @@ final readonly class ValidationRuleExtractor implements RegexPatternSourceInterf
     /**
      * Normalize a validation regex pattern.
      */
+    /**
+     * Undo the PHP string-literal escaping of the quote that delimited the
+     * rule, so the extracted pattern matches what the validator receives.
+     */
+    private function unescapeStringLiteral(string $pattern, string $quote): string
+    {
+        return str_replace(['\\'.$quote, '\\\\'], [$quote, '\\'], $pattern);
+    }
+
     private function normalizePattern(string $pattern): ?string
     {
         $pattern = trim($pattern);

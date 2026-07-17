@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Laravel bridge** (`RegexParser\Bridge\Laravel`) with package auto-discovery:
+  - Service provider and `Regex` facade
+  - Artisan commands: `regex:lint`, `regex:routes`, `regex:explain`, `regex:compare`, `regex:transpile`
+  - Pattern extractors for route `where()` constraints and `regex:`/`not_regex:` validation rules
+  - Publishable configuration (`config/regex-parser.php`)
+  - No new runtime dependencies — `illuminate/*` packages are suggested only
 - **Language Server Protocol (LSP) support** via `bin/regex-lsp` for real-time regex analysis in IDEs.
   - Real-time diagnostics (parse errors, validation issues, lint warnings)
   - Hover information with pattern explanations

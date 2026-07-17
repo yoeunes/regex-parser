@@ -175,6 +175,43 @@ final class ExtractorsTest extends TestCase
         rmdir($tempDir);
     }
 
+    public function test_validation_extractor_handles_quotes_inside_pattern(): void
+    {
+        $tempDir = sys_get_temp_dir().'/regex_quote_test_'.uniqid();
+        mkdir($tempDir, 0o777, true);
+
+        file_put_contents($tempDir.'/test.php', <<<'PHP'
+            <?php
+            $rules = [
+                'no_double_quotes' => 'regex:/^[^"]+$/',
+                'no_single_quotes' => "regex:/^[^']+$/",
+                'escaped_quote' => 'regex:/^[^\']+$/',
+            ];
+            PHP);
+
+        $extractor = new ValidationRuleExtractor();
+
+        $context = new RegexPatternSourceContext(
+            paths: [$tempDir],
+            excludePaths: [],
+        );
+
+        $patterns = $extractor->extract($context);
+
+        $extracted = array_map(
+            static fn (RegexPatternOccurrence $p): string => $p->displayPattern ?? $p->pattern,
+            $patterns,
+        );
+
+        // The other quote character (raw or escaped) must not truncate the pattern.
+        $this->assertContains('/^[^"]+$/', $extracted);
+        $this->assertContains("/^[^']+\$/", $extracted);
+        $this->assertCount(3, $patterns);
+
+        unlink($tempDir.'/test.php');
+        rmdir($tempDir);
+    }
+
     public function test_validation_extractor_handles_not_regex_rules(): void
     {
         $tempDir = sys_get_temp_dir().'/regex_not_test_'.uniqid();
