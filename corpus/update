@@ -447,6 +447,23 @@ function normalizeMergeRef(string $mergeRef): string
 }
 
 /**
+ * Ask the remote which branch its HEAD points to (the default branch).
+ */
+function getRemoteDefaultBranch(string $repoPath, string $remote, int $timeout): ?string
+{
+    $result = runGit($repoPath, ['ls-remote', '--symref', $remote, 'HEAD'], $timeout);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    if (1 === preg_match('~^ref:\s+refs/heads/(\S+)\s+HEAD~m', $result['output'], $matches)) {
+        return $matches[1];
+    }
+
+    return null;
+}
+
+/**
  * @return array{ok: bool, args?: array<int, string>, command?: string, note?: string, message?: string}
  */
 function resolvePullCommand(string $repoPath, int $timeout): array
@@ -572,6 +589,38 @@ function processRepo(string $repoPath, bool $force, string $corpusDir, bool $deb
     $output = $pull['output'];
     if (isset($resolved['note']) && '' !== $resolved['note']) {
         $output = $resolved['note'].('' === $output ? '' : PHP_EOL.$output);
+    }
+
+    // --- Self-heal phase ---
+    // A pull can fail because the tracked branch was renamed or deleted on the
+    // remote (e.g. master -> main, 5.x -> 6.x), or because fetching all refs
+    // is impossible (case-colliding branch names on a case-insensitive
+    // filesystem). In both cases, recover by switching to the remote's
+    // current default branch, fetching only that single ref.
+    if (0 !== $pull['code']) {
+        $branch = getCurrentBranch($repoPath, $timeout);
+        $remote = null !== $branch ? getBranchRemote($repoPath, $branch, $timeout) : null;
+        $remote ??= remoteExists($repoPath, 'origin', $timeout) ? 'origin' : null;
+        $default = null !== $remote ? getRemoteDefaultBranch($repoPath, $remote, $timeout) : null;
+
+        if (null !== $remote && null !== $default) {
+            $fetch = $git(['fetch', $remote, '+refs/heads/'.$default.':refs/remotes/'.$remote.'/'.$default]);
+            if (0 === $fetch['code']) {
+                $checkout = $git(['checkout', '-B', $default, $remote.'/'.$default]);
+                if (0 === $checkout['code']) {
+                    $git(['branch', '--set-upstream-to='.$remote.'/'.$default, $default]);
+
+                    return [
+                        'path' => $repoPath,
+                        'status' => 'OK',
+                        'output' => 'Tracked branch no longer on remote; switched to default branch '.$remote.'/'.$default.'.',
+                        'command' => $command.' (recovered via '.$remote.'/'.$default.')',
+                        'code' => 0,
+                        'log' => $log,
+                    ];
+                }
+            }
+        }
     }
 
     return [
