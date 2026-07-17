@@ -54,6 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - CLI lint config now honors `verifyWithAutomata` when provided in optimization settings.
+- **Visitor crashes on newer node types**: visitors with typed returns (`optimize()`, `literals()`, `generate()`, complexity scoring, length ranges, HTML explain, test-case generation) crashed with a `TypeError` on patterns containing control chars (`\cA`), class operations (`[a&&b]`), script runs (`(*sr:...)`), or version conditionals (`(?(VERSION>=...))`). `validate('/\cA/')` also wrongly reported valid patterns as invalid. All visitors now handle every node type; a new exhaustiveness test guards against future drift.
+- **`ArrayCache` never returned cached ASTs**: it stored the raw cache payload string, which the facade discarded on every load — every parse re-parsed from scratch while hit counters incremented. Payloads are now decoded once at write time (shared `CachePayloadDecoder`, also used by the PSR-6/PSR-16 adapters).
+- **Compiler double-wrapped POSIX classes**: `/[[:alpha:]]/` compiled to `/[[[:alpha:]]]/`, changing match semantics. Also affected ReDoS `vulnerablePattern` output.
+- **Lint extractor "repaired" broken delimiters**: `preg_match("/foo#", ...)` — a runtime error in PHP — was silently extracted as `/foo/` and passed lint. Mismatched delimiters are now reported as errors.
+- **ReDoS analysis skipped conditional conditions**: `/(?(?=(a+)+b)x|y)/` was rated safe; the condition lookaround is now analyzed (rated critical).
+- **Sample generator produced non-matching samples**: negated classes always returned `'!'` (impossible for e.g. `/[^!"#]/`); lookbehind suffix hints used substring instead of suffix matching. `generate()` now verifies samples against the real engine and retries.
+- **Backreference/octal disambiguation now follows PCRE**: `(a)\11` is the octal escape `\011` (TAB), not an invalid backreference; `\19` is octal `\1` + literal `9`; `\81` remains an error. Previously all multi-digit `\NN` were treated as backreferences and wrongly rejected.
+
+### Changed
+- **Stricter (PCRE-conformant) character class ranges**: a character type, POSIX class, or Unicode property can no longer be a range endpoint. Patterns like `[\w-_]`, `[\d-z]`, `[a-\d]` — which PCRE rejects at compile time — now fail to parse instead of being silently re-interpreted with a literal hyphen. Literal hyphens at class edges (`[-a]`, `[\d-]`) are unaffected.
 
 ### Documentation
 - Added comprehensive LSP integration guide (`docs/guides/lsp.md`) with configuration for VS Code, PhpStorm (LSP4IJ), Neovim, Vim, Emacs, Sublime Text, Helix, and Zed.
