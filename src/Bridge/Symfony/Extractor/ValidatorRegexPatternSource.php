@@ -31,10 +31,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final readonly class ValidatorRegexPatternSource implements RegexPatternSourceInterface
 {
-    public function __construct(
-        private ?ValidatorInterface $validator = null,
-        private ?LoaderInterface $validatorLoader = null,
-    ) {}
+    public function __construct(private ?ValidatorInterface $validator = null, private ?LoaderInterface $validatorLoader = null) {}
 
     public function getName(): string
     {

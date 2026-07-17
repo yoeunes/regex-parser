@@ -25,10 +25,7 @@ use RegexParser\Regex;
  */
 final readonly class SecurityFirewallAnalyzer
 {
-    public function __construct(
-        private Regex $regex,
-        private SecurityPatternNormalizer $patternNormalizer = new SecurityPatternNormalizer(),
-    ) {}
+    public function __construct(private Regex $regex, private SecurityPatternNormalizer $patternNormalizer = new SecurityPatternNormalizer()) {}
 
     /**
      * @param array<FirewallRule> $firewalls

@@ -29,10 +29,7 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final readonly class RouteRegexPatternSource implements RegexPatternSourceInterface
 {
-    public function __construct(
-        private RouteRequirementNormalizer $patternNormalizer,
-        private ?RouterInterface $router = null,
-    ) {}
+    public function __construct(private RouteRequirementNormalizer $patternNormalizer, private ?RouterInterface $router = null) {}
 
     public function getName(): string
     {

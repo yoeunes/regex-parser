@@ -23,9 +23,8 @@ final class PositionConverter
      */
     private array $lineOffsets = [];
 
-    public function __construct(
-        private readonly string $content,
-    ) {
+    public function __construct(private readonly string $content)
+    {
         $this->buildLineOffsets();
     }
 

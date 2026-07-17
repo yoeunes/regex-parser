@@ -22,8 +22,5 @@ final readonly class SubsetResult
      * @param bool        $isSubset       Whether the left language is subset of the right
      * @param string|null $counterExample Example string accepted by left but not right
      */
-    public function __construct(
-        public bool $isSubset,
-        public ?string $counterExample = null,
-    ) {}
+    public function __construct(public bool $isSubset, public ?string $counterExample = null) {}
 }

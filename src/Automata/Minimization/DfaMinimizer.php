@@ -22,9 +22,7 @@ use RegexParser\Automata\Support\WorkBudget;
  */
 final readonly class DfaMinimizer
 {
-    public function __construct(
-        private ?MinimizationAlgorithmInterface $algorithm = null,
-    ) {}
+    public function __construct(private ?MinimizationAlgorithmInterface $algorithm = null) {}
 
     public function minimize(Dfa $dfa, ?SolverOptions $options = null): Dfa
     {

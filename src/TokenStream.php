@@ -28,10 +28,8 @@ final class TokenStream
     /**
      * @param array<Token> $tokens
      */
-    public function __construct(
-        private readonly array $tokens,
-        private readonly string $pattern
-    ) {
+    public function __construct(private readonly array $tokens, private readonly string $pattern)
+    {
         $this->maxPosition = \count($this->tokens) - 1;
     }
 

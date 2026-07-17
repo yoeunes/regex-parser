@@ -18,8 +18,5 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
  */
 final readonly class AnalysisNotice
 {
-    public function __construct(
-        public Severity $severity,
-        public string $message,
-    ) {}
+    public function __construct(public Severity $severity, public string $message) {}
 }

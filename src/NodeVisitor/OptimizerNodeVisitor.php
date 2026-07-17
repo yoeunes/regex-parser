@@ -1353,9 +1353,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Create suffixes
         $suffixes = [];
         $hasEmptySuffix = false;
-        /**
-         * @var AbstractNode $alt
-         */
         foreach ($withPrefix as $alt) {
             $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
             if (empty($suffixStr)) {
@@ -1370,7 +1367,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $nonNullSuffixes = array_values(array_filter($suffixes, static fn ($suffix): bool => null !== $suffix));
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
-            /** @var AbstractNode $firstAlt */
             $firstAlt = $withPrefix[0];
 
             return [$this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix))];
@@ -1393,7 +1389,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $lastSuffix->endPosition,
             );
         }
-        /** @var AbstractNode $firstAlt */
         $firstAlt = $withPrefix[0];
         $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
         $factored = new SequenceNode([$prefixNode, $group], $firstAlt->startPosition, $firstAlt->endPosition);
@@ -1458,9 +1453,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Create prefixes (everything before the suffix)
         $prefixes = [];
-        /**
-         * @var AbstractNode $alt
-         */
         foreach ($withSuffix as $alt) {
             $prefixStr = substr($this->nodeToString($alt), 0, -\strlen($suffix));
             if (empty($prefixStr)) {
@@ -1474,7 +1466,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $nonNullPrefixes = array_values(array_filter($prefixes, static fn ($prefix): bool => null !== $prefix));
         if (empty($nonNullPrefixes)) {
             // All are just the suffix
-            /** @var AbstractNode $firstAlt */
             $firstAlt = $withSuffix[0];
 
             return [$this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition)];
@@ -1488,7 +1479,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             ? $firstPrefix
             : new AlternationNode($nonNullPrefixes, $firstPrefix->startPosition, $lastPrefix->endPosition);
         $group = new GroupNode($newAlt, GroupType::T_GROUP_NON_CAPTURING);
-        /** @var AbstractNode $firstAlt */
         $firstAlt = $withSuffix[0];
         $suffixNode = $this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition);
         $factored = new SequenceNode([$group, $suffixNode], $firstAlt->startPosition, $firstAlt->endPosition);

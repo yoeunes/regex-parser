@@ -27,7 +27,7 @@ use RegexParser\ValidationResult;
  *
  * @internal
  *
- * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, fileOffset?: int|null, position?: int, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
+ * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, fileOffset?: int|null, position?: int|null, issueId?: string, hint?: string|null, tip?: string|null, suggestedPattern?: string, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
  * @phpstan-type OptimizationEntry array{
  *     file: string,
  *     line: int,
@@ -47,10 +47,7 @@ final readonly class RegexLintService
         'regex.lint.dotstar.nested' => true,
     ];
 
-    public function __construct(
-        private RegexAnalysisService $analysis,
-        private RegexPatternSourceCollection $sources,
-    ) {}
+    public function __construct(private RegexAnalysisService $analysis, private RegexPatternSourceCollection $sources) {}
 
     /**
      * @param callable(int, int): void|null $progress
@@ -275,7 +272,7 @@ final readonly class RegexLintService
             );
             $patternData = $patternMap[$key] ?? null;
             $pattern = \is_array($patternData) ? $patternData['pattern'] : null;
-            $pattern ??= $opt['optimization']->original ?? null;
+            $pattern ??= $opt['optimization']->original;
             $location = \is_array($patternData) ? $patternData['location'] : null;
 
             $results[$key] ??= $this->createResultStructure(
@@ -321,7 +318,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param array{file: string, line: int, source?: string|null} $item
+     * @param array{file: string, line: int, column?: int, fileOffset?: int|null, source?: string|null, ...} $item
      *
      * @return LintResult
      */

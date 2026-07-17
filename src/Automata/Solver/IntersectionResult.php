@@ -22,8 +22,5 @@ final readonly class IntersectionResult
      * @param bool        $isEmpty Whether the intersection is empty
      * @param string|null $example Example string found in the intersection
      */
-    public function __construct(
-        public bool $isEmpty,
-        public ?string $example = null,
-    ) {}
+    public function __construct(public bool $isEmpty, public ?string $example = null) {}
 }

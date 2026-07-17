@@ -98,9 +98,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
     private int $alphabetMax = CharSet::MAX_CODEPOINT;
 
-    public function __construct(
-        private readonly string $pattern,
-    ) {}
+    public function __construct(private readonly string $pattern) {}
 
     /**
      * @throws ComplexityException

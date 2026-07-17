@@ -21,6 +21,7 @@ use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
+use PHPStan\Analyser\CollectedDataEmitter;
 use PHPStan\Analyser\NodeCallbackInvoker;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\IdentifierRuleError;
@@ -33,7 +34,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_returns_empty_for_unknown_function(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('strlen'), []);
@@ -45,7 +46,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_returns_empty_for_non_name_function(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Variable('preg_match'), []);
@@ -56,7 +57,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_returns_empty_when_pattern_arg_missing(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('preg_match'), []);
@@ -67,7 +68,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_ignores_non_array_callback_patterns(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $node = new FuncCall(new Name('preg_replace_callback_array'), [
@@ -80,7 +81,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_skips_non_string_callback_keys(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $array = new Array_([
@@ -97,7 +98,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_process_node_continues_after_non_string_callback_keys(): void
     {
         $rule = new RegexParserRule(ignoreParseErrors: false);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -119,7 +120,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_validate_pattern_returns_error_for_empty_string(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createStub(Scope::class);
 
         $errors = $this->invokePrivate($rule, 'validatePattern', ['', 10, $scope, 'preg_match']);
@@ -131,7 +132,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_ignore_parse_errors_skips_partial_patterns(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -143,7 +144,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_report_redos_is_disabled(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -165,7 +166,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_suggest_optimizations_is_disabled(): void
     {
         $rule = new RegexParserRule();
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -208,7 +209,7 @@ final class RegexParserRuleCoverageTest extends TestCase
                 ],
             ],
         );
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -238,7 +239,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_optimization_config_enables_word_optimization(): void
     {
         $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -251,7 +252,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_optimization_config_avoids_cross_category_ranges(): void
     {
         $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -272,7 +273,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_report_redos_flag_skips_redos_issues(): void
     {
         $rule = new RegexParserRule(reportRedos: false);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -332,7 +333,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_default_optimization_config_enables_digits_optimization(): void
     {
         $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -373,7 +374,7 @@ final class RegexParserRuleCoverageTest extends TestCase
     public function test_validate_pattern_returns_early_on_syntax_error(): void
     {
         $rule = new RegexParserRule(ignoreParseErrors: false);
-        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        /** @var CollectedDataEmitter&MockObject&NodeCallbackInvoker&Scope $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 

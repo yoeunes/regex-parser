@@ -18,7 +18,5 @@ namespace RegexParser\Transpiler;
  */
 final readonly class TranspileOptions
 {
-    public function __construct(
-        public bool $allowLookbehind = true,
-    ) {}
+    public function __construct(public bool $allowLookbehind = true) {}
 }

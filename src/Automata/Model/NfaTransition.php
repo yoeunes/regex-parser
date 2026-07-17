@@ -24,8 +24,5 @@ final readonly class NfaTransition
      * @param CharSet $charSet Transition label
      * @param int     $target  Target state id
      */
-    public function __construct(
-        public CharSet $charSet,
-        public int $target,
-    ) {}
+    public function __construct(public CharSet $charSet, public int $target) {}
 }

@@ -150,9 +150,7 @@ final readonly class CompletionHandler
         ['label' => '[:xdigit:]', 'detail' => 'Hex digit', 'doc' => 'Matches hexadecimal digits [0-9A-Fa-f].'],
     ];
 
-    public function __construct(
-        private DocumentManager $documents,
-    ) {}
+    public function __construct(private DocumentManager $documents) {}
 
     /**
      * Handle textDocument/completion request.

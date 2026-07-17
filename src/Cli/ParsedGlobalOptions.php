@@ -18,8 +18,5 @@ final readonly class ParsedGlobalOptions
     /**
      * @param array<int, string> $args
      */
-    public function __construct(
-        public GlobalOptions $options,
-        public array $args,
-    ) {}
+    public function __construct(public GlobalOptions $options, public array $args) {}
 }

@@ -32,9 +32,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexTranspileCommand extends Command
 {
-    public function __construct(
-        private readonly Regex $regex,
-    ) {
+    public function __construct(private readonly Regex $regex)
+    {
         parent::__construct();
     }
 

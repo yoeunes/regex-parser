@@ -89,9 +89,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     private ReDoSSeverity $culpritSeverity = ReDoSSeverity::SAFE;
 
-    public function __construct(
-        private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
-    ) {}
+    public function __construct(private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer()) {}
 
     /**
      * @return array{

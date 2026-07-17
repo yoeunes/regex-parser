@@ -21,8 +21,5 @@ final readonly class NfaFragment
     /**
      * @param array<int> $acceptStates
      */
-    public function __construct(
-        public int $startState,
-        public array $acceptStates,
-    ) {}
+    public function __construct(public int $startState, public array $acceptStates) {}
 }

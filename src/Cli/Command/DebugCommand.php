@@ -34,10 +34,7 @@ use RegexParser\Runtime\PcreRuntimeInfo;
 
 final class DebugCommand extends AbstractCommand
 {
-    public function __construct(
-        private readonly ?LintConfigLoader $configLoader = null,
-        private readonly ?LintDefaultsBuilder $defaultsBuilder = null,
-    ) {}
+    public function __construct(private readonly ?LintConfigLoader $configLoader = null, private readonly ?LintDefaultsBuilder $defaultsBuilder = null) {}
 
     public function getName(): string
     {
@@ -61,7 +58,7 @@ final class DebugCommand extends AbstractCommand
         if (null !== $this->configLoader && null !== $this->defaultsBuilder) {
             $configResult = $this->configLoader->load();
             if (null === $configResult->error) {
-                $defaults = $this->defaultsBuilder->build($configResult->config ?? []);
+                $defaults = $this->defaultsBuilder->build($configResult->config);
             }
         }
 

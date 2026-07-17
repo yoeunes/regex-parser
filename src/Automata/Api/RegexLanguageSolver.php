@@ -31,9 +31,7 @@ use RegexParser\Regex;
  */
 final readonly class RegexLanguageSolver
 {
-    public function __construct(
-        private RegexSolverInterface $solver = new RegexSolver(),
-    ) {}
+    public function __construct(private RegexSolverInterface $solver = new RegexSolver()) {}
 
     public static function forRegex(
         Regex $regex,

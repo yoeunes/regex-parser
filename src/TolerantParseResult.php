@@ -23,10 +23,7 @@ final readonly class TolerantParseResult
     /**
      * @param array<\Throwable> $errors
      */
-    public function __construct(
-        public RegexNode $ast,
-        public array $errors = [],
-    ) {}
+    public function __construct(public RegexNode $ast, public array $errors = []) {}
 
     public function hasErrors(): bool
     {

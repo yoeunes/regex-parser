@@ -22,7 +22,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 final class OctalLegacyNodeTest extends TestCase
 {
     /**
-     * @return \Iterator<string, array{string, int, int}>
+     * @return \Iterator<string, array{string, int, int, int}>
      */
     public static function data_provider_octal_legacy(): \Iterator
     {

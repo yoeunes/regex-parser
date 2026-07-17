@@ -152,6 +152,7 @@ final class RegexParserExtension extends Extension
      *         directory: string|null,
      *         prefix: string,
      *     },
+     *     ...
      * } $config
      */
     private function buildCacheDefinition(array $config): Definition
@@ -194,10 +195,13 @@ final class RegexParserExtension extends Extension
      * @param array{
      *     analysis: array{
      *         ignore_patterns: array<int, string>,
+     *         ...
      *     },
      *     redos: array{
      *         ignored_patterns: array<int, string>,
+     *         ...
      *     },
+     *     ...
      * } $config
      *
      * @return list<string>
@@ -215,6 +219,7 @@ final class RegexParserExtension extends Extension
      *
      * @param array{
      *     ide: string|null,
+     *     ...
      * } $config
      */
     private function resolveEditorFormat(array $config, ContainerBuilder $container): ?string

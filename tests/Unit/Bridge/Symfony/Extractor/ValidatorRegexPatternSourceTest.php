@@ -388,10 +388,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
             /**
              * @param array<int, string|int|null> $mappedClasses
              */
-            public function __construct(
-                private readonly array $mappedClasses,
-                private readonly ?\Throwable $exception,
-            ) {}
+            public function __construct(private readonly array $mappedClasses, private readonly ?\Throwable $exception) {}
 
             public function loadClassMetadata(ClassMetadata $metadata): bool
             {

@@ -28,9 +28,7 @@ final class DocumentManager
      */
     private array $occurrences = [];
 
-    public function __construct(
-        private readonly RegexFinder $finder,
-    ) {}
+    public function __construct(private readonly RegexFinder $finder) {}
 
     /**
      * Open a document.

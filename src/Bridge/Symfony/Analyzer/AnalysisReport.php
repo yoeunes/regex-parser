@@ -21,9 +21,7 @@ final readonly class AnalysisReport
     /**
      * @param array<int, ReportSection> $sections
      */
-    public function __construct(
-        public array $sections,
-    ) {}
+    public function __construct(public array $sections) {}
 
     /**
      * @param array<int, string> $kinds

@@ -118,7 +118,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{type: string, file: string, line: int, column: int, fileOffset?: int|null, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
+     * @return array<array{type: string, file: string, line: int, column: int, fileOffset?: int|null, position?: int|null, message: string, issueId?: string, hint?: string|null, tip?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
     {
@@ -196,7 +196,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
+     * @return array<array{type: string, file: string, line: int, column: int, fileOffset?: int|null, position?: int|null, message: string, issueId?: string, hint?: string|null, tip?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     private function lintChunk(array $patterns, ?callable $progress = null): array
     {
@@ -462,7 +462,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     * @return array<array{file: string, line: int, column?: int, fileOffset?: int|null, analysis: ReDoSAnalysis}>
      */
     private function analyzeRedosChunk(array $patterns, ReDoSSeverity $threshold): array
     {
@@ -512,6 +512,8 @@ final readonly class RegexAnalysisService
      * @return array<array{
      *     file: string,
      *     line: int,
+     *     column?: int,
+     *     fileOffset?: int|null,
      *     optimization: OptimizationResult,
      *     savings: int,
      *     source?: string

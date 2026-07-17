@@ -30,10 +30,8 @@ final readonly class TextDocumentHandler
 {
     private DiagnosticConverter $diagnosticConverter;
 
-    public function __construct(
-        private DocumentManager $documents,
-        private Regex $regex,
-    ) {
+    public function __construct(private DocumentManager $documents, private Regex $regex)
+    {
         $this->diagnosticConverter = new DiagnosticConverter();
     }
 

@@ -67,8 +67,8 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             return 1;
         }
 
-        $lintDefaults = $this->defaultsBuilder->build($lintConfigResult->config ?? []);
-        $lintConfigFiles = $lintConfigResult->files ?? [];
+        $lintDefaults = $this->defaultsBuilder->build($lintConfigResult->config);
+        $lintConfigFiles = $lintConfigResult->files;
 
         $parsed = $this->argumentParser->parse($input->args, $lintDefaults);
         if ($parsed->help) {

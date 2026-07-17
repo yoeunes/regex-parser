@@ -36,10 +36,7 @@ final readonly class CodeActionHandler
         'regex.lint.unicode.bracedHexWithoutU',
     ];
 
-    public function __construct(
-        private DocumentManager $documents,
-        private Regex $regex,
-    ) {}
+    public function __construct(private DocumentManager $documents, private Regex $regex) {}
 
     /**
      * Handle textDocument/codeAction request.

@@ -349,6 +349,8 @@ final readonly class RegexOptions
      * Validate that all patterns are strings.
      *
      * @param array<mixed> $patterns Patterns to validate
+     *
+     * @phpstan-assert array<string> $patterns
      */
     private static function validatePatternStrings(array $patterns): void
     {

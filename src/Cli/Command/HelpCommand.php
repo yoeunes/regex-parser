@@ -209,11 +209,13 @@ final readonly class HelpCommand implements CommandInterface
     }
 
     /**
-     * @return array{description: string, options: array<int, array{0: string, 1: string}>, notes: array<int, string>, examples: array<int, array{0: array<int, string>, 1: string}>}|null
+     * @return array{description: string, options: list<array{string, string}>, notes: list<string>, examples: list<array{list<string>, string}>}|null
      */
     private function getCommandData(string $command): ?array
     {
-        return match ($command) {
+        /** @var array{description: string, options: list<array{string, string}>, notes: list<string>, examples: list<array{list<string>, string}>}|null $data */
+        // @phpstan-ignore varTag.nativeType (PHPStan generalizes this large constant array; each match arm follows the documented shape.)
+        $data = match ($command) {
             'parse' => [
                 'description' => 'Parse and recompile a regex pattern',
                 'options' => [
@@ -408,6 +410,8 @@ final readonly class HelpCommand implements CommandInterface
             ],
             default => null,
         };
+
+        return $data;
     }
 
     /**

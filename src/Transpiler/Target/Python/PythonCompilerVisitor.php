@@ -71,9 +71,7 @@ final class PythonCompilerVisitor extends AbstractNodeVisitor
 
     private bool $inCharClass = false;
 
-    public function __construct(
-        private readonly TranspileContext $context,
-    ) {}
+    public function __construct(private readonly TranspileContext $context) {}
 
     #[\Override]
     public function visitRegex(RegexNode $node): string

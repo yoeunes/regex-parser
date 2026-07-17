@@ -21,10 +21,7 @@ final class StubRegex
      * @param array<string, array{0: bool, 1: ?string, 2: int}> $results
      * @param array<string>                                     $ignored
      */
-    public function __construct(
-        private array $results,
-        private readonly array $ignored = [],
-    ) {}
+    public function __construct(private array $results, private readonly array $ignored = []) {}
 
     public function validate(string $pattern): ValidationResult
     {
