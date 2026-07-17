@@ -18,8 +18,40 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\RegexException;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 use RegexParser\Regex;
 
@@ -105,38 +137,38 @@ final class VisitorExhaustivenessTest extends TestCase
     #[Test]
     public function test_every_visitor_handles_synthetic_instances_of_all_node_types(): void
     {
-        $literal = new \RegexParser\Node\LiteralNode('a', 0, 1);
+        $literal = new LiteralNode('a', 0, 1);
         $nodes = [
-            new \RegexParser\Node\AlternationNode([$literal], 0, 1),
-            new \RegexParser\Node\AnchorNode('^', 0, 1),
-            new \RegexParser\Node\AssertionNode('b', 0, 2),
-            new \RegexParser\Node\BackrefNode('\\1', 0, 2),
-            new \RegexParser\Node\CalloutNode(1, false, 0, 5),
-            new \RegexParser\Node\CharClassNode($literal, false, 0, 3),
-            new \RegexParser\Node\CharLiteralNode('\\x41', 65, \RegexParser\Node\CharLiteralType::UNICODE, 0, 4),
-            new \RegexParser\Node\CharTypeNode('d', 0, 2),
-            new \RegexParser\Node\ClassOperationNode(\RegexParser\Node\ClassOperationType::INTERSECTION, $literal, $literal, 0, 6),
-            new \RegexParser\Node\CommentNode('c', 0, 5),
-            new \RegexParser\Node\ConditionalNode($literal, $literal, $literal, 0, 9),
-            new \RegexParser\Node\ControlCharNode('A', 1, 0, 3),
-            new \RegexParser\Node\DefineNode($literal, 0, 12),
-            new \RegexParser\Node\DotNode(0, 1),
-            new \RegexParser\Node\GroupNode($literal, \RegexParser\Node\GroupType::T_GROUP_CAPTURING, null, null, 0, 3),
-            new \RegexParser\Node\KeepNode(0, 2),
-            new \RegexParser\Node\LimitMatchNode(10, 0, 16),
+            new AlternationNode([$literal], 0, 1),
+            new AnchorNode('^', 0, 1),
+            new AssertionNode('b', 0, 2),
+            new BackrefNode('\\1', 0, 2),
+            new CalloutNode(1, false, 0, 5),
+            new CharClassNode($literal, false, 0, 3),
+            new CharLiteralNode('\\x41', 65, CharLiteralType::UNICODE, 0, 4),
+            new CharTypeNode('d', 0, 2),
+            new ClassOperationNode(ClassOperationType::INTERSECTION, $literal, $literal, 0, 6),
+            new CommentNode('c', 0, 5),
+            new ConditionalNode($literal, $literal, $literal, 0, 9),
+            new ControlCharNode('A', 1, 0, 3),
+            new DefineNode($literal, 0, 12),
+            new DotNode(0, 1),
+            new GroupNode($literal, GroupType::T_GROUP_CAPTURING, null, null, 0, 3),
+            new KeepNode(0, 2),
+            new LimitMatchNode(10, 0, 16),
             $literal,
-            new \RegexParser\Node\PcreVerbNode('FAIL', 0, 7),
-            new \RegexParser\Node\PosixClassNode('alpha', 0, 9),
-            new \RegexParser\Node\QuantifierNode($literal, '+', \RegexParser\Node\QuantifierType::T_GREEDY, 0, 2),
-            new \RegexParser\Node\RangeNode($literal, new \RegexParser\Node\LiteralNode('z', 2, 3), 0, 3),
-            new \RegexParser\Node\ScriptRunNode('Greek', 0, 12),
-            new \RegexParser\Node\SequenceNode([$literal], 0, 1),
-            new \RegexParser\Node\SubroutineNode('1', 'g', 0, 5),
-            new \RegexParser\Node\UnicodeNode('0041', 0, 6),
-            new \RegexParser\Node\UnicodePropNode('L', false, 0, 3),
-            new \RegexParser\Node\VersionConditionNode('>=', '10.4', 0, 16),
+            new PcreVerbNode('FAIL', 0, 7),
+            new PosixClassNode('alpha', 0, 9),
+            new QuantifierNode($literal, '+', QuantifierType::T_GREEDY, 0, 2),
+            new RangeNode($literal, new LiteralNode('z', 2, 3), 0, 3),
+            new ScriptRunNode('Greek', 0, 12),
+            new SequenceNode([$literal], 0, 1),
+            new SubroutineNode('1', 'g', 0, 5),
+            new UnicodeNode('0041', 0, 6),
+            new UnicodePropNode('L', false, 0, 3),
+            new VersionConditionNode('>=', '10.4', 0, 16),
         ];
-        $nodes[] = new \RegexParser\Node\RegexNode($literal, '', '/', 0, 3);
+        $nodes[] = new RegexNode($literal, '', '/', 0, 3);
 
         // Every concrete node type must appear above.
         $covered = array_map(static fn (NodeInterface $n): string => $n::class, $nodes);

@@ -30,6 +30,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
+use RegexParser\OutputFormat;
 use RegexParser\Regex;
 use RegexParser\TolerantParseResult;
 use RegexParser\ValidationResult;
@@ -76,14 +77,14 @@ final class RegexTest extends TestCase
 
     public function test_explain_and_highlight_accept_output_format_enum(): void
     {
-        $text = $this->regexService->explain('/a+/', \RegexParser\OutputFormat::TEXT);
-        $html = $this->regexService->explain('/a+/', \RegexParser\OutputFormat::HTML);
+        $text = $this->regexService->explain('/a+/', OutputFormat::TEXT);
+        $html = $this->regexService->explain('/a+/', OutputFormat::HTML);
         $this->assertStringContainsString('one or more', $text);
         $this->assertStringContainsString('<', $html);
 
-        $console = $this->regexService->highlight('/a+/', \RegexParser\OutputFormat::CONSOLE);
+        $console = $this->regexService->highlight('/a+/', OutputFormat::CONSOLE);
         $this->assertNotSame('', $console);
-        $this->assertStringContainsString('<', $this->regexService->highlight('/a+/', \RegexParser\OutputFormat::HTML));
+        $this->assertStringContainsString('<', $this->regexService->highlight('/a+/', OutputFormat::HTML));
     }
 
     #[DataProvider('provideRegexForOptimization')]

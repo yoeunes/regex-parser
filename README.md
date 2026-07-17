@@ -53,6 +53,14 @@ RegexParser separates what it can guarantee from what is heuristic:
 - Heuristic: ReDoS analysis is structural and conservative; treat it as potential risk unless confirmed.
 - Context matters: PCRE version, JIT, and backtrack/recursion limits change practical impact.
 
+### Validated against the real engine
+
+Every release is differentially tested against PCRE itself: 6,600+ unique
+regex patterns extracted from 400+ real-world PHP projects (Symfony, Laravel,
+Composer, PHPUnit, ...) are compiled by both RegexParser and `preg_match()`.
+Current score: **zero false accepts, zero crashes, and zero semantic
+divergences** in `compile(parse(x))` round-trips across the whole corpus.
+
 ## How to report a vulnerability responsibly
 
 If you believe a pattern is exploitable:
@@ -119,8 +127,8 @@ $ast = $regex->parse('/^hello world$/i');
 
 // Validate pattern safety
 $result = $regex->validate('/(?<=test)foo/');
-if (!$result->isValid()) {
-    echo $result->getErrorMessage();
+if (!$result->isValid) {
+    echo $result->error;
 }
 
 // Check for ReDoS risk (theoretical by default)

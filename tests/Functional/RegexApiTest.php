@@ -47,7 +47,7 @@ final class RegexApiTest extends TestCase
     {
         $regex = Regex::create();
 
-        $result = $regex->validate('/(?<123>abc)/');
+        $result = $regex->validate('/\N{LATIN SMALL LETTER A}/u');
 
         $this->assertTrue($result->isValid);
     }
@@ -56,13 +56,13 @@ final class RegexApiTest extends TestCase
     {
         $regex = Regex::create(['runtime_pcre_validation' => true]);
 
-        $result = $regex->validate('/(?<123>abc)/');
+        $result = $regex->validate('/\N{LATIN SMALL LETTER A}/u');
 
         $this->assertFalse($result->isValid);
         $this->assertSame(ValidationErrorCategory::PCRE_RUNTIME, $result->category);
         $this->assertSame('regex.pcre.runtime', $result->errorCode);
         $this->assertStringContainsString('PCRE runtime error', (string) $result->error);
-        $this->assertSame(4, $result->offset);
+        $this->assertSame(3, $result->offset);
     }
 
     public function test_optimize(): void

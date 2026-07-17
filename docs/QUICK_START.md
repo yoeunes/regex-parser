@@ -101,11 +101,11 @@ use RegexParser\Regex;
 $regex = Regex::create();
 $result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
 
-if ($result->isValid()) {
+if ($result->isValid) {
     echo "Pattern is valid.\n";
     echo "Complexity score: " . $result->getComplexityScore() . "\n";
 } else {
-    echo "Error: " . $result->getErrorMessage() . "\n";
+    echo "Error: " . $result->error . "\n";
     echo "Hint: " . $result->getHint() . "\n";
 }
 ```
@@ -199,8 +199,8 @@ $regex = Regex::create();
 $userPattern = $_POST['regex_pattern'];
 
 $result = $regex->validate($userPattern);
-if (!$result->isValid()) {
-    die("Invalid pattern: " . $result->getErrorMessage());
+if (!$result->isValid) {
+    die("Invalid pattern: " . $result->error);
 }
 ```
 
@@ -224,7 +224,7 @@ documentPattern('/\d{4}-\d{2}-\d{2}/', 'Date format');
 
 ```bash
 # Scan your entire project
-bin/regex lint src/ --redos-only
+bin/regex lint src/ --redos --no-lint --no-optimize
 ```
 
 ### 5. Generate Test Data
