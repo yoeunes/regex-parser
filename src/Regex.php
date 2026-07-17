@@ -133,7 +133,7 @@ final readonly class Regex
     /**
      * Create a new Regex instance with optional configuration.
      *
-     * Instances are not memoized; use Regex::new() for the same behavior.
+     * Every call returns a fresh instance; nothing is memoized.
      *
      * @param array<string, mixed> $options Configuration options
      *
@@ -165,15 +165,24 @@ final readonly class Regex
      */
     public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
     {
+        if ($tolerant) {
+            return $this->parseTolerant($regex);
+        }
+
+        return $this->doParse($regex);
+    }
+
+    /**
+     * Parse a regular expression, returning a best-effort AST plus the parse
+     * errors instead of throwing on invalid input.
+     *
+     * @param string $regex The regular expression to parse
+     */
+    public function parseTolerant(string $regex): TolerantParseResult
+    {
         try {
-            $ast = $this->doParse($regex);
-
-            return $tolerant ? new TolerantParseResult($ast) : $ast;
+            return new TolerantParseResult($this->doParse($regex));
         } catch (LexerException|ParserException $parseException) {
-            if (!$tolerant) {
-                throw $parseException;
-            }
-
             $fallbackAst = $this->buildFallbackAstFromException($parseException, $regex);
 
             return new TolerantParseResult($fallbackAst, [$parseException]);
@@ -371,13 +380,14 @@ final readonly class Regex
     /**
      * Generate a human-readable explanation of the regular expression.
      *
-     * @param string $regex  The regular expression to explain
-     * @param string $format Output format ('text' or 'html')
+     * @param string              $regex  The regular expression to explain
+     * @param string|OutputFormat $format Output format (OutputFormat::TEXT or OutputFormat::HTML)
      *
      * @return string Formatted explanation
      */
-    public function explain(string $regex, string $format = 'text'): string
+    public function explain(string $regex, string|OutputFormat $format = OutputFormat::TEXT): string
     {
+        $format = \is_string($format) ? $format : $format->value;
         $explanationVisitor = $this->createExplanationVisitor($format);
 
         $ast = $this->parse($regex, false);
@@ -388,11 +398,12 @@ final readonly class Regex
     /**
      * Highlight a regex for console or HTML output.
      *
-     * @param string $regex  The regular expression to highlight
-     * @param string $format Output format ('console' or 'html')
+     * @param string              $regex  The regular expression to highlight
+     * @param string|OutputFormat $format Output format (OutputFormat::CONSOLE or OutputFormat::HTML)
      */
-    public function highlight(string $regex, string $format = 'console'): string
+    public function highlight(string $regex, string|OutputFormat $format = OutputFormat::CONSOLE): string
     {
+        $format = \is_string($format) ? $format : $format->value;
         $ast = $this->parse($regex, false);
 
         $visitor = 'html' === $format
@@ -489,7 +500,9 @@ final readonly class Regex
     }
 
     /**
-     * Create a new Regex instance without memoization.
+     * Create a new Regex instance.
+     *
+     * @deprecated use Regex::create() instead; both behave identically
      *
      * @param array<string, mixed> $options Configuration options
      *

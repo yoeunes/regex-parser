@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `Regex::parseTolerant()` — explicit tolerant parsing without the `parse($regex, true)` bool-flag union return.
+- `OutputFormat` enum accepted by `Regex::explain()` and `Regex::highlight()` (strings still work).
+
+### Deprecated
+- `Regex::new()` (identical to `Regex::create()`); `ValidationResult::isValid()` and `getErrorMessage()` methods in favor of the public `$isValid` / `$error` properties.
+
+### Added
 - **Laravel bridge** (`RegexParser\Bridge\Laravel`) with package auto-discovery:
   - Service provider and `Regex` facade
   - Artisan commands: `regex:lint`, `regex:routes`, `regex:explain`, `regex:compare`, `regex:transpile`

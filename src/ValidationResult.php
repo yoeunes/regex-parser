@@ -29,11 +29,17 @@ final readonly class ValidationResult
         public ?string $errorCode = null,
     ) {}
 
+    /**
+     * @deprecated read the public $isValid property instead
+     */
     public function isValid(): bool
     {
         return $this->isValid;
     }
 
+    /**
+     * @deprecated read the public $error property instead
+     */
     public function getErrorMessage(): ?string
     {
         return $this->error;

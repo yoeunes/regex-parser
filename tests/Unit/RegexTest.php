@@ -63,6 +63,29 @@ final class RegexTest extends TestCase
         $this->assertInstanceOf($expectedPatternClass, $ast->pattern);
     }
 
+    public function test_parse_tolerant_returns_result_with_errors(): void
+    {
+        $result = $this->regexService->parseTolerant('/(?:a|b|/');
+
+        $this->assertInstanceOf(RegexNode::class, $result->ast);
+        $this->assertNotEmpty($result->errors);
+
+        $ok = $this->regexService->parseTolerant('/abc/');
+        $this->assertSame([], $ok->errors);
+    }
+
+    public function test_explain_and_highlight_accept_output_format_enum(): void
+    {
+        $text = $this->regexService->explain('/a+/', \RegexParser\OutputFormat::TEXT);
+        $html = $this->regexService->explain('/a+/', \RegexParser\OutputFormat::HTML);
+        $this->assertStringContainsString('one or more', $text);
+        $this->assertStringContainsString('<', $html);
+
+        $console = $this->regexService->highlight('/a+/', \RegexParser\OutputFormat::CONSOLE);
+        $this->assertNotSame('', $console);
+        $this->assertStringContainsString('<', $this->regexService->highlight('/a+/', \RegexParser\OutputFormat::HTML));
+    }
+
     #[DataProvider('provideRegexForOptimization')]
     public function test_optimize_method(string $pattern, string $expectedOptimizedPattern): void
     {
