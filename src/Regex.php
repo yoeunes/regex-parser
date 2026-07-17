@@ -432,8 +432,24 @@ final readonly class Regex
     public function generate(string $regex): string
     {
         $ast = $this->parse($regex, false);
+        $generator = new SampleGeneratorNodeVisitor();
 
-        return $ast->accept(new SampleGeneratorNodeVisitor());
+        // Generation is best-effort (lookaround hints, negated classes, ...):
+        // verify the sample against the real engine and retry a few times
+        // before settling for the last attempt.
+        $sample = '';
+        for ($attempt = 0; $attempt < 8; $attempt++) {
+            $sample = $ast->accept($generator);
+
+            $matches = @preg_match($regex, $sample);
+            if (false === $matches || 1 === $matches) {
+                // Either verified, or the pattern cannot be evaluated by
+                // this PCRE runtime — return what we have.
+                return $sample;
+            }
+        }
+
+        return $sample;
     }
 
     /**

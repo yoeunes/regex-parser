@@ -63,6 +63,9 @@ final class ReDoSAnalyzerTest extends TestCase
         yield ['/(a|a)+/', ReDoSSeverity::CRITICAL];
         yield ['/(a|a)*/', ReDoSSeverity::CRITICAL];
 
+        // CRITICAL payload inside a conditional's condition (lookaround)
+        yield ['/(?(?=(a+)+b)x|y)/', ReDoSSeverity::CRITICAL];
+
         // Atomic groups (Mitigation)
         yield ['/(?>a+)+/', ReDoSSeverity::SAFE];
         yield ['/a++/', ReDoSSeverity::SAFE];

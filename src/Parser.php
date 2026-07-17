@@ -2068,9 +2068,13 @@ final class Parser
 
         // Certain node types cannot be range endpoints in PCRE
         if ($this->isNonRangeEndpointType($startNode)) {
-            $this->stream->rewind(1);
-
-            return $startNode;
+            throw $this->parserException(
+                \sprintf(
+                    'Invalid range in character class: a character type, POSIX class, or Unicode property cannot be a range endpoint at position %d.',
+                    $startPosition,
+                ),
+                $startPosition,
+            );
         }
 
         if ($this->check(TokenType::T_CHAR_CLASS_OPEN)) {
@@ -2096,9 +2100,13 @@ final class Parser
         }
 
         if ($this->isNonRangeEndpointType($endNode)) {
-            $this->stream->rewind(2);
-
-            return $startNode;
+            throw $this->parserException(
+                \sprintf(
+                    'Invalid range in character class: a character type, POSIX class, or Unicode property cannot be a range endpoint at position %d.',
+                    $endPosition,
+                ),
+                $endPosition,
+            );
         }
 
         return new RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());

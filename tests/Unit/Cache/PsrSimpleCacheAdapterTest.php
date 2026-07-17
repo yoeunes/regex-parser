@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\Cache;
 
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
+use RegexParser\Cache\CachePayloadDecoder;
 use RegexParser\Cache\PsrSimpleCacheAdapter;
 use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
@@ -101,15 +102,11 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
     public function test_extract_serialized_string(): void
     {
-        $cache = new InMemorySimpleCache();
-        $adapter = new PsrSimpleCacheAdapter($cache);
-
         // Test the private method through reflection
-        $reflection = new \ReflectionClass($adapter);
-        $method = $reflection->getMethod('extractSerializedString');
+        $method = new \ReflectionMethod(CachePayloadDecoder::class, 'extractSerializedString');
 
         $payload = "<?php return unserialize('serialized_data', ['allowed_classes' => []]);";
-        $result = $method->invoke($adapter, $payload);
+        $result = $method->invoke(null, $payload);
         $this->assertSame('serialized_data', $result);
     }
 
@@ -127,28 +124,20 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
     public function test_extract_serialized_string_returns_null_without_comma(): void
     {
-        $cache = new InMemorySimpleCache();
-        $adapter = new PsrSimpleCacheAdapter($cache);
-
-        $reflection = new \ReflectionClass($adapter);
-        $method = $reflection->getMethod('extractSerializedString');
+        $method = new \ReflectionMethod(CachePayloadDecoder::class, 'extractSerializedString');
 
         $payload = "<?php return unserialize('data');";
 
-        $this->assertNull($method->invoke($adapter, $payload));
+        $this->assertNull($method->invoke(null, $payload));
     }
 
     public function test_extract_serialized_string_returns_null_for_empty_argument(): void
     {
-        $cache = new InMemorySimpleCache();
-        $adapter = new PsrSimpleCacheAdapter($cache);
-
-        $reflection = new \ReflectionClass($adapter);
-        $method = $reflection->getMethod('extractSerializedString');
+        $method = new \ReflectionMethod(CachePayloadDecoder::class, 'extractSerializedString');
 
         $payload = "<?php return unserialize(, ['allowed_classes' => true]);";
 
-        $this->assertNull($method->invoke($adapter, $payload));
+        $this->assertNull($method->invoke(null, $payload));
     }
 
     public function test_get_stats_returns_zero_stats(): void

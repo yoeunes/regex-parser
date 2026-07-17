@@ -586,6 +586,14 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             // drop significant escapes like \\d, \\w, or \\x7f.
             $closingDelimiter = '{' === $delimiter ? '}' : $delimiter;
 
+            // A pattern whose closing delimiter does not match its opening
+            // delimiter (e.g. "/foo#") is broken at runtime; do not "repair"
+            // it here — fall back so the raw pattern is validated as-is and
+            // the delimiter error surfaces in the lint report.
+            if ($matches[3] !== $closingDelimiter) {
+                return null;
+            }
+
             // Reconstruct the pattern with flags preserved, using the proper
             // closing delimiter for bracket-style delimiters.
             $fullPattern = $delimiter.$regexBody.$closingDelimiter.$flags;

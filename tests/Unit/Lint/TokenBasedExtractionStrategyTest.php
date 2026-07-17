@@ -33,6 +33,22 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $this->assertSame(['/baz/', '/qux/'], array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences));
     }
 
+    public function test_does_not_repair_mismatched_delimiters(): void
+    {
+        $file = __DIR__.'/../../Fixtures/Extractor/mismatched_delimiter.php';
+
+        $strategy = new TokenBasedExtractionStrategy();
+        $occurrences = $strategy->extract([$file]);
+
+        $patterns = array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences);
+
+        // '/foo#' is broken at runtime (no ending delimiter); the extractor
+        // must keep it verbatim so the linter reports the delimiter error
+        // instead of silently rewriting it to '/foo/'.
+        $this->assertContains('/foo#', $patterns);
+        $this->assertNotContains('/foo/', $patterns);
+    }
+
     public function test_handles_unicode_escape_in_pattern(): void
     {
         $file = __DIR__.'/../../Fixtures/Extractor/unicode_escape.php';

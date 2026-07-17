@@ -15,9 +15,28 @@ namespace RegexParser\Tests\Unit\Cache;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\ArrayCache;
+use RegexParser\Node\RegexNode;
+use RegexParser\Regex;
 
 final class ArrayCacheTest extends TestCase
 {
+    public function test_parse_hit_returns_cached_ast(): void
+    {
+        $cache = new ArrayCache();
+        $regex = Regex::create(['cache' => $cache]);
+
+        $first = $regex->parse('/(a|b)+c/');
+        $second = $regex->parse('/(a|b)+c/');
+        $third = $regex->parse('/(a|b)+c/');
+
+        // The decoded AST must be served from the cache, not re-parsed:
+        // hits return the same stored instance, structurally equal to a fresh parse.
+        $this->assertInstanceOf(RegexNode::class, $second);
+        $this->assertSame($second, $third);
+        $this->assertEquals($first, $second);
+        $this->assertSame(['hits' => 2, 'misses' => 1], $cache->getStats());
+    }
+
     public function test_generate_key_returns_hash(): void
     {
         $cache = new ArrayCache();

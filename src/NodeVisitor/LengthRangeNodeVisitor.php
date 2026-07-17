@@ -21,8 +21,10 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -35,10 +37,12 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Calculates min/max string lengths that match the regex.
@@ -229,6 +233,30 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
     public function visitSubroutine(SubroutineNode $node): array
     {
         return [0, null]; // Subroutines can be complex
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): array
+    {
+        return [1, 1];
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): array
+    {
+        return [1, 1];
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): array
+    {
+        return [0, null]; // Script run content length is not tracked
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): array
+    {
+        return [0, 0];
     }
 
     #[\Override]

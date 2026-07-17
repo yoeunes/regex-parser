@@ -22,8 +22,10 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -35,9 +37,12 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Extracts literal strings that must appear in any match.
@@ -268,6 +273,36 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    #[\Override]
+    public function visitUnicode(UnicodeNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }

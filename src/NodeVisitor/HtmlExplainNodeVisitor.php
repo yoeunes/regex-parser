@@ -22,6 +22,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\ControlCharNode;
@@ -39,10 +40,12 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates an HTML explanation of the regex.
@@ -353,6 +356,33 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     public function visitPosixClass(PosixClassNode $node): string
     {
         return \sprintf('<li>POSIX Class: [[:%s:]]</li>', $this->e($node->class));
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): string
+    {
+        return \sprintf(
+            '<li>Class Operation: %s <strong>%s</strong> %s</li>',
+            strip_tags($node->left->accept($this)),
+            $this->e($node->type->value),
+            strip_tags($node->right->accept($this)),
+        );
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): string
+    {
+        return \sprintf('<li>Script Run: <strong>%s</strong></li>', $this->e($node->script));
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): string
+    {
+        return \sprintf(
+            '<li>Version Condition: PCRE2 <strong>%s %s</strong></li>',
+            $this->e($node->operator),
+            $this->e($node->version),
+        );
     }
 
     #[\Override]

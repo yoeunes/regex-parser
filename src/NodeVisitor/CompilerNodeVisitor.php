@@ -405,6 +405,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): string
     {
+        // POSIX classes only exist inside a character class, whose visitor
+        // already emits the surrounding brackets.
+        if ($this->inCharClass) {
+            return '[:'.$node->class.':]';
+        }
+
         return '[[:'.$node->class.':]]';
     }
 

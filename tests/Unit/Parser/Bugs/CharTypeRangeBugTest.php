@@ -15,34 +15,24 @@ namespace RegexParser\Tests\Unit\Parser\Bugs;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Regex;
 
 /**
- * Regression tests for the CharType range bug in the Parser.
+ * Regression tests for range endpoints in character classes.
  *
- * Bug description:
- * The parser was throwing an exception when encountering a hyphen immediately
- * following a Character Type (like \w, \d, \s) inside a character class.
+ * PCRE rejects a range whose endpoint is a character type, POSIX class, or
+ * Unicode property: `[\w-_]`, `[\d-z]`, `[a-\d]` are all compile errors
+ * ("invalid range in character class"). The parser must reject them too —
+ * an earlier "fix" silently re-interpreted the hyphen as a literal, which
+ * made the library accept patterns that fail at runtime in PHP.
  *
- * Example:
- * - Input: /[\w-_]/
- * - Error: "Invalid range: ranges must be between literal characters... Found RegexParser\Node\CharTypeNode..."
- *
- * Analysis:
- * The parser was interpreting the `-` as a range operator trying to create a range
- * starting from `\w`. In PCRE, `\w` cannot be the start of a range. If a hyphen
- * follows a CharType, it should be treated as a **literal hyphen**.
- *
- * Expected behavior after fix:
- * /[\w-_]/ should parse to a CharClassNode containing:
- * 1. CharTypeNode (\w)
- * 2. LiteralNode (-)
- * 3. LiteralNode (_)
+ * A hyphen is only a literal when it cannot be a range operator: at the
+ * start (`[-a]`) or end (`[a-]`) of a class.
  */
 final class CharTypeRangeBugTest extends TestCase
 {
@@ -54,69 +44,29 @@ final class CharTypeRangeBugTest extends TestCase
     }
 
     /**
-     * Test that /[\w-_]/ parses correctly with hyphen as literal.
+     * @return \Iterator<string, array{0: string}>
      */
-    public function test_chartype_followed_by_hyphen_parses_as_literal(): void
+    public static function charTypeRangeProvider(): \Iterator
     {
-        $ast = $this->regex->parse('/[\w-_]/');
-
-        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
-
-        $expression = $ast->pattern->expression;
-        $this->assertInstanceOf(AlternationNode::class, $expression);
-        $this->assertCount(3, $expression->alternatives);
-
-        // Child 0: CharTypeNode (\w)
-        $this->assertInstanceOf(CharTypeNode::class, $expression->alternatives[0]);
-        $this->assertSame('w', $expression->alternatives[0]->value);
-
-        // Child 1: LiteralNode (-)
-        $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[1]);
-        $this->assertSame('-', $expression->alternatives[1]->value);
-
-        // Child 2: LiteralNode (_)
-        $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[2]);
-        $this->assertSame('_', $expression->alternatives[2]->value);
+        yield 'word character \w as range start' => ['/[\w-_]/'];
+        yield 'word character \w before hyphen and letter' => ['/[\w-a]/'];
+        yield 'digit \d as range start' => ['/[\d-a]/'];
+        yield 'whitespace \s as range start' => ['/[\s-a]/'];
+        yield 'non-word \W as range start' => ['/[\W-a]/'];
+        yield 'non-digit \D as range start' => ['/[\D-a]/'];
+        yield 'non-whitespace \S as range start' => ['/[\S-a]/'];
+        yield 'horizontal whitespace \h as range start' => ['/[\h-a]/'];
+        yield 'vertical whitespace \v as range start' => ['/[\v-a]/'];
+        yield 'char type as range end' => ['/[a-\d]/'];
+        yield 'char type range with valid range after' => ['/[\w-_a-z]/'];
     }
 
-    /**
-     * Test various CharType patterns followed by hyphen.
-     */
-    #[DataProvider('charTypeHyphenProvider')]
-    public function test_various_chartypes_followed_by_hyphen(string $pattern, string $charTypeValue): void
+    #[DataProvider('charTypeRangeProvider')]
+    public function test_chartype_range_endpoint_is_rejected(string $pattern): void
     {
-        $ast = $this->regex->parse($pattern);
+        $this->expectException(ParserException::class);
 
-        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
-
-        $expression = $ast->pattern->expression;
-        $this->assertInstanceOf(AlternationNode::class, $expression);
-        $this->assertGreaterThanOrEqual(2, \count($expression->alternatives));
-
-        // First child should be CharTypeNode
-        $this->assertInstanceOf(CharTypeNode::class, $expression->alternatives[0]);
-        $this->assertSame($charTypeValue, $expression->alternatives[0]->value);
-
-        // Second child should be LiteralNode (hyphen)
-        $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[1]);
-        $this->assertSame('-', $expression->alternatives[1]->value);
-    }
-
-    /**
-     * Data provider for various CharType patterns.
-     *
-     * @return \Iterator<string, array{0: string, 1: string}>
-     */
-    public static function charTypeHyphenProvider(): \Iterator
-    {
-        yield 'word character \w followed by hyphen' => ['/[\w-a]/', 'w'];
-        yield 'digit \d followed by hyphen' => ['/[\d-a]/', 'd'];
-        yield 'whitespace \s followed by hyphen' => ['/[\s-a]/', 's'];
-        yield 'non-word \W followed by hyphen' => ['/[\W-a]/', 'W'];
-        yield 'non-digit \D followed by hyphen' => ['/[\D-a]/', 'D'];
-        yield 'non-whitespace \S followed by hyphen' => ['/[\S-a]/', 'S'];
-        yield 'horizontal whitespace \h followed by hyphen' => ['/[\h-a]/', 'h'];
-        yield 'vertical whitespace \v followed by hyphen' => ['/[\v-a]/', 'v'];
+        $this->regex->parse($pattern);
     }
 
     /**
@@ -129,29 +79,6 @@ final class CharTypeRangeBugTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
         // Should be a RangeNode, not separate literals
         $this->assertInstanceOf(RangeNode::class, $ast->pattern->expression);
-    }
-
-    /**
-     * Test mixed CharType and valid range in same character class.
-     */
-    public function test_mixed_chartype_and_valid_range(): void
-    {
-        $ast = $this->regex->parse('/[\w-_a-z]/');
-
-        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
-
-        $expression = $ast->pattern->expression;
-        $this->assertInstanceOf(AlternationNode::class, $expression);
-
-        // Should have: CharTypeNode(\w), LiteralNode(-), LiteralNode(_), RangeNode(a-z)
-        $this->assertCount(4, $expression->alternatives);
-
-        $this->assertInstanceOf(CharTypeNode::class, $expression->alternatives[0]);
-        $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[1]);
-        $this->assertSame('-', $expression->alternatives[1]->value);
-        $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[2]);
-        $this->assertSame('_', $expression->alternatives[2]->value);
-        $this->assertInstanceOf(RangeNode::class, $expression->alternatives[3]);
     }
 
     /**
@@ -187,5 +114,23 @@ final class CharTypeRangeBugTest extends TestCase
         // First element should be a literal hyphen
         $this->assertInstanceOf(LiteralNode::class, $expression->alternatives[0]);
         $this->assertSame('-', $expression->alternatives[0]->value);
+    }
+
+    /**
+     * Test that a hyphen after a char type is literal when no range can form
+     * (end of class), matching PCRE: /[\d-]/ compiles.
+     */
+    public function test_chartype_then_trailing_hyphen_is_literal(): void
+    {
+        $ast = $this->regex->parse('/[\d-]/');
+
+        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
+
+        $expression = $ast->pattern->expression;
+        $this->assertInstanceOf(AlternationNode::class, $expression);
+
+        $lastElement = $expression->alternatives[\count($expression->alternatives) - 1];
+        $this->assertInstanceOf(LiteralNode::class, $lastElement);
+        $this->assertSame('-', $lastElement->value);
     }
 }

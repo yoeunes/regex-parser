@@ -149,9 +149,9 @@ final class SampleGeneratorVisitorTest extends TestCase
 
     public function test_generate_negated_char_class_safe_char(): void
     {
-        // [^a] uses '!' as a safe char.
+        // The sample must actually match the negated class.
         $sample = $this->generateSample('/[^a]/');
-        $this->assertSame('!', $sample);
+        $this->assertMatchesRegularExpression('/^[^a]$/', $sample);
     }
 
     public function test_generate_throws_on_subroutine(): void
@@ -222,14 +222,21 @@ final class SampleGeneratorVisitorTest extends TestCase
 
     public function test_generate_negated_char_class_fallback(): void
     {
-        // Your code returns '!' for complex negated classes.
-        // We ensure this line is executed.
         $regex = Regex::create();
         $ast = $regex->parse('/[^abc]/');
         $generator = new SampleGeneratorNodeVisitor();
 
         $result = $ast->accept($generator);
-        $this->assertSame('!', $result);
+        $this->assertMatchesRegularExpression('/^[^abc]$/', $result);
+    }
+
+    public function test_generate_negated_char_class_excluding_default_placeholder(): void
+    {
+        // Regression: the generator used to return the constant '!' for any
+        // negated class, which cannot match when '!' is in the excluded set.
+        $regex = Regex::create();
+        $sample = $regex->generate('/[^!"#]/');
+        $this->assertMatchesRegularExpression('/^[^!"#]$/', $sample);
     }
 
     public function test_generate_fallback_char_types(): void

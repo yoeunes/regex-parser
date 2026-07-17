@@ -354,24 +354,19 @@ final class RegexLintServiceTest extends TestCase
             new RegexPatternOccurrence('/(x+)+y/', 'test.php', 1, 'preg_match'),
         ];
 
-        $service = new RegexLintService($this->analysis, $this->sources);
+        // ReDoS analysis must be enabled on the analysis service itself;
+        // the request flag alone only filters already-produced issues.
+        $analysis = new RegexAnalysisService(Regex::create(), redosEnabled: true);
+        $service = new RegexLintService($analysis, $this->sources);
         $result = $service->analyze($patterns, $request, null);
 
-        if (!empty($result->results)) {
-            // Check if any issues have analysis (ReDoS)
-            $redosIssues = array_filter(
-                $result->results[0]['issues'] ?? [],
-                static fn ($issue) => isset($issue['analysis']),
-            );
-            if (!empty($redosIssues)) {
-                // Ensure the problems array contains ReDoS problems
-                $redosProblems = array_filter(
-                    $result->results[0]['problems'] ?? [],
-                    static fn ($problem) => ProblemType::Security === $problem->type,
-                );
-                $this->assertNotEmpty($redosProblems, 'Should create security problems for ReDoS issues');
-            }
-        }
+        $this->assertNotEmpty($result->results, 'Analyzing a vulnerable pattern must produce a result');
+
+        $redosProblems = array_filter(
+            $result->results[0]['problems'] ?? [],
+            static fn ($problem) => ProblemType::Security === $problem->type,
+        );
+        $this->assertNotEmpty($redosProblems, 'Should create security problems for ReDoS issues');
     }
 
     public function test_analyze_processes_issues_for_nonexistent_file(): void

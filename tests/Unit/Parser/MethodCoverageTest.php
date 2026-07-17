@@ -417,7 +417,6 @@ final class MethodCoverageTest extends TestCase
      * Test Parser.parseCharClassPart() range with T_UNICODE_PROP end
      * This triggers the Unicode property handling in character class range end
      */
-    #[DoesNotPerformAssertions]
     public function test_parser_parse_char_class_part_range_unicode_prop(): void
     {
         $parser = new Parser();
@@ -433,7 +432,8 @@ final class MethodCoverageTest extends TestCase
         ];
         $accessor->setTokens($tokens);
 
-        // Call parseCharClassPart which should handle range with Unicode prop end
+        // PCRE rejects a Unicode property as a range endpoint.
+        $this->expectException(ParserException::class);
         $accessor->callPrivateMethod('parseCharClassPart');
     }
 
@@ -513,7 +513,6 @@ final class MethodCoverageTest extends TestCase
      * Test Parser.parseCharClassPart() range with T_POSIX_CLASS end
      * This triggers the POSIX class handling in character class range end
      */
-    #[DoesNotPerformAssertions]
     public function test_parser_parse_char_class_part_range_posix_class(): void
     {
         $parser = new Parser();
@@ -529,7 +528,8 @@ final class MethodCoverageTest extends TestCase
         ];
         $accessor->setTokens($tokens);
 
-        // Call parseCharClassPart which should handle range with POSIX class end
+        // PCRE rejects a POSIX class as a range endpoint.
+        $this->expectException(ParserException::class);
         $accessor->callPrivateMethod('parseCharClassPart');
     }
 

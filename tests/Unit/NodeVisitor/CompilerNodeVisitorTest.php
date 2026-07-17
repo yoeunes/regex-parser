@@ -70,6 +70,16 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/[\]\^\-]/', $this->compile($regex));
     }
 
+    public function test_compile_posix_class_not_double_wrapped(): void
+    {
+        // The surrounding character class already provides the brackets.
+        $this->assertSame('/[[:alpha:]]/', $this->compile('/[[:alpha:]]/'));
+        $this->assertSame('/[[:^alpha:]]/', $this->compile('/[[:^alpha:]]/'));
+        $this->assertSame('/[a[:digit:]]/', $this->compile('/[a[:digit:]]/'));
+        $this->assertSame('/[^[:alpha:]]/', $this->compile('/[^[:alpha:]]/'));
+        $this->assertSame('/[[:digit:][:space:]]/', $this->compile('/[[:digit:][:space:]]/'));
+    }
+
     // Add new tests for new features
     public function test_compile_new_features(): void
     {

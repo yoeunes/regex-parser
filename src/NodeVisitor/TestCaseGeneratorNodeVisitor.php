@@ -22,8 +22,10 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -35,10 +37,12 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates test cases (matching and non-matching strings) for a regex pattern.
@@ -401,6 +405,41 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
         return [
             'matching' => [''],
             'non_matching' => ['x'],
+        ];
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): array
+    {
+        $char = $node->codePoint >= 0 && $node->codePoint <= 0xFF ? \chr($node->codePoint) : '?';
+
+        return [
+            'matching' => [$char],
+            'non_matching' => ['x'],
+        ];
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): array
+    {
+        return $node->left->accept($this);
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): array
+    {
+        return [
+            'matching' => [''],
+            'non_matching' => [],
+        ];
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): array
+    {
+        return [
+            'matching' => [''],
+            'non_matching' => [],
         ];
     }
 

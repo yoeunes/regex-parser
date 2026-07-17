@@ -140,12 +140,10 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[z-a]/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_chartype_at_end_of_range_is_parsed_as_literal(): void
+    public function test_chartype_at_end_of_range_is_rejected(): void
     {
-        // In PCRE, when a CharType like \d follows a hyphen in a character class,
-        // the hyphen is treated as a literal, not a range operator.
-        // Pattern /[a-\d]/ should parse as: LiteralNode(a), LiteralNode(-), CharTypeNode(\d)
+        // PCRE compile-errors on a character type as a range endpoint.
+        $this->expectException(ParserException::class);
         $this->validate('/[a-\d]/');
     }
 
@@ -154,6 +152,24 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Backreference to non-existent group: \2.');
         $this->validate('/\2/'); // No group 2
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_multi_digit_backref_falls_back_to_octal(): void
+    {
+        // PCRE: \NN with NN >= 10 and no such group is an octal escape
+        // (e.g. (a)\11 matches "a" followed by a TAB).
+        $this->validate('/(a)\11/');
+        $this->validate('/(a)(b)\10/');
+        $this->validate('/\19/'); // octal \1 followed by literal 9
+    }
+
+    public function test_multi_digit_backref_without_octal_fallback_is_rejected(): void
+    {
+        // "81" starts with a non-octal digit: neither a group nor an octal escape.
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Backreference to non-existent group: \81.');
+        $this->validate('/\81/');
     }
 
     public function test_throws_on_invalid_unicode_prop(): void
@@ -214,12 +230,10 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/a\k<name>/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_chartype_at_start_of_range_is_parsed_as_literal(): void
+    public function test_chartype_at_start_of_range_is_rejected(): void
     {
-        // In PCRE, when a hyphen follows a CharType like \d in a character class,
-        // the hyphen is treated as a literal, not a range operator.
-        // Pattern /[\d-z]/ should parse as: CharTypeNode(\d), LiteralNode(-), LiteralNode(z)
+        // PCRE compile-errors on a character type as a range endpoint.
+        $this->expectException(ParserException::class);
         $this->validate('/[\d-z]/');
     }
 

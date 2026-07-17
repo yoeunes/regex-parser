@@ -28,9 +28,19 @@ final class EdgeCaseValidationTest extends TestCase
 
     public function test_back_reference_to_non_existent_group(): void
     {
-        $result = $this->regexService->validate('/(a)\10/');
+        // Multi-digit \NN without a matching group and without an octal
+        // fallback (leading 8/9) is a compile error in PCRE.
+        $result = $this->regexService->validate('/(a)\81/');
         $this->assertFalse($result->isValid, 'Should be invalid');
-        $this->assertStringContainsString('Backreference to non-existent group: \10', (string) $result->error);
+        $this->assertStringContainsString('Backreference to non-existent group: \81', (string) $result->error);
+    }
+
+    public function test_back_reference_octal_fallback_is_valid(): void
+    {
+        // With only one capture group, PCRE reads \10 as the octal escape
+        // \010 (backspace), so the pattern is valid.
+        $result = $this->regexService->validate('/(a)\10/');
+        $this->assertTrue($result->isValid, '\10 with one group must fall back to octal, as in PCRE');
     }
 
     public function test_back_reference_to_non_existent_named_group(): void
@@ -69,13 +79,19 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertStringContainsString('Invalid range "z-a"', (string) $result->error);
     }
 
-    public function test_chartype_followed_by_hyphen_is_valid(): void
+    public function test_chartype_range_endpoint_is_invalid(): void
     {
-        // In PCRE, when a hyphen follows a CharType like \w in a character class,
-        // the hyphen is treated as a literal, not a range operator.
-        // Pattern /[\w-_]/ should parse as: CharTypeNode(\w), LiteralNode(-), LiteralNode(_)
+        // PCRE compile-errors on /[\w-_]/: a character type cannot be a
+        // range endpoint ("invalid range in character class").
         $result = $this->regexService->validate('/[\\w-_]/');
-        $this->assertTrue($result->isValid, 'CharType followed by hyphen should be valid (hyphen is literal)');
+        $this->assertFalse($result->isValid, 'CharType as a range endpoint must be rejected, as in PCRE');
+    }
+
+    public function test_chartype_followed_by_trailing_hyphen_is_valid(): void
+    {
+        // A hyphen that cannot form a range (end of class) stays literal.
+        $result = $this->regexService->validate('/[\\w-]/');
+        $this->assertTrue($result->isValid, 'Trailing hyphen after a CharType is a literal');
     }
 
     public function test_duplicate_group_name(): void

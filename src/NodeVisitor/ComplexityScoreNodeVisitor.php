@@ -21,8 +21,10 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -38,6 +40,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -238,6 +241,24 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(CharLiteralNode $node): int
     {
         return self::BASE_SCORE;
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): int
+    {
+        return self::BASE_SCORE;
+    }
+
+    #[\Override]
+    public function visitUnicode(UnicodeNode $node): int
+    {
+        return self::BASE_SCORE;
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): int
+    {
+        return self::BASE_SCORE + $node->left->accept($this) + $node->right->accept($this);
     }
 
     #[\Override]

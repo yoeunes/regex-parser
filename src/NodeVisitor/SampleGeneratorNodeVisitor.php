@@ -24,6 +24,7 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\ControlCharNode;
@@ -40,9 +41,12 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * A visitor that generates a random sample string that matches the AST.
@@ -278,12 +282,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(CharClassNode $node): string
     {
         if ($node->isNegated) {
-            // Generating for a negated class is complex.
-            // We'd have to know the full set of all possible chars
-            // (ASCII? Unicode?) and subtract the parts.
-            // For a sample, it's safer to return a known "safe" char
-            // that is unlikely to be in the negated set.
-            return '!'; // e.g., a "safe" punctuation mark
+            return $this->sampleForNegatedClass($node);
         }
 
         $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
@@ -353,6 +352,34 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         // Backreference to a group that hasn't matched yet
         // (or doesn't exist). In a real engine, this fails the match.
         // For generation, we must return empty string.
+        return '';
+    }
+
+    #[\Override]
+    public function visitUnicode(UnicodeNode $node): string
+    {
+        $codePoint = (int) hexdec(ltrim($node->code, '{}'));
+        $char = mb_chr($codePoint, 'UTF-8');
+
+        return false === $char ? '?' : $char;
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): string
+    {
+        // Best-effort: a member of the left operand usually satisfies the operation.
+        return $node->left->accept($this);
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): string
+    {
+        return '';
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): string
+    {
         return '';
     }
 
@@ -491,6 +518,45 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * Picks a character that is actually outside the negated set by testing
+     * candidates against the compiled character class.
+     */
+    private function sampleForNegatedClass(CharClassNode $node): string
+    {
+        $candidates = array_merge(
+            range('a', 'e'),
+            range('A', 'E'),
+            range('0', '4'),
+            ['!', '?', '_', '-', ' ', "\t", 'é', '☃'],
+        );
+
+        try {
+            $compiled = $node->accept(new CompilerNodeVisitor());
+        } catch (\Throwable) {
+            return '!';
+        }
+
+        foreach (['/', '~', '#', '%', '@', ';'] as $delimiter) {
+            if (str_contains($compiled, $delimiter)) {
+                continue;
+            }
+
+            $classPattern = $delimiter.$compiled.$delimiter;
+            foreach ($candidates as $candidate) {
+                if (1 === @preg_match($classPattern, $candidate)) {
+                    return $candidate;
+                }
+            }
+
+            break;
+        }
+
+        // No printable candidate matched (or the class could not be compiled
+        // into a testable pattern): keep the historical fallback.
+        return '!';
+    }
+
+    /**
      * @return array{0: int, 1: int}
      */
     private function parseQuantifierRange(string $q): array
@@ -551,7 +617,8 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            if (!str_contains($sample, $suffix)) {
+            // A lookbehind constrains what the sample must END with.
+            if (!str_ends_with($sample, $suffix)) {
                 $sample .= $suffix;
             }
         }

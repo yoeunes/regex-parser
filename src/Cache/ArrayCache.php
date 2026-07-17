@@ -41,7 +41,9 @@ final class ArrayCache implements RemovableCacheInterface
     #[\Override]
     public function write(string $key, string $content): void
     {
-        $this->data[$key] = $content;
+        // AST payloads are decoded once at write time so that load() returns
+        // a ready-to-use RegexNode; other content is stored verbatim.
+        $this->data[$key] = CachePayloadDecoder::decode($content) ?? $content;
         $this->timestamps[$key] = time();
     }
 

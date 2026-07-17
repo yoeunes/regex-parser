@@ -386,6 +386,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 );
             }
             if ($num > $this->groupNumbering->maxGroupNumber) {
+                // PCRE disambiguation: \NN with NN >= 10 and no such group is
+                // read as an octal escape (up to three octal digits, value
+                // <= \377) followed by literal digits, e.g. (a)\11 == (a)\x09.
+                if ($num >= 10 && $this->isValidOctalFallback($matches[1])) {
+                    return;
+                }
+
                 $this->raiseSemanticError(
                     \sprintf('Backreference to non-existent group: \\%d.', $num),
                     $node->startPosition,
@@ -1325,5 +1332,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $this->captureIndex = 0;
             $this->lookbehindLimit = $this->maxLookbehindLength;
         }
+    }
+
+    /**
+     * Whether a digit string that does not resolve to a capture group is a
+     * valid octal escape under PCRE rules: it must start with an octal digit,
+     * and the leading run of up to three octal digits must encode <= \377.
+     */
+    private function isValidOctalFallback(string $digits): bool
+    {
+        if (1 !== preg_match('/^([0-7]{1,3})/', $digits, $octal)) {
+            return false;
+        }
+
+        return octdec($octal[1]) <= 0xFF;
     }
 }

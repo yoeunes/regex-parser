@@ -21,6 +21,7 @@ use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\ControlCharNode;
@@ -471,6 +472,36 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitCharLiteral(CharLiteralNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): ReDoSSeverity
+    {
+        return $this->maxSeverity($node->left->accept($this), $node->right->accept($this));
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
+    #[\Override]
     public function visitBackref(BackrefNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -509,9 +540,13 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(ConditionalNode $node): ReDoSSeverity
     {
+        // The condition itself may be a lookaround that backtracks.
         return $this->maxSeverity(
-            $node->yes->accept($this),
-            $node->no->accept($this),
+            $node->condition->accept($this),
+            $this->maxSeverity(
+                $node->yes->accept($this),
+                $node->no->accept($this),
+            ),
         );
     }
 
