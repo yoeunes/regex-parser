@@ -25,6 +25,7 @@ use RegexParser\Lint\Rule\RedundantCharClassRule;
 use RegexParser\Lint\Rule\RedundantGroupRule;
 use RegexParser\Lint\Rule\Support\CharClassSets;
 use RegexParser\Lint\Rule\Support\NodePredicates;
+use RegexParser\Lint\Rule\UselessIFlagRule;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\CharClassNode;
@@ -155,10 +156,10 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
     public function test_char_class_part_has_letters_for_literal(): void
     {
-        $linter = new LinterNodeVisitor();
-        $method = (new \ReflectionClass($linter))->getMethod('charClassPartHasLetters');
+        $rule = new UselessIFlagRule();
+        $rule->begin($this->createRuleContext('i'));
 
-        $this->assertTrue($method->invoke($linter, new LiteralNode('A', 0, 0)));
+        $this->assertTrue($this->invokePrivate($rule, 'charClassPartHasLetters', [new LiteralNode('A', 0, 0)]));
     }
 
     public function test_lint_alternation_skips_empty_literals(): void

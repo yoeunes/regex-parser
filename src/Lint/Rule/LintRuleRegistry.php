@@ -55,6 +55,9 @@ final class LintRuleRegistry
         $this->register(new BracedHexWithoutURule());
         $this->register(new UnicodePropertyWithoutURule());
         $this->register(new ShorthandWithoutURule());
+        $this->register(new UselessIFlagRule());
+        $this->register(new UselessSFlagRule());
+        $this->register(new UselessMFlagRule());
     }
 
     public function register(LintRuleInterface $rule): void

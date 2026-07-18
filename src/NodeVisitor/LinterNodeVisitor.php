@@ -35,7 +35,6 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
-use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -43,7 +42,6 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
-use RegexParser\Severity;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -67,14 +65,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private string $flags = '';
 
     private string $delimiter = '';
-
-    private bool $hasCaseSensitiveChars = false;
-
-    private bool $hasDots = false;
-
-    private bool $hasAnchors = false;
-
-    private bool $hasBackreferences = false;
 
     private ?string $patternValue = null;
 
@@ -100,8 +90,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private bool $skipUselessBackref = false;
 
     private CharSetAnalyzer $charSetAnalyzer;
-
-    private bool $trackCaseSensitivity = false;
 
     private bool $unicodeMode = false;
 
@@ -180,14 +168,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->flags = $node->flags;
         $this->delimiter = $node->delimiter;
         $this->unicodeMode = str_contains($this->flags, 'u');
-        $this->trackCaseSensitivity = str_contains($this->flags, 'i');
         $this->intlAvailable = class_exists(\IntlChar::class);
         $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $this->issues = [];
-        $this->hasCaseSensitiveChars = false;
-        $this->hasDots = false;
-        $this->hasAnchors = false;
-        $this->hasBackreferences = false;
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
         $this->capturingGroups = [];
@@ -212,10 +195,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Second pass: traverse and lint
         $node->pattern->accept($this);
 
-        // Finally, compute useless-flag diagnostics based on the collected
-        // state and the fully compiled pattern.
-        $this->checkUselessFlags();
-
         foreach ($this->rules as $rule) {
             $this->append($rule->finish($this->context));
         }
@@ -227,12 +206,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitLiteral(LiteralNode $node): NodeInterface
     {
         $this->dispatch($node);
-        if ($this->trackCaseSensitivity
-            && !$this->hasCaseSensitiveChars
-            && $this->stringHasCaseSensitiveLetters($node->value)
-        ) {
-            $this->hasCaseSensitiveChars = true;
-        }
 
         return $node;
     }
@@ -240,22 +213,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(CharClassNode $node): NodeInterface
     {
-        if ($this->trackCaseSensitivity && !$this->hasCaseSensitiveChars) {
-            // Check if char class contains case-sensitive letters
-            $expression = $node->expression;
-            if ($expression instanceof AlternationNode) {
-                foreach ($expression->alternatives as $alt) {
-                    if ($this->charClassPartHasLetters($alt)) {
-                        $this->hasCaseSensitiveChars = true;
-
-                        break;
-                    }
-                }
-            } elseif ($this->charClassPartHasLetters($expression)) {
-                $this->hasCaseSensitiveChars = true;
-            }
-        }
-
         $this->dispatch($node);
 
         return $node;
@@ -265,7 +222,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitDot(DotNode $node): NodeInterface
     {
         $this->dispatch($node);
-        $this->hasDots = true;
 
         return $node;
     }
@@ -274,9 +230,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitAnchor(AnchorNode $node): NodeInterface
     {
         $this->dispatch($node);
-        if ('^' === $node->value || '$' === $node->value) {
-            $this->hasAnchors = true;
-        }
 
         return $node;
     }
@@ -342,7 +295,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(BackrefNode $node): NodeInterface
     {
-        $this->hasBackreferences = true;
         $this->dispatch($node);
 
         return $node;
@@ -364,15 +316,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitUnicode(UnicodeNode $node): NodeInterface
     {
         $this->dispatch($node);
-        $code = $this->parseUnicodeEscapeCodePoint($node->code);
-
-        if ($this->trackCaseSensitivity
-            && !$this->hasCaseSensitiveChars
-            && null !== $code
-            && $this->codePointHasCase($code)
-        ) {
-            $this->hasCaseSensitiveChars = true;
-        }
 
         return $node;
     }
@@ -381,12 +324,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(CharLiteralNode $node): NodeInterface
     {
         $this->dispatch($node);
-        if ($this->trackCaseSensitivity
-            && !$this->hasCaseSensitiveChars
-            && $this->charLiteralHasCaseSensitiveLetter($node)
-        ) {
-            $this->hasCaseSensitiveChars = true;
-        }
 
         return $node;
     }
@@ -395,12 +332,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
         $this->dispatch($node);
-        if ($this->trackCaseSensitivity
-            && !$this->hasCaseSensitiveChars
-            && $this->unicodePropIsCaseSensitive($node->prop)
-        ) {
-            $this->hasCaseSensitiveChars = true;
-        }
 
         return $node;
     }
@@ -611,30 +542,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function checkUselessFlags(): void
-    {
-        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars && !$this->hasBackreferences) {
-            $this->addIssue(
-                'regex.lint.flag.useless.i',
-                "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
-            );
-        }
-
-        if (str_contains($this->flags, 's') && !$this->hasDots) {
-            $this->addIssue(
-                'regex.lint.flag.useless.s',
-                "Flag 's' is useless: the pattern contains no dots.",
-            );
-        }
-
-        if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
-            $this->addIssue(
-                'regex.lint.flag.useless.m',
-                "Flag 'm' is useless: pattern '{$this->getFullPattern()}' contains no anchors.",
-            );
-        }
-    }
-
     private function nodeIsAlwaysEmpty(NodeInterface $node): bool
     {
         [$min, $max] = $node->accept(new LengthRangeNodeVisitor());
@@ -645,239 +552,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private function alternationKey(AlternationNode $node): string
     {
         return (string) spl_object_id($node);
-    }
-
-    private function charClassPartHasLetters(NodeInterface $node): bool
-    {
-        if ($node instanceof LiteralNode) {
-            return $this->stringHasCaseSensitiveLetters($node->value);
-        }
-
-        if ($node instanceof CharLiteralNode) {
-            return $this->charLiteralHasCaseSensitiveLetter($node);
-        }
-
-        if ($node instanceof UnicodeNode) {
-            $codePoint = $this->parseUnicodeEscapeCodePoint($node->code);
-
-            return null !== $codePoint && $this->codePointHasCase($codePoint);
-        }
-
-        if ($node instanceof UnicodePropNode) {
-            return $this->unicodePropIsCaseSensitive($node->prop);
-        }
-
-        if ($node instanceof PosixClassNode) {
-            return $this->posixClassHasCaseSensitiveLetters($node->class);
-        }
-
-        if ($node instanceof RangeNode) {
-            return $this->rangeHasLetters($node);
-        }
-
-        // Other types like CharTypeNode are case-insensitive by design.
-        return false;
-    }
-
-    private function rangeHasLetters(RangeNode $node): bool
-    {
-        $start = $this->codePointFromNode($node->start);
-        $end = $this->codePointFromNode($node->end);
-
-        if (null === $start || null === $end) {
-            return false;
-        }
-
-        $min = min($start, $end);
-        $max = max($start, $end);
-
-        if ($this->rangeHasAsciiLetters($min, $max)) {
-            return true;
-        }
-
-        if (!$this->unicodeMode || !$this->intlAvailable) {
-            return false;
-        }
-
-        return $this->codePointHasCase($start) || $this->codePointHasCase($end);
-    }
-
-    private function rangeHasAsciiLetters(int $min, int $max): bool
-    {
-        return ($min <= \ord('Z') && $max >= \ord('A'))
-            || ($min <= \ord('z') && $max >= \ord('a'));
-    }
-
-    private function codePointFromNode(NodeInterface $node): ?int
-    {
-        if ($node instanceof LiteralNode) {
-            return $this->codePointFromLiteral($node->value);
-        }
-
-        if ($node instanceof CharLiteralNode) {
-            return $node->codePoint >= 0 ? $node->codePoint : null;
-        }
-
-        if ($node instanceof UnicodeNode) {
-            return $this->parseUnicodeEscapeCodePoint($node->code);
-        }
-
-        return null;
-    }
-
-    private function codePointFromLiteral(string $value): ?int
-    {
-        if ('' === $value) {
-            return null;
-        }
-
-        if ($this->unicodeMode && $this->intlAvailable) {
-            $chars = preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
-            if (false === $chars || 1 !== \count($chars)) {
-                return null;
-            }
-
-            return \IntlChar::ord($chars[0]);
-        }
-
-        if (1 !== \strlen($value)) {
-            return null;
-        }
-
-        return \ord($value[0]);
-    }
-
-    private function parseUnicodeEscapeCodePoint(string $escape): ?int
-    {
-        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $escape, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        if (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $escape, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $escape, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        return null;
-    }
-
-    private function stringHasCaseSensitiveLetters(string $value): bool
-    {
-        if ('' === $value) {
-            return false;
-        }
-
-        if (preg_match('/[A-Za-z]/', $value) > 0) {
-            return true;
-        }
-
-        if (!$this->unicodeMode || !$this->intlAvailable) {
-            return false;
-        }
-
-        $chars = preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
-        if (false === $chars) {
-            return false;
-        }
-
-        foreach ($chars as $char) {
-            $codePoint = \IntlChar::ord($char);
-            if ($this->codePointHasCase($codePoint)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function charLiteralHasCaseSensitiveLetter(CharLiteralNode $node): bool
-    {
-        $codePoint = $node->codePoint;
-        if ($codePoint < 0) {
-            $codePoint = $this->parseUnicodeEscapeCodePoint($node->originalRepresentation) ?? $codePoint;
-        }
-
-        if ($codePoint >= 0) {
-            return $this->codePointHasCase($codePoint);
-        }
-
-        if (1 === \strlen($node->originalRepresentation)) {
-            return $this->stringHasCaseSensitiveLetters($node->originalRepresentation);
-        }
-
-        return false;
-    }
-
-    private function codePointHasCase(int $codePoint): bool
-    {
-        if ($codePoint < 0 || $codePoint > 0x10FFFF) {
-            return false;
-        }
-
-        if (!$this->intlAvailable) {
-            return ($codePoint >= \ord('A') && $codePoint <= \ord('Z'))
-                || ($codePoint >= \ord('a') && $codePoint <= \ord('z'));
-        }
-
-        if (!\IntlChar::isalpha($codePoint)) {
-            return false;
-        }
-
-        return \IntlChar::toupper($codePoint) !== $codePoint
-            || \IntlChar::tolower($codePoint) !== $codePoint;
-    }
-
-    private function unicodePropIsCaseSensitive(string $prop): bool
-    {
-        if ('' === $prop) {
-            return false;
-        }
-
-        $normalized = $this->normalizeUnicodePropName($prop);
-
-        return \in_array($normalized, [
-            'lu',
-            'll',
-            'lt',
-            'lc',
-            'l&',
-            'upper',
-            'lower',
-            'title',
-            'uppercase_letter',
-            'lowercase_letter',
-            'titlecase_letter',
-            'cased_letter',
-        ], true);
-    }
-
-    private function normalizeUnicodePropName(string $prop): string
-    {
-        $normalized = ltrim($prop, '^');
-        $normalized = trim($normalized, '{}');
-        $normalized = str_replace(['-', ' '], '_', $normalized);
-
-        return strtolower($normalized);
-    }
-
-    private function posixClassHasCaseSensitiveLetters(string $class): bool
-    {
-        $normalized = strtolower(ltrim($class, '^'));
-
-        return \in_array($normalized, ['upper', 'lower'], true);
-    }
-
-    private function addIssue(string $id, string $message, ?int $offset = null, ?string $hint = null, Severity $severity = Severity::Warning): void
-    {
-        // Check if this rule is enabled before adding the issue
-        if (!$this->isRuleEnabled($id)) {
-            return;
-        }
-
-        $this->issues[] = new LintIssue($id, $message, $offset, $hint, $severity);
     }
 
     private function isStandaloneInlineFlagsGroup(GroupNode $node): bool
