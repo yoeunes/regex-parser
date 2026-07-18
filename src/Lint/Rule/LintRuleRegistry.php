@@ -29,8 +29,14 @@ final class LintRuleRegistry
 
     public function __construct()
     {
-        // Default rules are registered here as they are extracted from
-        // LinterNodeVisitor; order must match historical emission order.
+        // Order must match historical LinterNodeVisitor emission order.
+        $this->register(new RedundantCharClassRule());
+        $this->register(new SuspiciousCharClassRangeRule());
+        $this->register(new SuspiciousCharClassPipeRule());
+        $this->register(new UselessCharClassRangeRule());
+        $this->register(new DuplicateCharClassElementsRule());
+        $this->register(new BackrefAsOctalInCharClassRule());
+        $this->register(new LiteralMetacharInCharClassRule());
     }
 
     public function register(LintRuleInterface $rule): void

@@ -14,6 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Rule\GroupIndex;
+use RegexParser\Lint\Rule\LintContext;
+use RegexParser\Lint\Rule\PatternInfo;
+use RegexParser\Lint\Rule\RedundantCharClassRule;
+use RegexParser\Lint\Rule\Support\CharClassSets;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\CharClassNode;
@@ -180,14 +185,13 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
         $charClass = new CharClassNode(new SequenceNode($parts, 0, 0), false, 0, 0);
 
-        $this->invokePrivate($linter, 'lintRedundantCharClass', [$charClass]);
+        $issues = (new RedundantCharClassRule())->check($charClass, $this->createRuleContext());
 
-        $this->assertNotEmpty($linter->getIssues());
+        $this->assertNotEmpty($issues);
     }
 
     public function test_lint_redundant_char_class_returns_on_class_operation(): void
     {
-        $linter = new LinterNodeVisitor();
         $operation = new ClassOperationNode(
             ClassOperationType::INTERSECTION,
             new LiteralNode('a', 0, 0),
@@ -197,17 +201,16 @@ final class LinterNodeVisitorCoverageTest extends TestCase
         );
         $charClass = new CharClassNode($operation, false, 0, 0);
 
-        $this->invokePrivate($linter, 'lintRedundantCharClass', [$charClass]);
+        $issues = (new RedundantCharClassRule())->check($charClass, $this->createRuleContext());
 
-        $this->assertSame([], $linter->getIssues());
+        $this->assertSame([], $issues);
     }
 
     public function test_collect_char_class_parts_sequence(): void
     {
-        $linter = new LinterNodeVisitor();
         $sequence = new SequenceNode([new LiteralNode('a', 0, 0)], 0, 0);
 
-        $parts = $this->invokePrivate($linter, 'collectCharClassParts', [$sequence]);
+        $parts = CharClassSets::collectParts($sequence);
 
         $this->assertIsArray($parts);
         $this->assertCount(1, $parts);
@@ -393,6 +396,15 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
         $define = new DefineNode($dotStar, 0, 0);
         $this->assertTrue($this->invokePrivate($linter, 'containsDotStar', [$define]));
+    }
+
+    private function createRuleContext(string $flags = ''): LintContext
+    {
+        return new LintContext(
+            new PatternInfo($flags, '/', '', str_contains($flags, 'u'), class_exists(\IntlChar::class)),
+            new GroupIndex(0, [], [], [], false),
+            new CharSetAnalyzer($flags),
+        );
     }
 
     /**
