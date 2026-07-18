@@ -15,11 +15,14 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Rule\GroupIndex;
+use RegexParser\Lint\Rule\InlineFlagsRule;
 use RegexParser\Lint\Rule\LintContext;
 use RegexParser\Lint\Rule\NestedDotStarRule;
 use RegexParser\Lint\Rule\NestedQuantifierRule;
+use RegexParser\Lint\Rule\OverlappingAlternationRule;
 use RegexParser\Lint\Rule\PatternInfo;
 use RegexParser\Lint\Rule\RedundantCharClassRule;
+use RegexParser\Lint\Rule\RedundantGroupRule;
 use RegexParser\Lint\Rule\Support\CharClassSets;
 use RegexParser\Lint\Rule\Support\NodePredicates;
 use RegexParser\Node\AlternationNode;
@@ -160,15 +163,14 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
     public function test_lint_alternation_skips_empty_literals(): void
     {
-        $linter = new LinterNodeVisitor();
         $alternation = new AlternationNode([
             new LiteralNode('', 0, 0),
             new LiteralNode('a', 0, 0),
         ], 0, 0);
 
-        $this->invokePrivate($linter, 'lintAlternation', [$alternation]);
+        $issues = (new OverlappingAlternationRule())->check($alternation, $this->createRuleContext());
 
-        $this->assertIsArray($linter->getIssues());
+        $this->assertIsArray($issues);
     }
 
     public function test_lint_redundant_char_class_handles_ranges_and_literals(): void
@@ -218,22 +220,22 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
     public function test_lint_inline_flags_branches(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new InlineFlagsRule();
+        $context = $this->createRuleContext();
 
-        $emptyFlags = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, null, 0, 0);
-        $this->invokePrivate($linter, 'lintInlineFlags', [$emptyFlags]);
+        $emptyFlags = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_INLINE_FLAGS, null, '', 0, 0);
+        $this->assertSame([], $rule->check($emptyFlags, $context));
 
-        $resetFlags = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, '^im', 0, 0);
-        $this->invokePrivate($linter, 'lintInlineFlags', [$resetFlags]);
+        $resetFlags = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_INLINE_FLAGS, null, '^im', 0, 0);
+        $this->assertSame([], $rule->check($resetFlags, $context));
 
-        $unsetFlag = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, '-i', 0, 0);
-        $this->invokePrivate($linter, 'lintInlineFlags', [$unsetFlag]);
-        $this->assertNotEmpty($linter->getIssues());
+        $unsetFlag = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_INLINE_FLAGS, null, '-i', 0, 0);
+        $this->assertNotEmpty($rule->check($unsetFlag, $context));
     }
 
     public function test_is_redundant_group_recurses_through_sequence(): void
     {
-        $linter = new LinterNodeVisitor();
+        $linter = new RedundantGroupRule();
         $sequence = new SequenceNode([new LiteralNode('a', 0, 0)], 0, 0);
 
         $result = $this->invokePrivate($linter, 'isRedundantGroup', [$sequence]);

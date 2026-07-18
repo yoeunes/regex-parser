@@ -23,33 +23,26 @@ use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\ClassOperationNode;
-use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
-use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\Severity;
 
@@ -294,9 +287,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitAlternation(AlternationNode $node): NodeInterface
     {
         $this->dispatch($node);
-        $this->lintEmptyAlternation($node);
-        $this->lintDuplicateDisjunctions($node);
-        $this->lintAlternation($node);
 
         $this->context->pushParent($node);
         $altKey = $this->alternationKey($node);
@@ -337,19 +327,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $previousFlags = $this->context->activeFlags();
 
         if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
-            $this->lintInlineFlags($node);
-
             if (!$this->isStandaloneInlineFlagsGroup($node)) {
                 $this->context->setActiveFlags($this->applyInlineFlags($this->context->activeFlags(), (string) $node->flags));
             }
-        }
-
-        if (GroupType::T_GROUP_NON_CAPTURING === $node->type && $this->isRedundantGroup($node->child)) {
-            $this->addIssue(
-                'regex.lint.group.redundant',
-                'Redundant non-capturing group; it can be removed without changing behavior.',
-                $node->startPosition,
-            );
         }
 
         $this->context->pushParent($node);
@@ -365,42 +345,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         $this->hasBackreferences = true;
         $this->dispatch($node);
-        $ref = $node->ref;
-
-        $target = $this->parseBackreferenceTarget($ref);
-        if (null === $target) {
-            return $node;
-        }
-
-        if ('number' === $target['type']) {
-            $num = $target['value'];
-            if (0 === $num) {
-                return $node;
-            }
-
-            if ($num > $this->maxCapturingGroup) {
-                $this->addIssue(
-                    'regex.lint.backref.undefined',
-                    "Backreference \\{$num} refers to a non-existent capturing group.",
-                    $node->startPosition,
-                );
-
-                return $node;
-            }
-        } else {
-            $name = $target['value'];
-            if (!isset($this->definedNamedGroups[$name])) {
-                $this->addIssue(
-                    'regex.lint.backref.undefined',
-                    "Backreference \\k<{$name}> refers to a non-existent named group.",
-                    $node->startPosition,
-                );
-
-                return $node;
-            }
-        }
-
-        $this->lintUselessBackreference($node, $target);
 
         return $node;
     }
@@ -789,21 +733,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return (string) spl_object_id($node);
     }
 
-    /**
-     * @param array<string, int> $a
-     * @param array<string, int> $b
-     */
-    private function alternationSignaturesConflict(array $a, array $b): bool
-    {
-        foreach ($a as $id => $index) {
-            if (isset($b[$id]) && $b[$id] !== $index) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function charClassPartHasLetters(NodeInterface $node): bool
     {
         if ($node instanceof LiteralNode) {
@@ -1042,394 +971,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->issues[] = new LintIssue($id, $message, $offset, $hint, $severity);
     }
 
-    /**
-     * @return array{type: 'number'|'name', value: int|string}|null
-     */
-    private function parseBackreferenceTarget(string $ref): ?array
-    {
-        if (preg_match('/^\\\\g\{?[+-]\d+\\}?$/', $ref) > 0) {
-            return null;
-        }
-
-        if (preg_match('/^\\\\(\d+)$/', $ref, $matches) || preg_match('/^\\\\g\{?(\d+)\\}?$/', $ref, $matches)) {
-            return ['type' => 'number', 'value' => (int) $matches[1]];
-        }
-
-        if (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
-            return ['type' => 'name', 'value' => $matches['name']];
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array{type: 'number'|'name', value: int|string} $target
-     */
-    private function lintUselessBackreference(BackrefNode $node, array $target): void
-    {
-        if ($this->skipUselessBackref) {
-            return;
-        }
-
-        $groupInfo = null;
-        if ('number' === $target['type']) {
-            $groupInfo = $this->capturingGroups[$target['value']] ?? null;
-        } else {
-            $groups = $this->capturingGroupsByName[$target['value']] ?? [];
-            if (1 === \count($groups)) {
-                $groupInfo = $groups[0];
-            }
-        }
-
-        if (null === $groupInfo) {
-            return;
-        }
-
-        $backrefPos = $node->getStartPosition();
-        if ($backrefPos < $groupInfo['end']) {
-            $this->addIssue(
-                'regex.lint.backref.useless',
-                'Backreference refers to a group that has not been closed yet.',
-                $node->startPosition,
-                'Move the backreference after the capturing group or rewrite the pattern.',
-            );
-
-            return;
-        }
-
-        if ($this->alternationSignaturesConflict($this->context->currentAlternationSignature(), $groupInfo['alternation'])) {
-            $this->addIssue(
-                'regex.lint.backref.useless',
-                'Backreference refers to a group in a different alternative.',
-                $node->startPosition,
-                'Place the backreference in the same alternative as its capturing group.',
-            );
-
-            return;
-        }
-
-        if ($groupInfo['alwaysEmpty']) {
-            $this->addIssue(
-                'regex.lint.backref.useless',
-                'Backreference refers to a capturing group that always matches an empty string.',
-                $node->startPosition,
-                'Remove the backreference or replace the capturing group with literal text.',
-            );
-        }
-    }
-
-    private function lintAlternation(AlternationNode $node): void
-    {
-        // Check for (.|\n) anti-pattern before generic overlap detection.
-        // This produces a more specific and actionable message.
-        if ($this->isDotNewlineAntiPattern($node)) {
-            $hasSFlag = str_contains($this->context->activeFlags(), 's');
-            $hint = $hasSFlag
-                ? 'Replace (.|\n) with [\s\S] for clarity, or remove the surrounding group if the "s" flag is already active.'
-                : 'Use the "s" (PCRE_DOTALL) flag to make "." match newlines, or use [\s\S] instead of (.|\n).';
-
-            $this->addIssue(
-                'regex.lint.alternation.dotNewline',
-                'Alternation (.|\n) is an anti-pattern for matching any character including newlines.',
-                $node->startPosition,
-                $hint,
-            );
-        }
-
-        $literals = [];
-        foreach ($node->alternatives as $alt) {
-            $literal = $this->extractLiteralSequence($alt);
-            if (null === $literal) {
-                continue;
-            }
-
-            $literals[] = $literal;
-        }
-
-        // Check for literal-based overlaps
-        if ([] !== $literals) {
-            // Only flag overlapping literal branches when they're inside an unbounded quantifier.
-            // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
-            // do not pose a ReDoS risk because there's no exponential backtracking.
-            if ($this->context->isInsideUnboundedQuantifier()) {
-                $unique = array_values(array_unique($literals));
-                $total = \count($unique);
-                for ($i = 0; $i < $total; $i++) {
-                    for ($j = $i + 1; $j < $total; $j++) {
-                        $a = $unique[$i];
-                        $b = $unique[$j];
-                        if ('' === $a || '' === $b) {
-                            continue;
-                        }
-
-                        if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
-                            $this->addIssue(
-                                'regex.lint.alternation.overlap',
-                                \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
-                                $node->startPosition,
-                                'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
-                            );
-
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Check for semantic overlaps using character set analysis
-        $this->checkSemanticOverlaps($node);
-    }
-
-    private function lintEmptyAlternation(AlternationNode $node): void
-    {
-        foreach ($node->alternatives as $alt) {
-            if ($this->isSyntacticallyEmptyAlternative($alt)) {
-                $this->addIssue(
-                    'regex.lint.alternation.empty',
-                    'Alternation contains an empty alternative.',
-                    $alt->getStartPosition(),
-                    'Use a quantifier (e.g., "?") if the empty string should be allowed.',
-                );
-            }
-        }
-    }
-
-    private function lintDuplicateDisjunctions(AlternationNode $node): void
-    {
-        $seen = [];
-
-        foreach ($node->alternatives as $alt) {
-            if ($this->isSyntacticallyEmptyAlternative($alt)) {
-                continue;
-            }
-
-            if ($this->alternativeHasCapturingGroupOrBackref($alt)) {
-                continue;
-            }
-
-            $compiler = new CompilerNodeVisitor();
-            $signature = $alt->accept($compiler);
-            if (isset($seen[$signature])) {
-                $display = addcslashes($signature, "\0..\37\177..\377");
-                $this->addIssue(
-                    'regex.lint.alternation.duplicateDisjunction',
-                    \sprintf('Duplicate alternation branch "%s".', $display),
-                    $alt->getStartPosition(),
-                    'Remove the redundant alternative.',
-                );
-
-                return;
-            }
-
-            $seen[$signature] = true;
-        }
-    }
-
-    private function isSyntacticallyEmptyAlternative(NodeInterface $node): bool
-    {
-        if ($node instanceof LiteralNode) {
-            return '' === $node->value;
-        }
-
-        if ($node instanceof CommentNode) {
-            return true;
-        }
-
-        if ($node instanceof SequenceNode) {
-            if ([] === $node->children) {
-                return true;
-            }
-
-            foreach ($node->children as $child) {
-                if (!$child instanceof CommentNode) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private function alternativeHasCapturingGroupOrBackref(NodeInterface $node): bool
-    {
-        if ($node instanceof BackrefNode) {
-            return true;
-        }
-
-        if ($node instanceof GroupNode) {
-            if (GroupType::T_GROUP_BRANCH_RESET === $node->type
-                || GroupType::T_GROUP_CAPTURING === $node->type
-                || GroupType::T_GROUP_NAMED === $node->type
-            ) {
-                return true;
-            }
-
-            return $this->alternativeHasCapturingGroupOrBackref($node->child);
-        }
-
-        if ($node instanceof AlternationNode) {
-            foreach ($node->alternatives as $alt) {
-                if ($this->alternativeHasCapturingGroupOrBackref($alt)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        if ($node instanceof SequenceNode) {
-            foreach ($node->children as $child) {
-                if ($this->alternativeHasCapturingGroupOrBackref($child)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        if ($node instanceof QuantifierNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->node);
-        }
-
-        if ($node instanceof ConditionalNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->condition)
-                || $this->alternativeHasCapturingGroupOrBackref($node->yes)
-                || $this->alternativeHasCapturingGroupOrBackref($node->no);
-        }
-
-        if ($node instanceof DefineNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->content);
-        }
-
-        if ($node instanceof CharClassNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->expression);
-        }
-
-        if ($node instanceof ClassOperationNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->left)
-                || $this->alternativeHasCapturingGroupOrBackref($node->right);
-        }
-
-        if ($node instanceof RangeNode) {
-            return $this->alternativeHasCapturingGroupOrBackref($node->start)
-                || $this->alternativeHasCapturingGroupOrBackref($node->end);
-        }
-
-        return false;
-    }
-
-    private function checkSemanticOverlaps(AlternationNode $node): void
-    {
-        // Only flag overlapping alternations when they're inside an unbounded quantifier.
-        // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
-        // do not pose a ReDoS risk because there's no exponential backtracking.
-        if (!$this->context->isInsideUnboundedQuantifier()) {
-            return;
-        }
-
-        $charSets = [];
-        foreach ($node->alternatives as $alt) {
-            $charSet = $this->charSetAnalyzer->firstChars($alt);
-            if ($charSet->isUnknown()) {
-                // If we can't analyze any charset, skip semantic overlap detection
-                return;
-            }
-            $charSets[] = $charSet;
-        }
-
-        $total = \count($charSets);
-        for ($i = 0; $i < $total; $i++) {
-            for ($j = $i + 1; $j < $total; $j++) {
-                if (!$charSets[$i]->isEmpty() && !$charSets[$j]->isEmpty() && $charSets[$i]->intersects($charSets[$j])) {
-                    $this->addIssue(
-                        'regex.lint.overlap.charset',
-                        'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.',
-                        $node->startPosition,
-                        'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
-                    );
-
-                    return;
-                }
-            }
-        }
-    }
-
-    private function extractLiteralSequence(NodeInterface $node): ?string
-    {
-        if ($node instanceof LiteralNode) {
-            return $node->value;
-        }
-
-        if ($node instanceof GroupNode) {
-            if (\in_array($node->type, [
-                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-            ], true)) {
-                return null;
-            }
-
-            return $this->extractLiteralSequence($node->child);
-        }
-
-        if ($node instanceof SequenceNode) {
-            $value = '';
-            foreach ($node->children as $child) {
-                $literal = $this->extractLiteralSequence($child);
-                if (null === $literal) {
-                    return null;
-                }
-                $value .= $literal;
-            }
-
-            return $value;
-        }
-
-        return null;
-    }
-
-    /**
-     * Detect (.|\n) and (.\n|.) anti-patterns where the developer uses
-     * alternation with dot and newline to match any character.
-     */
-    private function isDotNewlineAntiPattern(AlternationNode $node): bool
-    {
-        $alts = $node->alternatives;
-        if (2 !== \count($alts)) {
-            return false;
-        }
-
-        $hasDot = false;
-        $hasNewline = false;
-
-        foreach ($alts as $alt) {
-            if ($alt instanceof DotNode) {
-                $hasDot = true;
-            } elseif ($this->isNewlineEscape($alt)) {
-                $hasNewline = true;
-            }
-        }
-
-        return $hasDot && $hasNewline;
-    }
-
-    private function isNewlineEscape(NodeInterface $node): bool
-    {
-        if ($node instanceof LiteralNode && "\n" === $node->value) {
-            return true;
-        }
-
-        if ($node instanceof CharLiteralNode && 0x0A === $node->codePoint) {
-            return true;
-        }
-
-        return false;
-    }
-
     private function isStandaloneInlineFlagsGroup(GroupNode $node): bool
     {
         if (GroupType::T_GROUP_INLINE_FLAGS !== $node->type || null === $node->flags) {
@@ -1479,91 +1020,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return implode('', array_keys($flags));
-    }
-
-    private function lintInlineFlags(GroupNode $node): void
-    {
-        $flags = (string) $node->flags;
-        if ('' === $flags) {
-            return;
-        }
-
-        $resetAll = str_starts_with($flags, '^');
-        if ($resetAll) {
-            $flags = substr($flags, 1);
-        }
-
-        [$set, $unset] = str_contains($flags, '-')
-            ? explode('-', $flags, 2)
-            : [$flags, ''];
-
-        $baseFlags = $resetAll ? '' : $this->context->activeFlags();
-
-        foreach (str_split($set) as $flag) {
-            if ('' === $flag) {
-                continue;
-            }
-            if (str_contains($baseFlags, $flag)) {
-                $this->addIssue(
-                    'regex.lint.flag.redundant',
-                    \sprintf("Inline flag '%s' is redundant; it is already set globally.", $flag),
-                    $node->startPosition,
-                );
-            }
-        }
-
-        foreach (str_split($unset) as $flag) {
-            if ('' === $flag) {
-                continue;
-            }
-
-            if (!str_contains($baseFlags, $flag)) {
-                $this->addIssue(
-                    'regex.lint.flag.redundant',
-                    \sprintf("Inline flag '-%s' is redundant; the flag is not set globally.", $flag),
-                    $node->startPosition,
-                    \sprintf("Remove '-%s' from the inline flag group; it has no effect unless the flag is enabled globally.", $flag),
-                );
-            } else {
-                $this->addIssue(
-                    'regex.lint.flag.override',
-                    \sprintf("Inline flag '-%s' overrides a global modifier.", $flag),
-                    $node->startPosition,
-                    'Consider removing the global flag or limiting it to specific groups.',
-                );
-            }
-        }
-    }
-
-    private function isRedundantGroup(NodeInterface $node): bool
-    {
-        if ($node instanceof SequenceNode) {
-            if (1 !== \count($node->children)) {
-                return false;
-            }
-
-            return $this->isRedundantGroup($node->children[0]);
-        }
-
-        if ($node instanceof AlternationNode || $node instanceof QuantifierNode) {
-            return false;
-        }
-
-        return $node instanceof LiteralNode
-            || $node instanceof CharTypeNode
-            || $node instanceof CharClassNode
-            || $node instanceof CharLiteralNode
-            || $node instanceof UnicodeNode
-            || $node instanceof DotNode
-            || $node instanceof AnchorNode
-            || $node instanceof AssertionNode
-            || $node instanceof KeepNode
-            || $node instanceof UnicodePropNode
-            || $node instanceof PosixClassNode
-            || $node instanceof ControlCharNode
-            || $node instanceof CommentNode
-            || $node instanceof CalloutNode
-            || $node instanceof ScriptRunNode;
     }
 
     // Add other visit methods as needed, default to no-op

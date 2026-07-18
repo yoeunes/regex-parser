@@ -37,6 +37,9 @@ final class LintRuleRegistry
         $this->register(new DuplicateCharClassElementsRule());
         $this->register(new BackrefAsOctalInCharClassRule());
         $this->register(new LiteralMetacharInCharClassRule());
+        $this->register(new EmptyAlternationRule());
+        $this->register(new DuplicateDisjunctionRule());
+        $this->register(new OverlappingAlternationRule());
         $this->register(new ImpossibleAnchorRule());
         $this->register(new QuantifierConcatenationRule());
         $this->register(new ZeroQuantifierRule());
@@ -44,6 +47,10 @@ final class LintRuleRegistry
         $this->register(new NestedQuantifierRule());
         $this->register(new NestedDotStarRule());
         $this->register(new QuantifiedCapturingGroupRule());
+        $this->register(new InlineFlagsRule());
+        $this->register(new RedundantGroupRule());
+        $this->register(new UndefinedBackrefRule());
+        $this->register(new UselessBackrefRule());
     }
 
     public function register(LintRuleInterface $rule): void

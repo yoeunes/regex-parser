@@ -289,6 +289,33 @@ final class NodePredicates
         return '';
     }
 
+    public static function isSyntacticallyEmptyAlternative(NodeInterface $node): bool
+    {
+        if ($node instanceof LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof CommentNode) {
+            return true;
+        }
+
+        if ($node instanceof SequenceNode) {
+            if ([] === $node->children) {
+                return true;
+            }
+
+            foreach ($node->children as $child) {
+                if (!$child instanceof CommentNode) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     public static function nodeIsSingleChar(NodeInterface $node): bool
     {
         [$min, $max] = $node->accept(new LengthRangeNodeVisitor());
