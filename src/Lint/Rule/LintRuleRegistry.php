@@ -37,6 +37,13 @@ final class LintRuleRegistry
         $this->register(new DuplicateCharClassElementsRule());
         $this->register(new BackrefAsOctalInCharClassRule());
         $this->register(new LiteralMetacharInCharClassRule());
+        $this->register(new ImpossibleAnchorRule());
+        $this->register(new QuantifierConcatenationRule());
+        $this->register(new ZeroQuantifierRule());
+        $this->register(new UselessQuantifierRule());
+        $this->register(new NestedQuantifierRule());
+        $this->register(new NestedDotStarRule());
+        $this->register(new QuantifiedCapturingGroupRule());
     }
 
     public function register(LintRuleInterface $rule): void

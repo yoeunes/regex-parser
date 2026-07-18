@@ -16,9 +16,12 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Rule\GroupIndex;
 use RegexParser\Lint\Rule\LintContext;
+use RegexParser\Lint\Rule\NestedDotStarRule;
+use RegexParser\Lint\Rule\NestedQuantifierRule;
 use RegexParser\Lint\Rule\PatternInfo;
 use RegexParser\Lint\Rule\RedundantCharClassRule;
 use RegexParser\Lint\Rule\Support\CharClassSets;
+use RegexParser\Lint\Rule\Support\NodePredicates;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\CharClassNode;
@@ -115,39 +118,36 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
     public function test_is_consuming_recognizes_node_types(): void
     {
-        $linter = new LinterNodeVisitor();
-        $method = (new \ReflectionClass($linter))->getMethod('isConsuming');
-
-        $this->assertTrue($method->invoke($linter, new CharClassNode(new LiteralNode('a', 0, 0), false, 0, 0)));
-        $this->assertTrue($method->invoke($linter, new CharTypeNode('d', 0, 0)));
-        $this->assertTrue($method->invoke($linter, new DotNode(0, 0)));
-        $this->assertTrue($method->invoke($linter, new CharLiteralNode('\\x41', 0x41, CharLiteralType::UNICODE, 0, 0)));
-        $this->assertTrue($method->invoke($linter, new UnicodePropNode('L', true, 0, 0)));
-        $this->assertTrue($method->invoke($linter, new PosixClassNode('alpha', 0, 0)));
-        $this->assertTrue($method->invoke($linter, new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0)));
-        $this->assertFalse($method->invoke($linter, new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new CharClassNode(new LiteralNode('a', 0, 0), false, 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new CharTypeNode('d', 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new DotNode(0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new CharLiteralNode('\\x41', 0x41, CharLiteralType::UNICODE, 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new UnicodePropNode('L', true, 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new PosixClassNode('alpha', 0, 0)));
+        $this->assertTrue(NodePredicates::isConsuming(new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0)));
+        $this->assertFalse(NodePredicates::isConsuming(new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, 0, 0)));
 
         $alternation = new AlternationNode([
             new AnchorNode('^', 0, 0),
             new LiteralNode('a', 0, 0),
         ], 0, 0);
-        $this->assertTrue($method->invoke($linter, $alternation));
+        $this->assertTrue(NodePredicates::isConsuming($alternation));
 
         $nonConsumingAlt = new AlternationNode([
             new AnchorNode('$', 0, 0),
         ], 0, 0);
-        $this->assertFalse($method->invoke($linter, $nonConsumingAlt));
+        $this->assertFalse(NodePredicates::isConsuming($nonConsumingAlt));
 
         $sequence = new SequenceNode([
             new AnchorNode('^', 0, 0),
             new LiteralNode('b', 0, 0),
         ], 0, 0);
-        $this->assertTrue($method->invoke($linter, $sequence));
+        $this->assertTrue(NodePredicates::isConsuming($sequence));
 
         $nonConsumingSeq = new SequenceNode([
             new AnchorNode('^', 0, 0),
         ], 0, 0);
-        $this->assertFalse($method->invoke($linter, $nonConsumingSeq));
+        $this->assertFalse(NodePredicates::isConsuming($nonConsumingSeq));
     }
 
     public function test_char_class_part_has_letters_for_literal(): void
@@ -243,159 +243,148 @@ final class LinterNodeVisitorCoverageTest extends TestCase
 
     public function test_find_nested_quantifier_handles_conditional_define_and_atomic_group(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedQuantifierRule();
         $quant = new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0);
 
         $atomic = new GroupNode($quant, GroupType::T_GROUP_ATOMIC, null, null, 0, 0);
-        $this->assertNull($this->invokePrivate($linter, 'findNestedQuantifier', [$atomic]));
+        $this->assertNull($this->invokePrivate($rule, 'findNestedQuantifier', [$atomic]));
 
         $conditional = new ConditionalNode(new LiteralNode('a', 0, 0), $quant, new LiteralNode('b', 0, 0), 0, 0);
-        $this->assertSame($quant, $this->invokePrivate($linter, 'findNestedQuantifier', [$conditional]));
+        $this->assertSame($quant, $this->invokePrivate($rule, 'findNestedQuantifier', [$conditional]));
 
         $define = new DefineNode($quant, 0, 0);
-        $this->assertSame($quant, $this->invokePrivate($linter, 'findNestedQuantifier', [$define]));
+        $this->assertSame($quant, $this->invokePrivate($rule, 'findNestedQuantifier', [$define]));
     }
 
     public function test_find_sequence_for_nested_quantifier_returns_null_for_non_sequence(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedQuantifierRule();
         $quant = new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0);
 
-        $result = $this->invokePrivate($linter, 'findSequenceForNestedQuantifier', [new LiteralNode('a', 0, 0), $quant]);
+        $result = $this->invokePrivate($rule, 'findSequenceForNestedQuantifier', [new LiteralNode('a', 0, 0), $quant]);
 
         $this->assertNull($result);
     }
 
     public function test_unwrap_transparent_node_unwraps_group_and_sequence(): void
     {
-        $linter = new LinterNodeVisitor();
         $inner = new LiteralNode('a', 0, 0);
         $group = new GroupNode($inner, GroupType::T_GROUP_NON_CAPTURING, null, null, 0, 0);
         $sequence = new SequenceNode([$group], 0, 0);
 
-        $unwrapped = $this->invokePrivate($linter, 'unwrapTransparentNode', [$sequence]);
-
-        $this->assertSame($inner, $unwrapped);
+        $this->assertSame($inner, NodePredicates::unwrapTransparentNode($sequence));
     }
 
     public function test_is_transparent_group_false_for_lookaround(): void
     {
-        $linter = new LinterNodeVisitor();
-
-        $result = $this->invokePrivate($linter, 'isTransparentGroup', [GroupType::T_GROUP_LOOKAHEAD_NEGATIVE]);
-
-        $this->assertFalse($result);
+        $this->assertFalse(NodePredicates::isTransparentGroup(GroupType::T_GROUP_LOOKAHEAD_NEGATIVE));
     }
 
     public function test_is_exclusive_separator_returns_false_for_optional_or_unknown(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedQuantifierRule();
+        $context = $this->createRuleContext();
         $innerBoundary = (new CharSetAnalyzer())->firstChars(new LiteralNode('a', 0, 0));
 
         $optionalSeparator = new LiteralNode('', 0, 0);
-        $this->assertFalse($this->invokePrivate($linter, 'isExclusiveSeparator', [$optionalSeparator, $innerBoundary]));
+        $this->assertFalse($this->invokePrivate($rule, 'isExclusiveSeparator', [$optionalSeparator, $innerBoundary, $context]));
 
         $unknownSeparator = new UnicodePropNode('L', true, 0, 0);
-        $this->assertFalse($this->invokePrivate($linter, 'isExclusiveSeparator', [$unknownSeparator, $innerBoundary]));
+        $this->assertFalse($this->invokePrivate($rule, 'isExclusiveSeparator', [$unknownSeparator, $innerBoundary, $context]));
     }
 
     public function test_is_optional_node_branches(): void
     {
-        $linter = new LinterNodeVisitor();
-
         $quant = new QuantifierNode(new LiteralNode('a', 0, 0), '*', QuantifierType::T_GREEDY, 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$quant]));
+        $this->assertTrue(NodePredicates::isOptionalNode($quant));
 
         $transparentGroup = new GroupNode(new LiteralNode('', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, null, 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$transparentGroup]));
+        $this->assertTrue(NodePredicates::isOptionalNode($transparentGroup));
 
         $nonTransparentGroup = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$nonTransparentGroup]));
+        $this->assertTrue(NodePredicates::isOptionalNode($nonTransparentGroup));
 
         $sequence = new SequenceNode([new LiteralNode('', 0, 0)], 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$sequence]));
+        $this->assertTrue(NodePredicates::isOptionalNode($sequence));
 
         $alternation = new AlternationNode([new LiteralNode('', 0, 0)], 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$alternation]));
+        $this->assertTrue(NodePredicates::isOptionalNode($alternation));
 
         $conditional = new ConditionalNode(new LiteralNode('a', 0, 0), new LiteralNode('', 0, 0), new LiteralNode('b', 0, 0), 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$conditional]));
+        $this->assertTrue(NodePredicates::isOptionalNode($conditional));
 
         $anchor = new AnchorNode('^', 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'isOptionalNode', [$anchor]));
+        $this->assertTrue(NodePredicates::isOptionalNode($anchor));
     }
 
     public function test_is_optional_node_returns_false_for_non_optional_sequence(): void
     {
-        $linter = new LinterNodeVisitor();
         $sequence = new SequenceNode([new LiteralNode('a', 0, 0), new LiteralNode('', 0, 0)], 0, 0);
 
-        $this->assertFalse($this->invokePrivate($linter, 'isOptionalNode', [$sequence]));
+        $this->assertFalse(NodePredicates::isOptionalNode($sequence));
     }
 
     public function test_is_optional_node_returns_false_for_non_optional_alternation(): void
     {
-        $linter = new LinterNodeVisitor();
         $alternation = new AlternationNode([new LiteralNode('a', 0, 0), new LiteralNode('b', 0, 0)], 0, 0);
 
-        $this->assertFalse($this->invokePrivate($linter, 'isOptionalNode', [$alternation]));
+        $this->assertFalse(NodePredicates::isOptionalNode($alternation));
     }
 
     public function test_is_safely_separated_nested_quantifier_returns_false_for_unknown_boundary(): void
     {
-        $linter = new LinterNodeVisitor();
-        $ref = new \ReflectionClass($linter);
-        $charSetAnalyzer = $ref->getProperty('charSetAnalyzer');
-        $charSetAnalyzer->setValue($linter, new CharSetAnalyzer('u'));
+        $rule = new NestedQuantifierRule();
+        $context = $this->createRuleContext('u');
 
         $nested = new QuantifierNode(new CharTypeNode('d', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0);
         $sequence = new SequenceNode([$nested], 0, 0);
         $outer = new QuantifierNode($sequence, '+', QuantifierType::T_GREEDY, 0, 0);
 
-        $result = $this->invokePrivate($linter, 'isSafelySeparatedNestedQuantifier', [$outer, $nested]);
+        $result = $this->invokePrivate($rule, 'isSafelySeparatedNestedQuantifier', [$outer, $nested, $context]);
 
         $this->assertFalse($result);
     }
 
     public function test_is_safely_separated_nested_quantifier_checks_next_neighbor(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedQuantifierRule();
+        $context = $this->createRuleContext();
         $nested = new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0);
         $sequence = new SequenceNode([$nested, new LiteralNode('b', 0, 0)], 0, 0);
         $outer = new QuantifierNode($sequence, '+', QuantifierType::T_GREEDY, 0, 0);
 
-        $result = $this->invokePrivate($linter, 'isSafelySeparatedNestedQuantifier', [$outer, $nested]);
+        $result = $this->invokePrivate($rule, 'isSafelySeparatedNestedQuantifier', [$outer, $nested, $context]);
 
         $this->assertIsBool($result);
     }
 
     public function test_find_sequence_for_nested_quantifier_returns_null_when_not_found(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedQuantifierRule();
         $nested = new QuantifierNode(new LiteralNode('a', 0, 0), '+', QuantifierType::T_GREEDY, 0, 0);
         $sequence = new SequenceNode([new LiteralNode('b', 0, 0)], 0, 0);
 
-        $result = $this->invokePrivate($linter, 'findSequenceForNestedQuantifier', [$sequence, $nested]);
+        $result = $this->invokePrivate($rule, 'findSequenceForNestedQuantifier', [$sequence, $nested]);
 
         $this->assertNull($result);
     }
 
     public function test_contains_dot_star_branches(): void
     {
-        $linter = new LinterNodeVisitor();
+        $rule = new NestedDotStarRule();
         $dotStar = new QuantifierNode(new DotNode(0, 0), '*', QuantifierType::T_GREEDY, 0, 0);
 
         $sequence = new SequenceNode([$dotStar], 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'containsDotStar', [$sequence]));
+        $this->assertTrue($this->invokePrivate($rule, 'containsDotStar', [$sequence]));
 
         $alternation = new AlternationNode([$dotStar], 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'containsDotStar', [$alternation]));
+        $this->assertTrue($this->invokePrivate($rule, 'containsDotStar', [$alternation]));
 
         $conditional = new ConditionalNode(new LiteralNode('a', 0, 0), $dotStar, new LiteralNode('b', 0, 0), 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'containsDotStar', [$conditional]));
+        $this->assertTrue($this->invokePrivate($rule, 'containsDotStar', [$conditional]));
 
         $define = new DefineNode($dotStar, 0, 0);
-        $this->assertTrue($this->invokePrivate($linter, 'containsDotStar', [$define]));
+        $this->assertTrue($this->invokePrivate($rule, 'containsDotStar', [$define]));
     }
 
     private function createRuleContext(string $flags = ''): LintContext
