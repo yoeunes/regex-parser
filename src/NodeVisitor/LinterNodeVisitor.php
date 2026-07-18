@@ -105,7 +105,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     /**
      * @var list<LintRuleInterface>
      */
-    private array $rules;
+    private readonly array $rules;
 
     /**
      * @var array<class-string<NodeInterface>, list<LintRuleInterface>>
