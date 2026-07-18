@@ -51,6 +51,10 @@ final class LintRuleRegistry
         $this->register(new RedundantGroupRule());
         $this->register(new UndefinedBackrefRule());
         $this->register(new UselessBackrefRule());
+        $this->register(new SuspiciousEscapeRule());
+        $this->register(new BracedHexWithoutURule());
+        $this->register(new UnicodePropertyWithoutURule());
+        $this->register(new ShorthandWithoutURule());
     }
 
     public function register(LintRuleInterface $rule): void
