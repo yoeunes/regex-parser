@@ -3,6 +3,8 @@
 </p>
 
 <p align="center">
+    <a href="https://github.com/yoeunes/regex-parser/actions/workflows/ci.yml"><img src="https://github.com/yoeunes/regex-parser/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status Badge"></a>
+    <a href="https://phpstan.org/"><img src="https://img.shields.io/badge/PHPStan-level%20max-brightgreen.svg" alt="PHPStan Level Badge"></a>
     <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/releases"><img src="https://img.shields.io/github/tag/yoeunes/regex-parser.svg" alt="GitHub Release Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License Badge"></a>
