@@ -14,6 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Internal\PatternParser;
+use RegexParser\Lint\Rule\GroupIndex;
+use RegexParser\Lint\Rule\LintContext;
+use RegexParser\Lint\Rule\LintRuleInterface;
+use RegexParser\Lint\Rule\LintRuleRegistry;
+use RegexParser\Lint\Rule\PatternInfo;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
@@ -73,8 +78,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private string $activeFlags = '';
-
     private string $delimiter = '';
 
     private bool $hasCaseSensitiveChars = false;
@@ -117,30 +120,41 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private bool $intlAvailable = false;
 
     /**
-     * Stack of parent nodes to track context.
-     * Used to determine if an alternation is inside a quantifier.
-     *
-     * @var array<NodeInterface>
+     * Per-run context shared with the lint rules: immutable pattern facts
+     * plus the mutable traversal cursor (parents, alternation branches,
+     * active inline flags).
      */
-    private array $parentStack = [];
+    private LintContext $context;
 
     /**
-     * Tracks the current alternation branch for disjunction analysis.
-     *
-     * @var array<array{id: string, index: int}>
+     * @var list<LintRuleInterface>
      */
-    private array $alternationStack = [];
+    private array $rules;
 
     /**
-     * @param array<string, bool> $enabledRules
+     * @var array<class-string<NodeInterface>, list<LintRuleInterface>>
+     */
+    private array $dispatchMap = [];
+
+    /**
+     * @param array<string, bool>   $enabledRules
+     * @param LintRuleRegistry|null $registry     @internal custom registries are not yet a public extension point
      */
     public function __construct(/**
      * Configuration for which lint rules are enabled.
      */
-        private array $enabledRules = [])
+        private array $enabledRules = [],
+        ?LintRuleRegistry $registry = null)
     {
         $this->charSetAnalyzer = new CharSetAnalyzer();
         $this->intlAvailable = class_exists(\IntlChar::class);
+        $this->rules = ($registry ?? new LintRuleRegistry())->all();
+        foreach ($this->rules as $rule) {
+            foreach ($rule->getNodeTypes() as $nodeType) {
+                $this->dispatchMap[$nodeType][] = $rule;
+            }
+        }
+        $this->context = $this->createContext();
     }
 
     /**
@@ -176,7 +190,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
-        $this->activeFlags = $node->flags;
         $this->delimiter = $node->delimiter;
         $this->unicodeMode = str_contains($this->flags, 'u');
         $this->trackCaseSensitivity = str_contains($this->flags, 'i');
@@ -189,8 +202,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasBackreferences = false;
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
-        $this->parentStack = [];
-        $this->alternationStack = [];
         $this->capturingGroups = [];
         $this->capturingGroupsByName = [];
         $this->nextCapturingGroupNumber = 1;
@@ -205,6 +216,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // First pass: count capturing groups
         $this->countCapturingGroups($node->pattern);
 
+        $this->context = $this->createContext();
+        foreach ($this->rules as $rule) {
+            $rule->begin($this->context);
+        }
+
         // Second pass: traverse and lint
         $node->pattern->accept($this);
 
@@ -212,12 +228,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // state and the fully compiled pattern.
         $this->checkUselessFlags();
 
+        foreach ($this->rules as $rule) {
+            $this->append($rule->finish($this->context));
+        }
+
         return $node;
     }
 
     #[\Override]
     public function visitLiteral(LiteralNode $node): NodeInterface
     {
+        $this->dispatch($node);
         if ($this->trackCaseSensitivity
             && !$this->hasCaseSensitiveChars
             && $this->stringHasCaseSensitiveLetters($node->value)
@@ -247,6 +268,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        $this->dispatch($node);
         $this->lintRedundantCharClass($node);
         $this->lintSuspiciousCharClassRange($node);
         $this->lintSuspiciousCharClassPipe($node);
@@ -261,6 +283,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDot(DotNode $node): NodeInterface
     {
+        $this->dispatch($node);
         $this->hasDots = true;
 
         return $node;
@@ -269,6 +292,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAnchor(AnchorNode $node): NodeInterface
     {
+        $this->dispatch($node);
         if ('^' === $node->value || '$' === $node->value) {
             $this->hasAnchors = true;
         }
@@ -280,18 +304,19 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(AlternationNode $node): NodeInterface
     {
+        $this->dispatch($node);
         $this->lintEmptyAlternation($node);
         $this->lintDuplicateDisjunctions($node);
         $this->lintAlternation($node);
 
-        $this->parentStack[] = $node;
+        $this->context->pushParent($node);
         $altKey = $this->alternationKey($node);
         foreach ($node->alternatives as $index => $alt) {
-            $this->alternationStack[] = ['id' => $altKey, 'index' => $index];
+            $this->context->pushAlternationBranch($altKey, $index);
             $alt->accept($this);
-            array_pop($this->alternationStack);
+            $this->context->popAlternationBranch();
         }
-        array_pop($this->parentStack);
+        $this->context->popParent();
 
         return $node;
     }
@@ -300,20 +325,21 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitSequence(SequenceNode $node): NodeInterface
     {
         // Check for anchor conflicts
+        $this->dispatch($node);
         $this->checkAnchorConflicts($node);
         $this->lintOptimalQuantifierConcatenation($node);
 
-        $this->parentStack[] = $node;
-        $sequenceFlags = $this->activeFlags;
+        $this->context->pushParent($node);
+        $sequenceFlags = $this->context->activeFlags();
         foreach ($node->children as $child) {
             $child->accept($this);
 
             if ($child instanceof GroupNode && $this->isStandaloneInlineFlagsGroup($child)) {
-                $this->activeFlags = $this->applyInlineFlags($this->activeFlags, (string) $child->flags);
+                $this->context->setActiveFlags($this->applyInlineFlags($this->context->activeFlags(), (string) $child->flags));
             }
         }
-        $this->activeFlags = $sequenceFlags;
-        array_pop($this->parentStack);
+        $this->context->setActiveFlags($sequenceFlags);
+        $this->context->popParent();
 
         return $node;
     }
@@ -321,13 +347,14 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(GroupNode $node): NodeInterface
     {
-        $previousFlags = $this->activeFlags;
+        $this->dispatch($node);
+        $previousFlags = $this->context->activeFlags();
 
         if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
             $this->lintInlineFlags($node);
 
             if (!$this->isStandaloneInlineFlagsGroup($node)) {
-                $this->activeFlags = $this->applyInlineFlags($this->activeFlags, (string) $node->flags);
+                $this->context->setActiveFlags($this->applyInlineFlags($this->context->activeFlags(), (string) $node->flags));
             }
         }
 
@@ -339,10 +366,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        $this->parentStack[] = $node;
+        $this->context->pushParent($node);
         $node->child->accept($this);
-        array_pop($this->parentStack);
-        $this->activeFlags = $previousFlags;
+        $this->context->popParent();
+        $this->context->setActiveFlags($previousFlags);
 
         return $node;
     }
@@ -351,6 +378,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitBackref(BackrefNode $node): NodeInterface
     {
         $this->hasBackreferences = true;
+        $this->dispatch($node);
         $ref = $node->ref;
 
         $target = $this->parseBackreferenceTarget($ref);
@@ -394,6 +422,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): NodeInterface
     {
+        $this->dispatch($node);
         $this->lintZeroQuantifier($node);
         $this->lintUselessQuantifier($node);
 
@@ -431,9 +460,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         $this->lintQuantifiedCapturingGroup($node);
 
-        $this->parentStack[] = $node;
+        $this->context->pushParent($node);
         $node->node->accept($this);
-        array_pop($this->parentStack);
+        $this->context->popParent();
 
         return $node;
     }
@@ -441,6 +470,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicode(UnicodeNode $node): NodeInterface
     {
+        $this->dispatch($node);
         $code = $this->parseUnicodeEscapeCodePoint($node->code);
 
         if (null !== $code && $code > 0x10FFFF) {
@@ -476,6 +506,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node): NodeInterface
     {
+        $this->dispatch($node);
         if (CharLiteralType::UNICODE === $node->type && $node->codePoint > 0x10FFFF) {
             $this->addIssue(
                 'regex.lint.escape.suspicious',
@@ -534,6 +565,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
+        $this->dispatch($node);
         // Unicode properties require /u flag to work correctly
         if (!$this->unicodeMode) {
             $this->addIssue(
@@ -558,6 +590,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharType(CharTypeNode $node): NodeInterface
     {
+        $this->dispatch($node);
         // Shorthands \w, \d, \s match only ASCII without /u flag
         if (\in_array($node->value, ['w', 'd', 's', 'W', 'D', 'S'], true) && !$this->unicodeMode) {
             $this->addIssue(
@@ -570,6 +603,52 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return $node;
+    }
+
+    private function createContext(): LintContext
+    {
+        return new LintContext(
+            new PatternInfo(
+                $this->flags,
+                $this->delimiter,
+                $this->patternValue ?? '',
+                $this->unicodeMode,
+                $this->intlAvailable,
+            ),
+            new GroupIndex(
+                $this->maxCapturingGroup,
+                $this->definedNamedGroups,
+                $this->capturingGroups,
+                $this->capturingGroupsByName,
+                $this->skipUselessBackref,
+            ),
+            $this->charSetAnalyzer,
+        );
+    }
+
+    /**
+     * Run every registered rule subscribed to this node's class.
+     */
+    private function dispatch(NodeInterface $node): void
+    {
+        foreach ($this->dispatchMap[$node::class] ?? [] as $rule) {
+            $this->append($rule->check($node, $this->context));
+        }
+    }
+
+    /**
+     * Single append point: enablement filtering happens here, exactly as the
+     * historical addIssue() did.
+     *
+     * @param list<LintIssue> $issues
+     */
+    private function append(array $issues): void
+    {
+        foreach ($issues as $issue) {
+            if ($this->isRuleEnabled($issue->id)) {
+                $this->issues[] = $issue;
+            }
+        }
     }
 
     /**
@@ -758,19 +837,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private function alternationKey(AlternationNode $node): string
     {
         return (string) spl_object_id($node);
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    private function currentAlternationSignature(): array
-    {
-        $signature = [];
-        foreach ($this->alternationStack as $entry) {
-            $signature[$entry['id']] = $entry['index'];
-        }
-
-        return $signature;
     }
 
     /**
@@ -1299,7 +1365,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        if ($this->alternationSignaturesConflict($this->currentAlternationSignature(), $groupInfo['alternation'])) {
+        if ($this->alternationSignaturesConflict($this->context->currentAlternationSignature(), $groupInfo['alternation'])) {
             $this->addIssue(
                 'regex.lint.backref.useless',
                 'Backreference refers to a group in a different alternative.',
@@ -1320,39 +1386,12 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    /**
-     * Check if we're currently inside an unbounded quantifier (*, +, {n,}).
-     * This is used to determine if overlapping alternations pose a ReDoS risk.
-     */
-    private function isInsideUnboundedQuantifier(): bool
-    {
-        foreach ($this->parentStack as $parent) {
-            if ($parent instanceof QuantifierNode) {
-                // Skip possessive quantifiers - they don't backtrack
-                if (QuantifierType::T_POSSESSIVE === $parent->type) {
-                    continue;
-                }
-
-                // Check if the quantifier's child is an atomic group - atomic groups don't backtrack
-                if ($parent->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $parent->node->type) {
-                    continue;
-                }
-
-                if ($this->isUnboundedQuantifier($parent->quantifier)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private function lintAlternation(AlternationNode $node): void
     {
         // Check for (.|\n) anti-pattern before generic overlap detection.
         // This produces a more specific and actionable message.
         if ($this->isDotNewlineAntiPattern($node)) {
-            $hasSFlag = str_contains($this->activeFlags, 's');
+            $hasSFlag = str_contains($this->context->activeFlags(), 's');
             $hint = $hasSFlag
                 ? 'Replace (.|\n) with [\s\S] for clarity, or remove the surrounding group if the "s" flag is already active.'
                 : 'Use the "s" (PCRE_DOTALL) flag to make "." match newlines, or use [\s\S] instead of (.|\n).';
@@ -1380,7 +1419,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             // Only flag overlapping literal branches when they're inside an unbounded quantifier.
             // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
             // do not pose a ReDoS risk because there's no exponential backtracking.
-            if ($this->isInsideUnboundedQuantifier()) {
+            if ($this->context->isInsideUnboundedQuantifier()) {
                 $unique = array_values(array_unique($literals));
                 $total = \count($unique);
                 for ($i = 0; $i < $total; $i++) {
@@ -1555,7 +1594,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Only flag overlapping alternations when they're inside an unbounded quantifier.
         // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
         // do not pose a ReDoS risk because there's no exponential backtracking.
-        if (!$this->isInsideUnboundedQuantifier()) {
+        if (!$this->context->isInsideUnboundedQuantifier()) {
             return;
         }
 
@@ -2424,7 +2463,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             ? explode('-', $flags, 2)
             : [$flags, ''];
 
-        $baseFlags = $resetAll ? '' : $this->activeFlags;
+        $baseFlags = $resetAll ? '' : $this->context->activeFlags();
 
         foreach (str_split($set) as $flag) {
             if ('' === $flag) {
