@@ -1,3 +1,32 @@
+  corpus/beberlei-assert/bin/MethodDocGenerator.php:58:28
+      → `\* This is an alias of {@see (?P<aliasOf>[^\s\}]++)`sim
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '`\* This is an alias of \{@see (?P<aliasOf>[^\s}]++)`sim' contains no anchors.
+     TIP 
+         - `\* This is an alias of {@see (?P<aliasOf>[^\s\}]++)`sim
+         + `\* This is an alias of {@see (?P<aliasOf>[^\s\}]++)`i
+
+  corpus/beberlei-assert/bin/MethodDocGenerator.php:156:21
+      → `\* @method.*? \*/\nclass `sim
+     WARN  Flag 'm' is useless: pattern '`\* @method.*? \*\/\nclass `sim' contains no anchors.
+     TIP 
+         - `\* @method.*? \*/\nclass `sim
+         + `\* @method.*? \*/\nclass `si
+
+  corpus/beberlei-assert/bin/MethodDocGenerator.php:163:21
+      → /```php\n<\?php\nuse Assert\\Assertion;\n\nAssertion::.*?```/sim
+     WARN  Flag 'm' is useless: pattern '/```php\n<\?php\nuse Assert\\Assertion;\n\nAssertion::.*?```/sim' contains no anchors.
+     TIP 
+         - /```php\n<\?php\nuse Assert\\Assertion;\n\nAssertion::.*?```/sim
+         + /```php\n<\?php\nuse Assert\\Assertion;\n\nAssertion::.*?```/si
+
+  corpus/parsecsv/src/Csv.php:1296:66
+      → /<\?.*?\?>(.*)/ms
+     WARN  Flag 'm' is useless: pattern '/<\?.*?\?>(.*)/ms' contains no anchors.
+     TIP 
+         - /<\?.*?\?>(.*)/ms
+         + /<\?.*?\?>(.*)/s
+
   corpus/reactphp/http/src/Message/Uri.php:49:149
       → #[\s%+]#
      WARN  "+" is a literal character inside a character class, not a quantifier.
@@ -20,6 +49,198 @@
      TIP 
          - /^([12345]{1}\d{2})|([12345]{1}XX)$/
          + /^([12345]\d{2})|([12345]XX)$/
+
+  corpus/slevomat/SlevomatCodingStandard/Helpers/TypeHelper.php:23:4
+      → ~^\\?([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)(\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)*$~
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - ~^\\?([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)(\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)*$~
+         + ~^\\?([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)(?>(\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*))*$~
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/PHP/RequireNowdocSniff.php:39:20
+      → ~^([^\\$]|\\[^nrtvef0-7xu])*$~
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/PHP/TypeCastSniff.php:55:14
+      → ~^\(\s*(\S+)\s*\)\z~i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/Commenting/InlineDocCommentDeclarationSniff.php:173:19
+      → ~(\$\w+)(?:\s+(.+))?$~i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/Commenting/RequireOneDocCommentSniff.php:76:23
+      → #\A\s*/\*\*\s*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\A\s*/\*\*\s*#s
+         + #\A\s*/\*\*\s*#
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/Commenting/RequireOneDocCommentSniff.php:77:23
+      → #\s*\*/\s*\z#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\s*\*/\s*\z#s
+         + #\s*\*/\s*\z#
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/Commenting/ForbiddenCommentsSniff.php:87:20
+      → ~^[\s\*]*$~
+     WARN  "*" is a literal character inside a character class, not a quantifier.
+         ↳ Inside [...], "*" matches a literal "*". If you meant to quantify a shorthand like \w, use \w* outside the class.
+
+  corpus/slevomat/SlevomatCodingStandard/Sniffs/Commenting/EmptyCommentSniff.php:108:24
+      → ~^[\s\*]*$~
+     WARN  "*" is a literal character inside a character class, not a quantifier.
+         ↳ Inside [...], "*" matches a literal "*". If you meant to quantify a shorthand like \w, use \w* outside the class.
+
+  corpus/PhpSpreadsheet/bin/check-phpdoc-types.php:14:20
+      → ~^\+ +\* @(param|var) (mixed|string|int|float|bool|null|array|\?|\|)+( \$\w+)?$~m
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/PhpSpreadsheet/bin/check-phpdoc-types.php:15:20
+      → ~^\+ +\* @return (mixed|string|int|float|bool|null|array|void|\?|\|)+$~m
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Worksheet/Table.php:120:29
+      → /^[\p{L}_\\]/iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Worksheet/Table.php:123:29
+      → /^[\p{L}_\\][\p{L}\p{M}0-9\._]*$/iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/PercentageFormatter.php:41:39
+      → /[#0,]+\.?[?#0,]*/ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Wizard/Accounting.php:29:43
+      → /\.0+/miu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\.0+/miu' contains no anchors.
+     TIP 
+         - /\.0+/miu
+         + /\.0+/iu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Wizard/CurrencyBase.php:110:43
+      → /\.0+/miu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\.0+/miu' contains no anchors.
+     TIP 
+         - /\.0+/miu
+         + /\.0+/iu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:191:13
+      → /(["])(?:(?=(\\?))\2.)*?\1/u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(["])(?:(?=(\\?))\2.)*?\1/u
+         + /(["])(?>(?:(?=(\\?))\2.))*?\1/u
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:197:41
+      → /(\\(((.)(?!((AM\/PM)|(A\/P))))|([^ ])))(?=(?:[^"]|"[^"]*")*$)/ui
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\\(((.)(?!((AM\/PM)|(A\/P))))|([^ ])))(?=(?:[^"]|"[^"]*")*$)/ui
+         + /(\\(((.)(?!((AM\/PM)|(A\/P))))|([^ ])))(?=(?>(?:[^"]|"[^"]*"))*$)/ui
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:207:41
+      → /_.?/ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:212:25
+      → /(\[\$[A-Z]*-[0-9A-F]*\])*[hmsdy](?=(?:[^"]|"[^"]*")*$)/miu
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\[\$[A-Z]*-[0-9A-F]*\])*[hmsdy](?=(?:[^"]|"[^"]*")*$)/miu
+         + /(\[\$[A-Z]*-[0-9A-F]*\])*[hmsdy](?=(?>(?:[^"]|"[^"]*"))*$)/miu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:214:29
+      → /\[\$[A-Z]{3}\]/miu
+     WARN  Flag 'm' is useless: pattern '/\[\$[A-Z]{3}]/miu' contains no anchors.
+     TIP 
+         - /\[\$[A-Z]{3}\]/miu
+         + /\[\$[A-Z]{3}\]/iu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/Formatter.php:216:28
+      → /[0\?#]\.(?![^\[]*\])/miu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/[0?#]\.(?![^\[]*])/miu' contains no anchors.
+     TIP 
+         - /[0\?#]\.(?![^\[]*\])/miu
+         + /[0\?#]\.(?![^\[]*\])/iu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/FractionFormatter.php:27:20
+      → /(#?.*\?)\/(\?+|\d+)/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/NumberFormatter.php:210:24
+      → /[#\?0]?.*[#\?0]\/(\?+|\d+|#)/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/NumberFormatter.php:279:33
+      → /\.(?=(?:[^"]*"[^"]*")*[^"]*\Z)/miu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\.(?=(?:[^"]*"[^"]*")*[^"]*\Z)/miu' contains no anchors.
+     TIP 
+         - /\.(?=(?:[^"]*"[^"]*")*[^"]*\Z)/miu
+         + /\.(?=(?:[^"]*"[^"]*")*[^"]*\Z)/iu
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Style/NumberFormat/NumberFormatter.php:317:24
+      → /(#|0|\?)(,+)/
+     TIP 
+         - /(#|0|\?)(,+)/
+         + /([#0?])(,+)/
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Cell/AdvancedValueBinder.php:73:28
+      → /^(\d|[0-1]\d|2[0-3]):[0-5]\d$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Cell/AdvancedValueBinder.php:78:28
+      → /^(\d|[0-1]\d|2[0-3]):[0-5]\d:[0-5]\d$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Calculation/Functions.php:169:56
+      → /"/ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Calculation/Database/DatabaseAbstract.php:158:30
+      → /(?<operator>[^"]*)(?<operand>".*[*?].*")/ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Calculation/FormulaParser.php:219:36
+      → /^[1-9]{1}(\.\d+)?E{1}$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^[1-9]{1}(\.\d+)?E{1}$/
+         + /^[1-9](\.\d+)?E$/
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Helper/Html.php:657:43
+      → /\n */mu
+     WARN  Flag 'm' is useless: pattern '/\n */mu' contains no anchors.
+     TIP 
+         - /\n */mu
+         + /\n */u
+
+  corpus/PhpSpreadsheet/src/PhpSpreadsheet/Helper/Sample.php:90:65
+      → /(|\.php)/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
 
   corpus/deployer/recipe/magento2.php:118:16
       → /(\d+\.?)+(-p\d+)?$/
@@ -393,6 +614,274 @@
          - /([a-z]+?){1}/i
          + /([a-z]+?)/i
 
+  corpus/woocommerce/tools/monorepo/check-changelogger-use.php:85:18
+      → /^packages:((\n\s+.+)+)/m
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^packages:((\n\s+.+)+)/m
+         + /^packages:((?>(\n\s+.+))+)/m
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-product-download.php:355:20
+      → #^//+(/[^/].+)$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/includes/admin/class-wc-admin-marketplace-promotions.php:714:35
+      → |<span class="update-plugins count-[\d]+">[A-z0-9 <>="-]+</span>|
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/woocommerce/plugins/woocommerce/includes/admin/helper/class-wc-helper-sanitization.php:35:24
+      → /@import\s+[^;]+;?/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/woocommerce/plugins/woocommerce/includes/admin/helper/class-wc-helper-sanitization.php:49:6
+      → /^https?:\/\/(([\w-]+\.)*woocommerce\.com|([\w-]+\.)*woocommerce\.test|([\w-]+\.)*WordPress\.com|([\w-]+\.)*wp\.com)/ix
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-download-handler.php:624:21
+      → /filename\*\s*=\s*[^']*'[^']*'(?<encoded_value>[^;]+)/i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:88:33
+      → /^([7-8]{1})([0-9]{4})$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '7' and '8' explicitly instead of a range.
+     TIP 
+         - /^([7-8]{1})([0-9]{4})$/
+         + /^([7-8])([0-9]{4})$/
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:94:33
+      → /^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/
+         + /^([0][1-9]|[1-9][0-9])[0-9]{3}$/
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:97:33
+      → /^(DK-)?([1-24-9]\d{3}|3[0-8]\d{2})$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:104:33
+      → /^([0-9]{5})$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:113:33
+      → /^[1-9]{1}[0-9]{2}\s{0,1}[0-9]{3}$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^[1-9]{1}[0-9]{2}\s{0,1}[0-9]{3}$/
+         + /^[1-9][0-9]{2}\s?[0-9]{3}$/
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:123:33
+      → /^([0-9]{5})(-[0-9]{4})?$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/includes/class-wc-validation.php:144:33
+      → /^(94[8-9][0-9])$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '8' and '9' explicitly instead of a range.
+
+  corpus/woocommerce/plugins/woocommerce/includes/import/class-wc-product-csv-importer.php:602:20
+      → /^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])([ 01-9:]*)$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/woocommerce/plugins/woocommerce/includes/rest-api/Controllers/Version3/class-wc-rest-controller.php:170:24
+      → /\(.*\)\//i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/lib/packages/GraphQL/Utils/PhpDoc.php:14:33
+      → ~([\r\n]) \* (.*)~i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/lib/packages/GraphQL/Utils/PhpDoc.php:17:33
+      → ~([\r\n])[\* ]+([\r\n])~i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/lib/packages/Sabberworm/CSS/Value/CSSString.php:58:32
+      → /[\s{}()<>\[\]]/isu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /[\s{}()<>\[\]]/isu
+         + /[\s{}()<>\[\]]/iu
+
+  corpus/woocommerce/plugins/woocommerce/lib/packages/Sabberworm/CSS/Parsing/ParserState.php:200:32
+      → /\s/isSu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s/isSu
+         + /\s/iSu
+
+  corpus/woocommerce/plugins/woocommerce/lib/packages/Sabberworm/CSS/Parsing/ParserState.php:245:31
+      → /\s/isSu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s/isSu
+         + /\s/iSu
+
+  corpus/woocommerce/plugins/woocommerce/src/Blocks/BlockTypes/Cart.php:218:29
+      → /<div class="[a-zA-Z0-9_\- ]*wp-block-woocommerce-cart[a-zA-Z0-9_\- ]*">/mi
+     WARN  Flag 'm' is useless: pattern '/<div class="[a-zA-Z0-9_\- ]*wp-block-woocommerce-cart[a-zA-Z0-9_\- ]*">/mi' contains no anchors.
+     TIP 
+         - /<div class="[a-zA-Z0-9_\- ]*wp-block-woocommerce-cart[a-zA-Z0-9_\- ]*">/mi
+         + /<div class="[a-zA-Z0-9_\- ]*wp-block-woocommerce-cart[a-zA-Z0-9_\- ]*">/i
+
+  corpus/woocommerce/plugins/woocommerce/src/Blocks/BlockTypes/CartOrderSummaryBlock.php:76:24
+      → /\n\n( *?)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/src/Blocks/BlockTypes/CheckoutOrderSummaryBlock.php:78:24
+      → /\n\n( *?)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/plugins/woocommerce/src/Internal/Admin/OrderMilestoneEasterEgg.php:444:33
+      → /<rect[^>]+fill="white"[^>]*\/?>/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/woocommerce/plugins/woocommerce/src/Internal/Admin/Logging/FileV2/SearchListTable.php:157:28
+      → /\.([0-9])+\-/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/woocommerce/plugins/woocommerce/src/Internal/Logging/RemoteLogger.php:510:28
+      → /(\d{4}[- ]?){3}\d{4}/
+     WARN  Quantified capturing group "(...)" with "{3}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/woocommerce/plugins/woocommerce/src/StoreApi/Authentication.php:379:6
+      → /(?<=\[).*(?=\])/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/woocommerce/packages/php/email-editor/vendor-prefixed/packages/Sabberworm/CSS/Value/CSSString.php:58:32
+      → /[\s{}()<>\[\]]/isu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /[\s{}()<>\[\]]/isu
+         + /[\s{}()<>\[\]]/iu
+
+  corpus/woocommerce/packages/php/email-editor/vendor-prefixed/packages/Sabberworm/CSS/Parsing/ParserState.php:200:32
+      → /\s/isSu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s/isSu
+         + /\s/iSu
+
+  corpus/woocommerce/packages/php/email-editor/vendor-prefixed/packages/Sabberworm/CSS/Parsing/ParserState.php:245:31
+      → /\s/isSu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s/isSu
+         + /\s/iSu
+
+  corpus/woocommerce/packages/php/email-editor/src/Integrations/Core/Renderer/Blocks/class-audio.php:39:36
+      → #<audio[^>]*\ssrc=["']([^"']*)["'][^>]*/?>#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/woocommerce/packages/php/email-editor/src/Integrations/Core/Renderer/Blocks/class-audio.php:75:16
+      → #<audio[^>]*\ssrc=["']([^"']*)["'][^>]*/?>#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/woocommerce/packages/php/email-editor/src/Integrations/Utils/class-html-processing-helper.php:584:20
+      → /(?<![a-zA-Z0-9.-])https?:\/\/[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[a-zA-Z0-9\/?=&%_.~+#-]*(?![a-zA-Z0-9._~+#-])/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:148:27
+      → / *\t */im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/ *\t */im' contains no anchors.
+     TIP 
+         - / *\t */im
+         + / *\t */i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:155:27
+      → /\n[ \t]*/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\n[ \t]*/im' contains no anchors.
+     TIP 
+         - /\n[ \t]*/im
+         + /\n[ \t]*/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:167:27
+      → /[ \t]*\n/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/[ \t]*\n/im' contains no anchors.
+     TIP 
+         - /[ \t]*\n/im
+         + /[ \t]*\n/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:174:27
+      → /\n\n\n*/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\n\n\n*/im' contains no anchors.
+     TIP 
+         - /\n\n\n*/im
+         + /\n\n\n*/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:362:29
+      → /[ \t]*\n/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/[ \t]*\n/im' contains no anchors.
+     TIP 
+         - /[ \t]*\n/im
+         + /[ \t]*\n/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:370:28
+      → /[\t\n\f\r ]+/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/[\t\n\f\r ]+/im' contains no anchors.
+     TIP 
+         - /[\t\n\f\r ]+/im
+         + /[\t\n\f\r ]+/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:617:29
+      → /\n/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\n/im' contains no anchors.
+     TIP 
+         - /\n/im
+         + /\n/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/Renderer/class-html2text.php:621:29
+      → /\n> >/im
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/\n> >/im' contains no anchors.
+     TIP 
+         - /\n> >/im
+         + /\n> >/i
+
+  corpus/woocommerce/packages/php/email-editor/src/Engine/class-personalizer.php:188:25
+      → /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s\]]+(?:\s+(?!\w+=)[^\s\]]+)*))/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s\]]+(?:\s+(?!\w+=)[^\s\]]+)*))/
+         + /(\w+)=(?:"([^"]*)"|'([^']*)'|([^\s\]]+(?>(?:\s+(?!\w+=)[^\s\]]+))*))/
+
   corpus/phpseclib/phpseclib/Net/SFTP.php:2533:24
       → #^[^/]([r-][w-][xstST-]){3}#
      WARN  Quantified capturing group "(...)" with "{3}": only the last iteration's capture is retained.
@@ -617,6 +1106,429 @@
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
+  corpus/magento/app/code/Magento/Usps/Model/Carrier.php:2300:47
+      → /[\d\w]{5}\-[\d\w]{4}/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/magento/app/code/Magento/Usps/Model/ShipmentService.php:983:47
+      → /[\d\w]{5}\-[\d\w]{4}/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/magento/app/code/Magento/PageCache/Model/Config.php:265:32
+      → /^[\W]{1}(.*)[\W]{1}(\w+)?$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^[\W]{1}(.*)[\W]{1}(\w+)?$/
+         + /^[\W](.*)[\W](\w+)?$/
+
+  corpus/magento/app/code/Magento/PageCache/Model/Varnish/VclGenerator.php:134:32
+      → /^[\W]{1}(.*)[\W]{1}(\w+)?$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^[\W]{1}(.*)[\W]{1}(\w+)?$/
+         + /^[\W](.*)[\W](\w+)?$/
+
+  corpus/magento/app/code/Magento/LoginAsCustomerAdminUi/Ui/Customer/Component/ConfirmationPopup/Options.php:147:20
+      → /\$[:]*{(.)*}/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/CatalogSearch/Model/Indexer/Fulltext/Action/DataProvider.php:633:47
+      → /\s+/iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/app/code/Magento/JwtUserToken/Model/SecretBasedJwksFactory.php:37:34
+      → /\s+/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s+/s
+         + /\s+/
+
+  corpus/magento/app/code/Magento/Catalog/Model/Product/Attribute/Backend/Stock.php:65:50
+      → /^-?\d*(\.|,)?\d{0,4}$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/app/code/Magento/Catalog/Model/Product/Option/Type/File/Validator.php:137:28
+      → /(?<extension>[a-z0-9]+)/si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(?<extension>[a-z0-9]+)/si
+         + /(?<extension>[a-z0-9]+)/i
+
+  corpus/magento/app/code/Magento/Catalog/Model/Product/Option/Type/Date.php:79:53
+      → /^\d{1,4}.+\d{1,4}.+\d{1,4},+(\w|\W)*$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/Catalog/Model/Product/Option/Type/Date.php:84:66
+      → /^\d{1,4}.+\d{1,4}.+\d{1,4}$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/magento/app/code/Magento/Catalog/Model/Product/ReservedAttributeList.php:29:28
+      → /^get([A-Z]{1}.+)/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^get([A-Z]{1}.+)/
+         + /^get([A-Z].+)/
+
+  corpus/magento/app/code/Magento/Catalog/Model/ResourceModel/Product/Collection.php:2338:25
+      → /^%s( (<|>|=|<=|>=|<>) %s)*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation branches "<" and "<=" overlap.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/magento/app/code/Magento/Directory/Model/Country.php:160:41
+      → #(<br\s*/?>\s*){2,}#im
+     WARN  Quantified capturing group "(...)" with "{2,}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Flag 'm' is useless: pattern '#(<br\s*\/?>\s*){2,}#im' contains no anchors.
+     TIP 
+         - #(<br\s*/?>\s*){2,}#im
+         + #(<br\s*/?>\s*){2,}#i
+
+  corpus/magento/app/code/Magento/Directory/Model/Country.php:162:41
+      → #(\n\s*){2,}#m
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(\n\s*){2,}#m
+         + #(?>(\n\s*)){2,}#m
+     WARN  Quantified capturing group "(...)" with "{2,}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Flag 'm' is useless: pattern '#(\n\s*){2,}#m' contains no anchors.
+     TIP 
+         - #(\n\s*){2,}#m
+         + #(\n\s*){2,}#
+
+  corpus/magento/app/code/Magento/Cms/Setup/Patch/Data/CreateDefaultPages.php:335:28
+      → /<ul>(.*?)<\/ul>/ims
+     WARN  Flag 'm' is useless: pattern '/<ul>(.*?)<\/ul>/ims' contains no anchors.
+     TIP 
+         - /<ul>(.*?)<\/ul>/ims
+         + /<ul>(.*?)<\/ul>/is
+
+  corpus/magento/app/code/Magento/Cms/Setup/Patch/Data/CreateDefaultPages.php:336:41
+      → /<li class="last">/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<li class="last">/ims' contains no anchors.
+     TIP 
+         - /<li class="last">/ims
+         + /<li class="last">/i
+
+  corpus/magento/app/code/Magento/Cms/Setup/Patch/Data/CreateDefaultPages.php:340:41
+      → /<\/ul>/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<\/ul>/ims' contains no anchors.
+     TIP 
+         - /<\/ul>/ims
+         + /<\/ul>/i
+
+  corpus/magento/app/code/Magento/Cms/Setup/ContentConverter.php:66:24
+      → /(.*?{{widget.*?}})*(?<ending>.*?)$/si
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(.*?{{widget.*?}})*(?<ending>.*?)$/si
+         + /(?>(.*?{{widget.*?}}))*(?<ending>.*?)$/si
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/Cms/Model/Validator/DirectiveValidator.php:48:33
+      → /^\\?[A-Za-z_][A-Za-z0-9_]*(\\[A-Za-z_][A-Za-z0-9_]*)*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\\?[A-Za-z_][A-Za-z0-9_]*(\\[A-Za-z_][A-Za-z0-9_]*)*$/
+         + /^\\?[A-Za-z_][A-Za-z0-9_]*(?>(\\[A-Za-z_][A-Za-z0-9_]*))*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/Cms/Model/Validator/DirectiveValidator.php:63:21
+      → /^[A-Za-z0-9_]+(?:_[A-Za-z0-9_]+)*::[A-Za-z0-9_.\-\/]+$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[A-Za-z0-9_]+(?:_[A-Za-z0-9_]+)*::[A-Za-z0-9_.\-\/]+$/
+         + /^[A-Za-z0-9_]+(?>(?:_[A-Za-z0-9_]+))*::[A-Za-z0-9_.\-\/]+$/
+
+  corpus/magento/app/code/Magento/Csp/Helper/InlineUtil.php:134:24
+      → /\@font\-face\s*?\{([^\}]*)[^\}]*?\}/im
+     WARN  Flag 'm' is useless: pattern '/@font-face\s*?\{([^}]*)[^}]*?\}/im' contains no anchors.
+     TIP 
+         - /\@font\-face\s*?\{([^\}]*)[^\}]*?\}/im
+         + /\@font\-face\s*?\{([^\}]*)[^\}]*?\}/i
+
+  corpus/magento/app/code/Magento/Webapi/Model/Soap/Wsdl/ComplexTypeStrategy.php:406:37
+      → |([http://]?.+):(.+):(.+)|i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: 't' (duplicate), '/' (duplicate)
+
+  corpus/magento/app/code/Magento/Elasticsearch/Model/Config/Backend/MinimumShouldMatch.php:39:28
+      → /^((\d+<)?-?\d+%?\s?)+$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^((\d+<)?-?\d+%?\s?)+$/
+         + /^(?>((\d+<)?-?\d+%?\s?))+$/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/Email/Model/AbstractTemplate.php:311:24
+      → /<!--@vars\s*((?:.)*?)\s*@-->/us
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /<!--@vars\s*((?:.)*?)\s*@-->/us
+         + /<!--@vars\s*(.*?)\s*@-->/us
+
+  corpus/magento/app/code/Magento/Store/Ui/Component/Listing/Column/Store/Options.php:81:20
+      → /\$[:]*{(.)*}/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/app/code/Magento/Store/Model/ResourceModel/Website.php:71:48
+      → /^[a-z]+[a-z0-9_]*$/i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/magento/app/code/Magento/SalesRule/Model/Rule/Condition/Product.php:248:31
+      → /[^0-9^\^.,-]/m
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '^' (duplicate)
+     WARN  Flag 'm' is useless: pattern '/[^0-9\^\^.,\-]/m' contains no anchors.
+     TIP 
+         - /[^0-9^\^.,-]/m
+         + /[^0-9^\^.,-]/
+
+  corpus/magento/setup/src/Magento/Setup/Module/Di/Code/Scanner/PhpScanner.php:65:24
+      → /\[\s\<\w+?>\s\??([\w\\]+)/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\[\s\<\w+?>\s\??([\w\\]+)/s
+         + /\[\s\<\w+?>\s\??([\w\\]+)/
+
+  corpus/magento/setup/src/Magento/Setup/Model/FixtureGenerator/SqlCollector.php:47:20
+      → ~(?:INSERT|REPLACE)\s+(?:IGNORE)?\s*INTO `(.*)` \((.*)\) VALUES (\(.*\))+~
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - ~(?:INSERT|REPLACE)\s+(?:IGNORE)?\s*INTO `(.*)` \((.*)\) VALUES (\(.*\))+~
+         + ~(?:INSERT|REPLACE)\s+(?:IGNORE)?\s*INTO `(.*)` \((.*)\) VALUES (?>(\(.*\)))+~
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/setup/src/Magento/Setup/Model/FixtureGenerator/SqlCollector.php:50:36
+      → ~[\s+`]+~
+     WARN  "+" is a literal character inside a character class, not a quantifier.
+         ↳ Inside [...], "+" matches a literal "+". If you meant to quantify a shorthand like \w, use \w+ outside the class.
+
+  corpus/magento/setup/src/Magento/Setup/Console/CompilerPreparation.php:139:21
+      → {([^:]+|)}
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/magento/lib/internal/Magento/Framework/Encryption/Encryptor.php:148:34
+      → /\s+/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s+/s
+         + /\s+/
+
+  corpus/magento/lib/internal/Magento/Framework/Locale/Format.php:93:31
+      → /[^0-9^\^.,-]/m
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '^' (duplicate)
+     WARN  Flag 'm' is useless: pattern '/[^0-9\^\^.,\-]/m' contains no anchors.
+     TIP 
+         - /[^0-9^\^.,-]/m
+         + /[^0-9^\^.,-]/
+
+  corpus/magento/lib/internal/Magento/Framework/Validator/HTML/StyleAttributeValidator.php:27:24
+      → /([^\-]position\s*?\:\s*?[^i\s][^n\s]\w)|(opacity)|(z-index)/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/([^\-]position\s*?:\s*?[^i\s][^n\s]\w)|(opacity)|(z-index)/ims' contains no anchors.
+     TIP 
+         - /([^\-]position\s*?\:\s*?[^i\s][^n\s]\w)|(opacity)|(z-index)/ims
+         + /([^\-]position\s*?\:\s*?[^i\s][^n\s]\w)|(opacity)|(z-index)/i
+
+  corpus/magento/lib/internal/Magento/Framework/App/Config/Scope/Validator.php:87:25
+      → /^[a-z]+[a-z0-9_]*$/i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/magento/lib/internal/Magento/Framework/App/Scope/Validator.php:85:25
+      → /^[a-z]+[a-z0-9_]*$/i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/magento/lib/internal/Magento/Framework/App/MaintenanceMode.php:140:25
+      → /^[^\s,]+(,[^\s,]+)*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/lib/internal/Magento/Framework/Cache/Core.php:43:37
+      → /([^a-zA-Z0-9_]{1,1})/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /([^a-zA-Z0-9_]{1,1})/
+         + /([^a-zA-Z0-9_])/
+
+  corpus/magento/lib/internal/Magento/Framework/Shell/CommandRenderer.php:19:33
+      → /(\s+2>&1)*(\s*\|)|$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/lib/internal/Magento/Framework/Setup/Declaration/Schema/Db/MySQL/Definition/Columns/OnUpdate.php:41:24
+      → /(?:on update)\s([\_\-\s\w\d]+)/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+     TIP 
+         - /(?:on update)\s([\_\-\s\w\d]+)/
+         + /on update\s([_\-\s\w\d]+)/
+
+  corpus/magento/lib/internal/Magento/Framework/Code/Generator/EntityAbstract.php:304:36
+      → /{\n{2,}/m
+     WARN  Flag 'm' is useless: pattern '/\{\n{2,}/m' contains no anchors.
+     TIP 
+         - /{\n{2,}/m
+         + /{\n{2,}/
+
+  corpus/magento/lib/internal/Magento/Framework/Code/Generator/EntityAbstract.php:305:36
+      → /\n{2,}}/m
+     WARN  Flag 'm' is useless: pattern '/\n{2,}\}/m' contains no anchors.
+     TIP 
+         - /\n{2,}}/m
+         + /\n{2,}}/
+
+  corpus/magento/lib/internal/Magento/Framework/Filesystem/DirectoryList.php:152:25
+      → /^([a-z0-9_]+[a-z0-9\._]*(\/[a-z0-9_]+[a-z0-9\._]*)*)?$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/magento/lib/internal/Magento/Framework/Filesystem/DirectoryList.php:184:30
+      → #^\w{1}:/#
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - #^\w{1}:/#
+         + #^\w:/#
+
+  corpus/magento/lib/internal/Magento/Framework/Xml/Generator.php:80:65
+      → /[^\w-]/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/lib/internal/Magento/Framework/Search/Request/Cleaner.php:151:51
+      → /^\$(.+)\$$/si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/lib/internal/Magento/Framework/Search/Request/Cleaner.php:159:47
+      → /^\$(.+)\$$/si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/lib/internal/Magento/Framework/Search/Request/Cleaner.php:203:60
+      → /^\$(.+)\$$/si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/magento/lib/internal/Magento/Framework/DataObject.php:376:28
+      → /\{\{([a-z0-9_]+)\}\}/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\{\{([a-z0-9_]+)\}\}/is
+         + /\{\{([a-z0-9_]+)\}\}/i
+
+  corpus/magento/lib/internal/Magento/Framework/View/Template/Html/Minifier.php:122:13
+      → /<<<([A-z]+).*?\1;/ims
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+     WARN  Flag 'm' is useless: pattern '/<<<([A-z]+).*?\1;/ims' contains no anchors.
+     TIP 
+         - /<<<([A-z]+).*?\1;/ims
+         + /<<<([A-z]+).*?\1;/is
+
+  corpus/magento/lib/internal/Magento/Framework/View/Template/Html/Minifier.php:164:13
+      → /__MINIFIED_HEREDOC__(\d+)/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/__MINIFIED_HEREDOC__(\d+)/ims' contains no anchors.
+     TIP 
+         - /__MINIFIED_HEREDOC__(\d+)/ims
+         + /__MINIFIED_HEREDOC__(\d+)/i
+
+  corpus/magento/lib/internal/Magento/Framework/View/Template/Html/Minifier.php:145:29
+      → #(?<!:|\\|'|"|/)//(?!/)(?!\s*\<\!\[)(?!\s*]]\>)[^\n\r]*#
+     TIP 
+         - #(?<!:|\\|'|"|/)//(?!/)(?!\s*\<\!\[)(?!\s*]]\>)[^\n\r]*#
+         + #(?<!:|\\|'|"|/)//(?!/)(?!\s*<!\[)(?!\s*\]\]>)[^\n\r]*#
+
+  corpus/magento/lib/internal/Magento/Framework/View/Template/Html/Minifier.php:148:33
+      → #(?<!:|'|")//[^\n\r<]*(\?\>)#
+     TIP 
+         - #(?<!:|'|")//[^\n\r<]*(\?\>)#
+         + #(?<![:'"])//[^\n\r<]*(\?>)#
+
+  corpus/magento/lib/internal/Magento/Framework/View/Helper/PathPattern.php:67:24
+      → ~\\\[(\\\!)?[^\]]+\\\]~i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     TIP 
+         - ~\\\[(\\\!)?[^\]]+\\\]~i
+         + ~\\\[(\\!)?[^\]]+\\\]~i
+
+  corpus/magento/lib/internal/Magento/Framework/DB/Select.php:277:29
+      → #[a-z0-9_]#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #[a-z0-9_]#is
+         + #[a-z0-9_]#i
+
+  corpus/magento/lib/internal/Magento/Framework/DB/Helper/InitStatementsCleanup.php:46:13
+      → /\s*SET\s+NAMES\s+utf8(?!mb4)(?:\s*;|\s+COLLATE\s+[\w_]+\s*;?)\s*/i
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/magento/lib/internal/Magento/Framework/Api/SimpleDataObjectConverter.php:175:63
+      → /([A-Z])/m
+     WARN  Flag 'm' is useless: pattern '/([A-Z])/m' contains no anchors.
+     TIP 
+         - /([A-Z])/m
+         + /([A-Z])/
+
+  corpus/magento/lib/internal/Magento/Framework/Stdlib/DateTime/Timezone.php:374:41
+      → /\d{1}:\d{2}/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /\d{1}:\d{2}/
+         + /\d:\d{2}/
+
+  corpus/magento/lib/internal/Magento/Framework/Stdlib/StringUtils.php:87:40
+      → /\s{2,}/siu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s{2,}/siu
+         + /\s{2,}/iu
+
+  corpus/magento/pub/errors/processor.php:729:13
+      → /^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
   corpus/serializer/src/XmlSerializationVisitor.php:559:68
       → #^[\pL_][\pL0-9._-]*$#ui
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
@@ -629,6 +1541,10 @@
      TIP 
          - /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/m
          + /("(""|[^"])*")|('(''|[^'])*')|((?:--|#)[^\n\r]*)|(\/\*[\w\W]*?(?=\*\/)\*\/)/
+
+  corpus/jms-serializer/src/XmlSerializationVisitor.php:559:68
+      → #^[\pL_][\pL0-9._-]*$#ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/protonemedia/laravel-splade/src/Http/BladeDirectives.php:67:20
       → /('|")([\w\-_\.]+)('|")(,)?(\s*)(.*)/
@@ -701,6 +1617,190 @@
       → /^[\w@.\s_\-]+$/iu
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
+  corpus/drupal/core/lib/Drupal/Core/Test/EnvironmentCleaner.php:86:22
+      → /^test\d+.*/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/drupal/core/lib/Drupal/Core/Mail/MailFormatHelper.php:64:28
+      → /(?(?<!^--) +\n|  +\n)/m
+     WARN  Flag 'm' is useless: pattern '/(?((?<!^--)) +\n|  +\n)/m' contains no anchors.
+
+  corpus/drupal/core/lib/Drupal/Core/Template/ComponentNodeVisitor.php:120:21
+      → /^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/
+         + /^[a-z](?>([a-zA-Z0-9_-]*[a-zA-Z0-9]))*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/lib/Drupal/Core/Template/Loader/ComponentLoader.php:31:21
+      → /^[a-zA-Z][a-zA-Z0-9:_-]*[a-zA-Z0-9]?$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/drupal/core/lib/Drupal/Core/Validation/Plugin/Validation/Constraint/PrimitiveTypeConstraintValidator.php:49:64
+      → /^[+-]?((\d+(\.\d*)?)|(\.\d+))$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/drupal/core/lib/Drupal/Core/Utility/Token.php:299:20
+      → /\n      \[             # [ - pattern start\n      ([^\s\[\]:]+)  # match $type not containing whitespace : [ or ]\n      :              # : - separator\n      ([^\[\]]+)     # match $name not containing [ or ]\n      \]             # ] - pattern end\n      /x
+     FAIL  Unexpected token "]" (char_class_close) at position 58.
+         ↳               ([^\s\[\]:]+)  # match $type not containing whitespace : [ or ]
+                                   ^
+
+  corpus/drupal/core/lib/Drupal/Component/Datetime/DateTimePlus.php:586:29
+      → /^([1-2][0-3]|[01]?[0-9])$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/drupal/core/lib/Drupal/Component/Utility/Color.php:24:23
+      → /^[#]?([0-9a-fA-F]{3}){1,2}$/
+     WARN  Quantified capturing group "(...)" with "{1,2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/lib/Drupal/Component/Utility/UrlHelper.php:446:32
+      → \n        /^                                                      # Start at the beginning of the text\n        (?:ftp|https?|feed):\/\/                                # Look for ftp, http, https or feed schemes\n        (?:                                                     # Userinfo (optional) which is typically\n          (?:(?:[\w\.\-\+!$&'\(\)*\+,;=]|%[0-9a-f]{2})+:)*      # a username or a username and password\n          (?:[\w\.\-\+%!$&'\(\)*\+,;=]|%[0-9a-f]{2})+@          # combination\n        )?\n        (?:\n          (?:[a-z0-9\-\.]|%[0-9a-f]{2})+                        # A domain name or a IPv4 address\n          |(?:\[(?:[0-9a-f]{0,4}:)*(?:[0-9a-f]{0,4})\])         # or a well formed IPv6 address\n        )\n        (?::[0-9]+)?                                            # Server port number (optional)\n        (?:[\/|\?]\n          (?:[\w#!:\.\?\+=&@$'~*,;\/\(\)\[\]\-]|%[0-9a-f]{2})   # The path and query (optional)\n        *)?\n      $/xi
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '+' (duplicate)
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/drupal/core/lib/Drupal/Component/Utility/Xss.php:388:36
+      → /\n          ^\n          (\n          "[^"]*("|$)     # - a string that starts with a double quote, up until the next double quote or the end of the string\n          |               # or\n          '[^']*('|$)| # - a string that starts with a quote, up until the next quote or the end of the string\n          |               # or\n          \S              # - a non-whitespace character\n          )*              # any number of the above three\n          \s*             # any number of whitespaces\n          /x
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           /
+                     ^
+         -           (
+         ---
+         +           (?>(
+                     "[^"]*("|$)     # - a string that starts with a double quote, up until the next double quote or the end of the string
+                     |               # or
+           ...
+                     |               # or
+                     \S              # - a non-whitespace character
+         -           )*              # any number of the above three
+         ---
+         +           ))*              # any number of the above three
+                     \s*             # any number of whitespaces
+                     /x
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/drupal/core/modules/locale/src/File/LocaleFile.php:89:16
+      → !\n    (                       # project OR project and version OR empty (group 1)\n      ([a-z_]+)             # project name (group 2)\n      \.                    # .\n      |                     # OR\n      ([a-z_]+)             # project name (group 3)\n      \-                    # -\n      ([0-9a-z\.\-\+]+)     # version (group 4)\n      \.                    # .\n      |                     # OR\n    )                       # (empty)\n    ([^\./]+)               # language code (group 5)\n    \.                      # .\n    po                      # po extension\n    $!x
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/drupal/core/modules/file/src/Plugin/Field/FieldType/FileItem.php:265:23
+      → /^([a-z0-9]+([._][a-z0-9])* ?)+$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([a-z0-9]+([._][a-z0-9])* ?)+$/
+         + /^(?>([a-z0-9]+([._][a-z0-9])* ?))+$/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/modules/file/src/EventSubscriber/FileEventSubscriber.php:94:32
+      → /(_|\.|\-)[(_|\.|\-)]+/u
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '|' (duplicate)
+
+  corpus/drupal/core/modules/field/src/Entity/FieldStorageConfig.php:272:21
+      → /^[_a-z]+[_a-z0-9]*$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/drupal/core/modules/search/modules/search_node/src/Plugin/Search/SearchNode.php:635:26
+      → / ("[^"]+"|[^" ]+)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/drupal/core/modules/search/modules/search_node/src/Plugin/Search/SearchNode.php:641:26
+      → / ("[^"]+"|[^" ]+)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/drupal/core/modules/search/modules/search_node/src/Plugin/Search/SearchNode.php:710:20
+      → / [^ ]+( OR [^ ]+)+ /
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/modules/search/src/SearchQuery.php:227:20
+      → / (-?)("[^"]+"|[^" ]+)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/drupal/core/modules/link/src/AttributeXss.php:130:36
+      → /\n          ^\n          (\n          "[^"]*("|$)     # - a string that starts with a double quote, up until the next double quote or the end of the string\n          |               # or\n          '[^']*('|$)| # - a string that starts with a quote, up until the next quote or the end of the string\n          |               # or\n          \S              # - a non-whitespace character\n          )*              # any number of the above three\n          \s*             # any number of whitespaces\n          /x
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           /
+                     ^
+         -           (
+         ---
+         +           (?>(
+                     "[^"]*("|$)     # - a string that starts with a double quote, up until the next double quote or the end of the string
+                     |               # or
+           ...
+                     |               # or
+                     \S              # - a non-whitespace character
+         -           )*              # any number of the above three
+         ---
+         +           ))*              # any number of the above three
+                     \s*             # any number of whitespaces
+                     /x
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/drupal/core/modules/ckeditor5/src/Plugin/CKEditor5Plugin/Style.php:118:23
+      → /^([a-z][0-9a-zA-Z\-]*)((\.[a-zA-Z0-9\x{00A0}-\x{FFFF}\-_]+)+)$/u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([a-z][0-9a-zA-Z\-]*)((\.[a-zA-Z0-9\x{00A0}-\x{FFFF}\-_]+)+)$/u
+         + /^([a-z][0-9a-zA-Z\-]*)((?>(\.[a-zA-Z0-9\x{00A0}-\x{FFFF}\-_]+))+)$/u
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/modules/filter/src/Plugin/Filter/FilterUrl.php:155:52
+      → /(<.+?>)/is
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/drupal/core/modules/views/src/Plugin/views/HandlerBase.php:831:20
+      → /^([\w0-9-_\.]+[+ ]+)+[\w0-9-_\.]+$/u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([\w0-9-_\.]+[+ ]+)+[\w0-9-_\.]+$/u
+         + /^(?>([\w0-9-_\.]+[+ ]+))+[\w0-9-_\.]+$/u
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/drupal/core/modules/views/src/Plugin/views/HandlerBase.php:836:24
+      → /^([\w0-9-_\.]+[, ]+)*[\w0-9-_\.]+$/u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([\w0-9-_\.]+[, ]+)*[\w0-9-_\.]+$/u
+         + /^(?>([\w0-9-_\.]+[, ]+))*[\w0-9-_\.]+$/u
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/chillerlan-qr-code/src/Output/CssColorModuleValueTrait.php:46:17
+      → /^#([\da-f]{3}){1,2}$|^#([\da-f]{4}){1,2}$/i
+     WARN  Quantified capturing group "(...)" with "{1,2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
   corpus/nunomaduro/pest/src/Plugins/Tia/Graph.php:1038:27
       → /#\[\s*(?:\\)?(?:PHPUnit\\Framework\\Attributes\\)?Group\s*\(\s*['\"]arch['\"]/
      WARN  Redundant non-capturing group; it can be removed without changing behavior.
@@ -733,6 +1833,537 @@
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/PHPWord/src/PhpWord/TemplateProcessor.php:480:25
+      → /^([0-9\.]*(cm|mm|in|pt|pc|px|%|em|ex|)|auto)$/i
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/wordpress/src/wp-admin/network/site-new.php:47:19
+      → |^([a-zA-Z0-9-])+$|
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-admin/includes/upgrade.php:3040:15
+      → |\((.*)\)|ms
+     WARN  Flag 'm' is useless: pattern '|\((.*)\)|ms' contains no anchors.
+     TIP 
+         - |\((.*)\)|ms
+         + |\((.*)\)|s
+
+  corpus/wordpress/src/wp-admin/includes/upgrade.php:3077:7
+      → /^\n\t\t\t\t\t\t\t(?P<index_type>             # 1) Type of the index.\n\t\t\t\t\t\t\t\tPRIMARY\s+KEY|(?:UNIQUE|FULLTEXT|SPATIAL)\s+(?:KEY|INDEX)|KEY|INDEX\n\t\t\t\t\t\t\t)\n\t\t\t\t\t\t\t\s+                         # Followed by at least one white space character.\n\t\t\t\t\t\t\t(?:                         # Name of the index. Optional if type is PRIMARY KEY.\n\t\t\t\t\t\t\t\t`?                      # Name can be escaped with a backtick.\n\t\t\t\t\t\t\t\t\t(?P<index_name>     # 2) Name of the index.\n\t\t\t\t\t\t\t\t\t\t(?:[0-9a-zA-Z$_-]|[\xC2-\xDF][\x80-\xBF])+\n\t\t\t\t\t\t\t\t\t)\n\t\t\t\t\t\t\t\t`?                      # Name can be escaped with a backtick.\n\t\t\t\t\t\t\t\t\s+                     # Followed by at least one white space character.\n\t\t\t\t\t\t\t)*\n\t\t\t\t\t\t\t\(                          # Opening bracket for the columns.\n\t\t\t\t\t\t\t\t(?P<index_columns>\n\t\t\t\t\t\t\t\t\t.+?                 # 3) Column names, index prefixes, and orders.\n\t\t\t\t\t\t\t\t)\n\t\t\t\t\t\t\t\)                          # Closing bracket for the columns.\n\t\t\t\t\t\t$/imx
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+           							)
+           							\s+                         # Followed by at least one white space character.
+         - 							(?:                         # Name of the index. Optional if type is PRIMARY KEY.
+         ---
+         + 							(?>(?:                         # Name of the index. Optional if type is PRIMARY KEY.
+           								`?                      # Name can be escaped with a backtick.
+           									(?P<index_name>     # 2) Name of the index.
+           ...
+           								`?                      # Name can be escaped with a backtick.
+           								\s+                     # Followed by at least one white space character.
+         - 							)*
+         ---
+         + 							))*
+           							\(                          # Opening bracket for the columns.
+           								(?P<index_columns>
+           ...
+
+  corpus/wordpress/src/wp-admin/includes/class-ftp-sockets.php:130:41
+      → /^.+ \(?([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]+,[0-9]+)\)?.*$/s
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-admin/includes/class-wp-filesystem-base.php:246:36
+      → |^([a-z]{1}):|i
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - |^([a-z]{1}):|i
+         + |^([a-z]):|i
+
+  corpus/wordpress/src/wp-admin/includes/ajax-actions.php:4312:30
+      → /[^A-z0-9_\-]/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (covered by range 'A'-'z')
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/wordpress/src/wp-admin/includes/ajax-actions.php:4407:30
+      → /[^A-z0-9_\-]/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (covered by range 'A'-'z')
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/wordpress/src/wp-admin/includes/class-wp-filesystem-ftpsockets.php:760:45
+      → /(\s*->\s*.*)$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-admin/includes/class-ftp-pure.php:109:41
+      → /^.+ \(?([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[0-9]+,[0-9]+)\)?.*$/s
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-admin/includes/class-wp-filesystem-ftpext.php:773:40
+      → /(\s*->\s*.*)$/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-admin/includes/class-wp-debug-data.php:553:53
+      → /\# BEGIN WordPress[\s\S]+?# END WordPress/si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\# BEGIN WordPress[\s\S]+?# END WordPress/si
+         + /\# BEGIN WordPress[\s\S]+?# END WordPress/i
+
+  corpus/wordpress/src/wp-includes/functions.php:838:3
+      → #(["']?)((?:([\w-]+:)?//?)[^\s()<>]+[.](?:\([\w\d]+\)|(?:[^`!()\[\]{}:'".,<>\302\253\302\273\342\200\234\342\200\235\342\200\230\342\200\231\s]|(?:[:]\d+)?/?)+))\1#
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #(["']?)((?:([\w-]+:)?//?)[^\s()<>]+[.](?:\([\w\d]+\)|(?:[^`!()\[\]{}:'".,<>\302\253\302\273\342\200\234\342\200\235\342\200\230\342\200\231\s]|(?:[:]\d+)?/?)+))\1#
+         + #(["']?)((?:([\w-]+:)?//?)[^\s()<>]+[.](?:\([\w\d]+\)|(?>(?:[^`!()\[\]{}:'".,<>\302\253\302\273\342\200\234\342\200\235\342\200\230\342\200\231\s]|(?:[:]\d+)?/?))+))\1#
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/wordpress/src/wp-includes/functions.php:6449:26
+      → #/(wp-admin/?.*|wp-login\.php.*)#i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-includes/functions.php:6454:26
+      → #/[^/]*$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wordpress/src/wp-includes/functions.php:6466:27
+      → #/[^/]*$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wordpress/src/wp-includes/class-wpdb.php:3869:26
+      → /\((?!\s*select)[^(]*?\)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\((?!\s*select)[^(]*?\)/is
+         + /\((?!\s*select)[^(]*?\)/i
+
+  corpus/wordpress/src/wp-includes/class-wpdb.php:3876:4
+      → /^\s*(?:SELECT.*?\s+FROM|INSERT(?:\s+LOW_PRIORITY|\s+DELAYED|\s+HIGH_PRIORITY)?(?:\s+IGNORE)?(?:\s+INTO)?|REPLACE(?:\s+LOW_PRIORITY|\s+DELAYED)?(?:\s+INTO)?|UPDATE(?:\s+LOW_PRIORITY)?(?:\s+IGNORE)?|DELETE(?:\s+LOW_PRIORITY|\s+QUICK|\s+IGNORE)*(?:.+?FROM)?)\s+((?:[0-9a-zA-Z$_.`-]|[\xC2-\xDF][\x80-\xBF])+)/is
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\s*(?:SELECT.*?\s+FROM|INSERT(?:\s+LOW_PRIORITY|\s+DELAYED|\s+HIGH_PRIORITY)?(?:\s+IGNORE)?(?:\s+INTO)?|REPLACE(?:\s+LOW_PRIORITY|\s+DELAYED)?(?:\s+INTO)?|UPDATE(?:\s+LOW_PRIORITY)?(?:\s+IGNORE)?|DELETE(?:\s+LOW_PRIORITY|\s+QUICK|\s+IGNORE)*(?:.+?FROM)?)\s+((?:[0-9a-zA-Z$_.`-]|[\xC2-\xDF][\x80-\xBF])+)/is
+         + /^\s*(?:SELECT.*?\s+FROM|INSERT(?:\s+LOW_PRIORITY|\s+DELAYED|\s+HIGH_PRIORITY)?(?:\s+IGNORE)?(?:\s+INTO)?|REPLACE(?:\s+LOW_PRIORITY|\s+DELAYED)?(?:\s+INTO)?|UPDATE(?:\s+LOW_PRIORITY)?(?:\s+IGNORE)?|DELETE(?>(?:\s+LOW_PRIORITY|\s+QUICK|\s+IGNORE))*(?:.+?FROM)?)\s+((?:[0-9a-zA-Z$_.`-]|[\xC2-\xDF][\x80-\xBF])+)/is
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/wordpress/src/wp-includes/class-wpdb.php:3901:20
+      → /^\s*SHOW\s+(?:TABLE\s+STATUS|(?:FULL\s+)?TABLES)\s+(?:WHERE\s+Name\s+)?LIKE\s*("|')((?:[\\0-9a-zA-Z$_.-]|[\xC2-\xDF][\x80-\xBF])+)%?\1/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+
+  corpus/wordpress/src/wp-includes/class-wpdb.php:3907:4
+      → /^\s*(?:(?:EXPLAIN\s+(?:EXTENDED\s+)?)?SELECT.*?\s+FROM|DESCRIBE|DESC|EXPLAIN|HANDLER|(?:LOCK|UNLOCK)\s+TABLE(?:S)?|(?:RENAME|OPTIMIZE|BACKUP|RESTORE|CHECK|CHECKSUM|ANALYZE|REPAIR).*\s+TABLE|TRUNCATE(?:\s+TABLE)?|CREATE(?:\s+TEMPORARY)?\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|ALTER(?:\s+IGNORE)?\s+TABLE|DROP\s+TABLE(?:\s+IF\s+EXISTS)?|CREATE(?:\s+\w+)?\s+INDEX.*\s+ON|DROP\s+INDEX.*\s+ON|LOAD\s+DATA.*INFILE.*INTO\s+TABLE|(?:GRANT|REVOKE).*ON\s+TABLE|SHOW\s+(?:.*FROM|.*TABLE))\s+\(*\s*((?:[0-9a-zA-Z$_.`-]|[\xC2-\xDF][\x80-\xBF])+)\s*\)*/is
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+     TIP 
+         - /^\s*(?:(?:EXPLAIN\s+(?:EXTENDED\s+)?)?SELECT.*?\s+FROM|DESCRIBE|DESC|EXPLAIN|HANDLER|(?:LOCK|UNLOCK)\s+TABLE(?:S)?|(?:RENAME|OPTIMIZE|BACKUP|RESTORE|CHECK|CHECKSUM|ANALYZE|REPAIR).*\s+TABLE|TRUNCATE(?:\s+TABLE)?|CREATE(?:\s+TEMPORARY)?\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|ALTER(?:\s+IGNORE)?\s+TABLE|DROP\s+TABLE(?:\s+IF\s+EXISTS)?|CREATE(?:\s+\w+)?\s+INDEX.*\s+ON|DROP\s+INDEX.*\s+ON|LOAD\s+DATA.*INFILE.*INTO\s+TABLE|(?:GRANT|REVOKE).*ON\s+TABLE|SHOW\s+(?:.*FROM|.*TABLE))\s+\(*\s*((?:[0-9a-zA-Z$_.`-]|[\xC2-\xDF][\x80-\xBF])+)\s*\)*/is
+         + /^\s*(?:(?:EXPLAIN\s+(?:EXTENDED\s+)?)?SELECT.*?\s+FROM|DESCRIBE|DESC|EXPLAIN|HANDLER|(?:LOCK|UNLOCK)\s+TABLES?|(?:RENAME|OPTIMIZE|BACKUP|RESTORE|CHECK|CHECKSUM|ANALYZE|REPAIR).*\s+TABLE|TRUNCATE(?:\s+TABLE)?|CREATE(?:\s+TEMPORARY)?\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?|ALTER(?:\s+IGNORE)?\s+TABLE|DROP\s+TABLE(?:\s+IF\s+EXISTS)?|CREATE(?:\s+\w+)?\s+INDEX.*\s+ON|DROP\s+INDEX.*\s+ON|LOAD\s+DATA.*INFILE.*INTO\s+TABLE|(?:GRANT|REVOKE).*ON\s+TABLE|SHOW\s+(?:.*FROM|.*TABLE))\s+\(*\s*((?:[0-9a-zA-Z$_.`\-]|[\xC2-\xDF][\x80-\xBF])+)\s*\)*/is
+
+  corpus/wordpress/src/wp-includes/load.php:1969:46
+      → /(^|\s|,)application\/([\w!#\$&-\^\.\+]+\+)?json(\+oembed)?($|\s|;|,)/i
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '.' (covered by range '&'-'^'), '+' (covered by range '&'-'^')
+
+  corpus/wordpress/src/wp-includes/ID3/module.audio-video.riff.php:1648:25
+      → /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/s
+         + /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/
+
+  corpus/wordpress/src/wp-includes/ID3/module.audio-video.riff.php:1729:24
+      → /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/s
+         + /^\xFF[\xE2-\xE7\xF2-\xF7\xFA-\xFF][\x00-\xEB]/
+
+  corpus/wordpress/src/wp-includes/ID3/module.tag.id3v2.php:2074:23
+      → #^([^\x00]+)*\x00(.)([^\x00]+)*\x00(.+)$#s
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^([^\x00]+)*\x00(.)([^\x00]+)*\x00(.+)$#s
+         + #^(?>([^\x00]+))*\x00(.)([^\x00]+)*\x00(.+)$#s
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/ID3/module.audio-video.quicktime.php:1683:21
+      → #([\+\-][0-9\.]+)([\+\-][0-9\.]+)([\+\-][0-9\.]+)?/$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wordpress/src/wp-includes/ID3/getid3.php:1576:69
+      → #[\x00\x01\x10\x11\x40\x41\x50\x51\x80\x81\x90\x91\xC0\xC1\xD0\xD1][\x20-37][\x00\x20\x40\x60\x80\xA0\xC0\xE0]#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #[\x00\x01\x10\x11\x40\x41\x50\x51\x80\x81\x90\x91\xC0\xC1\xD0\xD1][\x20-37][\x00\x20\x40\x60\x80\xA0\xC0\xE0]#s
+         + #[\x00\x01\x10\x11\x40\x41\x50\x51\x80\x81\x90\x91\xC0\xC1\xD0\xD1][\x20-37][\x00\x20\x40\x60\x80\xA0\xC0\xE0]#
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:945:37
+      → /\r\n|\r/m
+     WARN  Flag 'm' is useless: pattern '/\r\n|\r/m' contains no anchors.
+     TIP 
+         - /\r\n|\r/m
+         + /\r\n|\r/
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:1540:21
+      → /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?:.*[a-f0-9][:\]]){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?:.*[a-f0-9][:\]]){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
+         + /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?>(?:.*[a-f0-9][:\]])){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:1558:21
+      → /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
+         + /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?>(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$/sD
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
+         + /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/D
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:1575:21
+      → /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
+         + /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?>(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?))*$/usD
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
+         + /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/uD
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:2595:29
+      → /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
+         + /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(?>(.+))*?\2;/
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:2895:17
+      → /^<((([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|("(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21\x23-\x5B\x5D-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*"))@(([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|(\[(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21-\x5A\x5E-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*\])))>$/Di
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/PHPMailer/PHPMailer.php:4965:24
+      → #^(.*?)[\\/]*(([^/\\]*?)(\.([^.\\/]+?)|))[\\/.]*$#m
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/wordpress/src/wp-includes/PHPMailer/SMTP.php:322:37
+      → /\r\n|\r/m
+     WARN  Flag 'm' is useless: pattern '/\r\n|\r/m' contains no anchors.
+     TIP 
+         - /\r\n|\r/m
+         + /\r\n|\r/
+
+  corpus/wordpress/src/wp-includes/formatting.php:2058:29
+      → #\p{Zs}#siu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\p{Zs}#siu
+         + #\p{Zs}#iu
+
+  corpus/wordpress/src/wp-includes/formatting.php:2416:19
+      → /^\s*(([a-z0-9_]+|`[a-z0-9_]+`)(\s+(ASC|DESC))?\s*(,\s*(?=[a-z0-9_`])|$))+$/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\s*(([a-z0-9_]+|`[a-z0-9_]+`)(\s+(ASC|DESC))?\s*(,\s*(?=[a-z0-9_`])|$))+$/i
+         + /^\s*(?>(([a-z0-9_]+|`[a-z0-9_]+`)(\s+(ASC|DESC))?\s*(,\s*(?=[a-z0-9_`])|$)))+$/i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/formatting.php:2604:24
+      → #<([0-9]{1})#
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - #<([0-9]{1})#
+         + #<([0-9])#
+
+  corpus/wordpress/src/wp-includes/formatting.php:3210:34
+      → #([\s>])((www|ftp)\.[\w\x80-\xff\#$%&~/.\-;:=,?@\[\]+]+)#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #([\s>])((www|ftp)\.[\w\x80-\xff\#$%&~/.\-;:=,?@\[\]+]+)#is
+         + #([\s>])((www|ftp)\.[\w\x80-\xff\#$%&~/.\-;:=,?@\[\]+]+)#i
+
+  corpus/wordpress/src/wp-includes/formatting.php:3211:34
+      → #([\s>])([.0-9a-z_+-]+)@(([0-9a-z-]+\.)+[0-9a-z]{2,})#i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/formatting.php:4905:23
+      → |^(https?:)?//[^/]+(/?.*)|i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-includes/formatting.php:5115:65
+      → |^([a-zA-Z0-9-\.])+$|
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/formatting.php:6344:19
+      → |^#([A-Fa-f0-9]{3}){1,2}$|
+     WARN  Quantified capturing group "(...)" with "{1,2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/SimplePie.php:2987:102
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/SimplePie.php:3012:102
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Sanitize.php:577:30
+      → %</?(?:html|body)[^>]*?>%is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - %</?(?:html|body)[^>]*?>%is
+         + %</?(?:html|body)[^>]*?>%i
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Item.php:2304:115
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Item.php:2329:115
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Source.php:472:117
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Source.php:488:117
+      → /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^((?:-)?[0-9]+(?:\.[0-9]+)) ((?:-)?[0-9]+(?:\.[0-9]+))$/
+         + /^(-?[0-9]+(?:\.[0-9]+)) (-?[0-9]+(?:\.[0-9]+))$/
+
+  corpus/wordpress/src/wp-includes/SimplePie/src/Misc.php:1918:34
+      → /^([A-Za-z0-9\-._~\x{A0}-\x{D7FF}\x{F900}-\x{FDCF}\x{FDF0}-\x{FFEF}\x{10000}-\x{1FFFD}\x{20000}-\x{2FFFD}\x{30000}-\x{3FFFD}\x{40000}-\x{4FFFD}\x{50000}-\x{5FFFD}\x{60000}-\x{6FFFD}\x{70000}-\x{7FFFD}\x{80000}-\x{8FFFD}\x{90000}-\x{9FFFD}\x{A0000}-\x{AFFFD}\x{B0000}-\x{BFFFD}\x{C0000}-\x{CFFFD}\x{D0000}-\x{DFFFD}\x{E1000}-\x{EFFFD}!$&'()*+,;=@]|(%[0-9ABCDEF]{2}))+$/u
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/kses.php:2000:23
+      → /^("[^"]*("|$)|'[^']*('|$)|\S)*\s*/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^("[^"]*("|$)|'[^']*('|$)|\S)*\s*/
+         + /^(?>("[^"]*("|$)|'[^']*('|$)|\S))*\s*/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/wordpress/src/wp-includes/kses.php:2909:20
+      → /(?:repeating-)?(?:linear|radial|conic)-gradient\((?:[^()]|\([^()]*\))*\)/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(?:repeating-)?(?:linear|radial|conic)-gradient\((?:[^()]|\([^()]*\))*\)/
+         + /(?:repeating-)?(?:linear|radial|conic)-gradient\((?>(?:[^()]|\([^()]*\)))*\)/
+
+  corpus/wordpress/src/wp-includes/class-json.php:826:47
+      → /^\s*(["'].*[^\\]["'])\s*:/Uis
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wordpress/src/wp-includes/class-json.php:835:54
+      → /^\s*(\w+)\s*:/Uis
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^\s*(\w+)\s*:/Uis
+         + /^\s*(\w+)\s*:/Ui
+
+  corpus/wordpress/src/wp-includes/class-wp-plugin-dependencies.php:599:21
+      → /^[a-z0-9]+(-[a-z0-9]+)*$/mu
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/canonical.php:98:36
+      → |(%C2%A0)+$|i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/class-wp-xmlrpc-server.php:7065:15
+      → |<title>([^<]*?)</title>|is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - |<title>([^<]*?)</title>|is
+         + |<title>([^<]*?)</title>|i
+
+  corpus/wordpress/src/wp-includes/class-wp-xmlrpc-server.php:6959:55
+      → #p/[0-9]{1,}#
+     TIP 
+         - #p/[0-9]{1,}#
+         + #p/[0-9]+#
+
+  corpus/wordpress/src/wp-includes/class-wp-xmlrpc-server.php:6963:56
+      → #p=[0-9]{1,}#
+     TIP 
+         - #p=[0-9]{1,}#
+         + #p=[0-9]+#
+
+  corpus/wordpress/src/wp-includes/class-wp-theme.php:1936:23
+      → /^[A-z0-9\/_-]+$/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (covered by range 'A'-'z')
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/wordpress/src/wp-includes/http.php:588:20
+      → #^(([1-9]?\d|1\d\d|25[0-5]|2[0-4]\d)\.){3}([1-9]?\d|1\d\d|25[0-5]|2[0-4]\d)$#
+     WARN  Quantified capturing group "(...)" with "{3}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/Requests/src/Requests.php:767:17
+      → #(\s+)#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wordpress/src/wp-includes/Requests/src/Requests.php:855:19
+      → /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?>(?:[\w-]*))*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w\-]*)(?:=(?:(?:[\w\-]*)*|"[^\r\n]*"))?)*\r\n/i
+
+  corpus/wordpress/src/wp-includes/Requests/src/Requests.php:863:36
+      → /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?>(?:[\w-]*))*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w\-]*)(?:=(?:(?:[\w\-]*)*|"[^\r\n]*"))?)*\r\n/i
+
+  corpus/wordpress/src/wp-includes/Requests/src/IdnaEncoder.php:144:22
+      → /(?:[^\x00-\x7F])/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /(?:[^\x00-\x7F])/
+         + /[^\x00-\x7F]/
+
+  corpus/wordpress/src/wp-includes/embed.php:965:14
+      → |(<blockquote>.*?</blockquote>)?.*(<iframe.*?></iframe>)|ms
+     WARN  Flag 'm' is useless: pattern '|(<blockquote>.*?<\/blockquote>)?.*(<iframe.*?><\/iframe>)|ms' contains no anchors.
+     TIP 
+         - |(<blockquote>.*?</blockquote>)?.*(<iframe.*?></iframe>)|ms
+         + |(<blockquote>.*?</blockquote>)?.*(<iframe.*?></iframe>)|s
+
+  corpus/wordpress/src/wp-includes/comment.php:3001:19
+      → #(image|audio|video|model)/#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #(image|audio|video|model)/#is
+         + #(image|audio|video|model)/#i
+
+  corpus/wordpress/src/wp-includes/class-snoopy.php:657:18
+      → '<\/?(FORM|INPUT|SELECT|TEXTAREA|(OPTION))[^<>]*>(?(2)(.*(?=<\/?(option|select)[^<>]*>[\r\n]*)|(?=[\r\n]*))|(?=[\r\n]*))'Usi
+     WARN  Flag 's' is useless: the pattern contains no dots.
+
+  corpus/wordpress/src/wp-includes/class-snoopy.php:922:64
+      → '<frame\s+.*src[\s]*=[\'"]?([^\'"\>]+)'i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-includes/class-snoopy.php:1071:64
+      → '<frame\s+.*src[\s]*=[\'"]?([^\'"\>]+)'i
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/wordpress/src/wp-includes/class-wp-http.php:1030:26
+      → !^/(\.\./)+!
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/class-wp-http.php:1121:54
+      → /^(((?=.*(::))(?!.*\3.+\3))\3?|([\dA-F]{1,4}(\3|:\b|$)|\2))(?4){5}((?4){2}|(((2[0-4]|1\d|[1-9])?\d|25[0-5])\.?\b){4})$/i
+     WARN  Backreference refers to a group in a different alternative.
+         ↳ Place the backreference in the same alternative as its capturing group.
+     WARN  Quantified capturing group "(...)" with "{4}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/wordpress/src/wp-includes/script-loader.php:4004:24
+      → :^\s*(/\*# sourceURL=\S+? \*/\s*)?$:s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - :^\s*(/\*# sourceURL=\S+? \*/\s*)?$:s
+         + :^\s*(/\*# sourceURL=\S+? \*/\s*)?$:
+
+  corpus/wordpress/src/wp-includes/interactivity-api/class-wp-interactivity-api.php:856:26
+      → /^([\w\-_\/]+)::./
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/wordpress/src/wp-includes/interactivity-api/class-wp-interactivity-api.php:975:68
+      → /^([\w\-_\/]+)/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/wordpress/src/wp-content/themes/twentyeleven/inc/theme-options.php:404:52
+      → /^#?([a-f0-9]{3}){1,2}$/i
+     WARN  Quantified capturing group "(...)" with "{1,2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
   corpus/aws-crt-php/gen_stub.php:1034:24
       → /^\s*([\w\|\\\[\]]+)\s*\$\w+.*$/
@@ -872,6 +2503,133 @@
       → /style="--color:\s*([^;]+);\s*--dark-color:\s*[^"]*"/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/yii2/framework/mail/BaseMailer.php:215:34
+      → ~\R\R+~mu
+     WARN  Flag 'm' is useless: pattern '~\R\R+~mu' contains no anchors.
+     TIP 
+         - ~\R\R+~mu
+         + ~\R\R+~u
+
+  corpus/yii2/framework/web/ViewAction.php:125:50
+      → ~^\w(?:(?!\/\.{0,2}\/)[\w\/\-\.])*$~
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - ~^\w(?:(?!\/\.{0,2}\/)[\w\/\-\.])*$~
+         + ~^\w(?>(?:(?!\/\.{0,2}\/)[\w\/\-\.]))*$~
+
+  corpus/yii2/framework/web/MultipartFormDataParser.php:222:35
+      → /\R/su
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\R/su
+         + /\R/u
+
+  corpus/yii2/framework/web/MultipartFormDataParser.php:261:33
+      → /\]\[|\[/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\]\[|\[/s
+         + /\]\[|\[/
+
+  corpus/yii2/framework/web/MultipartFormDataParser.php:302:33
+      → /\]\[|\[/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\]\[|\[/s
+         + /\]\[|\[/
+
+  corpus/yii2/framework/web/UrlRule.php:254:67
+      → /<([\w._-]+)>/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/web/UrlRule.php:285:28
+      → /<([\w._-]+):?([^>]+)?>/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/web/UrlRule.php:337:41
+      → /<([\w._-]+):?([^>]+)?>/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/web/Request.php:997:25
+      → %^(?:\n            [\x09\x0A\x0D\x20-\x7E]              # ASCII\n            | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte\n            | \xE0[\xA0-\xBF][\x80-\xBF]         # excluding overlongs\n            | [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte\n            | \xED[\x80-\x9F][\x80-\xBF]         # excluding surrogates\n            | \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3\n            | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15\n            | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16\n            )*$%xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
+           
+         - )*$%xs
+         ---
+         + )*$%x
+
+  corpus/yii2/framework/db/conditions/LikeConditionBuilder.php:108:25
+      → /^(AND |OR |)(((NOT |))I?LIKE)/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/yii2/framework/db/Query.php:699:32
+      → /^(.*?)(?i:\s+as\s+|\s+)([\w\-_\.]+)$/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/db/QueryBuilder.php:423:34
+      → /^(.*?)(?i:\s+as\s+|\s+)([\w\-_\.]+)$/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/db/QueryBuilder.php:1266:32
+      → /^(.*?)(?i:\s+as\s+|\s+)([\w\-_\.]+)$/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/framework/db/QueryBuilder.php:1787:24
+      → /^(.*?)(?i:\s+as|)\s+([^ ]+)$/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/yii2/framework/db/mssql/QueryBuilder.php:124:29
+      → /^([\s(])*SELECT(\s+DISTINCT)?(?!\s*TOP\s*\()/i
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/yii2/framework/validators/EmailValidator.php:96:31
+      → /^(?P<name>(?:"?([^"]*)"?\s)?)(?:\s+)?(?:(?P<open><?)((?P<local>.+)@(?P<domain>[^>]+))(?P<close>>?))$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/yii2/framework/helpers/BaseConsole.php:716:32
+      → /rows\s+(\d+);\s*columns\s+(\d+);/mi
+     WARN  Flag 'm' is useless: pattern '/rows\s+(\d+);\s*columns\s+(\d+);/mi' contains no anchors.
+     TIP 
+         - /rows\s+(\d+);\s*columns\s+(\d+);/mi
+         + /rows\s+(\d+);\s*columns\s+(\d+);/i
+
+  corpus/yii2/framework/helpers/BaseConsole.php:721:32
+      → /(\d+)\s+rows;\s*(\d+)\s+columns;/mi
+     WARN  Flag 'm' is useless: pattern '/(\d+)\s+rows;\s*(\d+)\s+columns;/mi' contains no anchors.
+     TIP 
+         - /(\d+)\s+rows;\s*(\d+)\s+columns;/mi
+         + /(\d+)\s+rows;\s*(\d+)\s+columns;/i
+
+  corpus/yii2/framework/console/controllers/BaseMigrateController.php:512:24
+      → /^\\?([\w_]+\\)+m(\d{6}_?\d{6})(\D.*)?$/is
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/yii2/build/controllers/ReleaseController.php:945:43
+      → /^- Fix(?= #\d+(, #\d+)*: )/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/yii2/build/controllers/ReleaseController.php:951:28
+      → /^- (Chg|Enh|Bug|New)( #\d+(, #\d+)*)?: .+/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
   corpus/php-qrcode/src/Output/CssColorModuleValueTrait.php:46:17
       → /^#([\da-f]{3}){1,2}$|^#([\da-f]{4}){1,2}$/i
@@ -1189,6 +2947,25 @@
       → /([^\w.\-+\/])+/
      WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/nette-utils/src/Utils/Finder.php:243:20
+      → ~^/?(\*\*/)?(.+?)(/\*\*|/\*|/|)$~D
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/nette-utils/src/Utils/Finder.php:300:20
+      → #^(?:([=<>!]=?|<>)\s*)?((?:\d*\.)?\d+)\s*(K|M|G|)B?$#Di
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/nette-utils/src/Utils/Finder.php:321:20
+      → #^(?:([=<>!]=?|<>)\s*)?(.+)$#Di
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/nette-utils/src/Utils/ObjectHelpers.php:134:4
+      → ~^  [ \t*]*  @property(|-read|-write|-deprecated)  [ \t]+  [^\s$]+  [ \t]+  \$  (\w+)  ()~mx
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
 
   corpus/cycle/database/src/Driver/SQLite/Schema/SQLiteColumn.php:149:28
       → /^['""].*?['"]$/
@@ -2312,6 +4089,29 @@
      WARN  "+" is a literal character inside a character class, not a quantifier.
          ↳ Inside [...], "+" matches a literal "+". If you meant to quantify a shorthand like \w, use \w+ outside the class.
 
+  corpus/parsedown/test/CommonMarkTestStrict.php:49:24
+      → /^`{32} example\n((?s).*?)\n\.\n(?:|((?s).*?)\n)`{32}$|^#{1,6} *(.*?)$/m
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/parsedown/Parsedown.php:1470:56
+      → /^<\/\w[\w-]*+[ ]*+>/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^<\/\w[\w-]*+[ ]*+>/s
+         + /^<\/\w[\w-]*+[ ]*+>/
+
+  corpus/parsedown/Parsedown.php:1478:56
+      → /^<!---?[^>-](?:-?+[^-])*-->/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^<!---?[^>-](?:-?+[^-])*-->/s
+         + /^<!---?[^>-](?:-?+[^-])*-->/
+
+  corpus/parsedown/Parsedown.php:1560:68
+      → /^<(\w++:\/{2}[^ >]++)>/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/laminas/laminas-code/src/Generator/TypeGenerator/CompositeType.php:36:34
       → /^(([|]|[^()&]+)+|(\(([&]|[^|()]+)\))+)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -2621,6 +4421,54 @@
          - /\s/s
          + /\s/
 
+  corpus/doctrine-dbal/src/Platforms/SQLite/SQLiteMetadataProvider.php:538:17
+      → #\n                    (?:CONSTRAINT\s+(\S+)\s+)?\n                    (?:FOREIGN\s+KEY[^)]+\)\s*)?\n                    REFERENCES\s+\S+\s*(?:\([^)]+\))?\n                    (?:\n                        [^,]*?\n                        (NOT\s+DEFERRABLE|DEFERRABLE)\n                        (?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\n                    )?#isx
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+                   )
+               )?
+         - )?#isx
+         ---
+         + )?#ix
+
+  corpus/doctrine-dbal/src/Platforms/SQLServerPlatform.php:1309:40
+      → /[\s]+order\s+by\s/im
+     WARN  Flag 'm' is useless: pattern '/[\s]+order\s+by\s/im' contains no anchors.
+     TIP 
+         - /[\s]+order\s+by\s/im
+         + /[\s]+order\s+by\s/i
+
+  corpus/doctrine-dbal/src/Schema/SQLiteSchemaManager.php:328:17
+      → #\n                    (?:CONSTRAINT\s+(\S+)\s+)?\n                    (?:FOREIGN\s+KEY[^)]+\)\s*)?\n                    REFERENCES\s+\S+\s*(?:\([^)]+\))?\n                    (?:\n                        [^,]*?\n                        (NOT\s+DEFERRABLE|DEFERRABLE)\n                        (?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\n                    )?#isx
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+                   )
+               )?
+         - )?#isx
+         ---
+         + )?#ix
+
+  corpus/guzzle-psr7/src/UriParser.php:73:21
+      → %[^:/@?&=#]+%usD
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - %[^:/@?&=#]+%usD
+         + %[^:/@?&=#]+%uD
+
+  corpus/guzzle-psr7/src/UriParser.php:93:13
+      → %[^:/@?&=#]+%usD
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - %[^:/@?&=#]+%usD
+         + %[^:/@?&=#]+%uD
+
+  corpus/sql-parser/src/Context.php:675:27
+      → /^[$]|^\d+$|[^0-9a-zA-Z$_\x80-\xffff]/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: 'f' (covered by range 'a'-'z'), 'f' (duplicate)
+
   corpus/doctrine/dbal/src/Platforms/SQLite/SQLiteMetadataProvider.php:538:17
       → #\n                    (?:CONSTRAINT\s+(\S+)\s+)?\n                    (?:FOREIGN\s+KEY[^)]+\)\s*)?\n                    REFERENCES\s+\S+\s*(?:\([^)]+\))?\n                    (?:\n                        [^,]*?\n                        (NOT\s+DEFERRABLE|DEFERRABLE)\n                        (?:\s+INITIALLY\s+(DEFERRED|IMMEDIATE))?\n                    )?#isx
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -2703,6 +4551,484 @@
       → {^[a-zA-Z_\x80-\xff\][\a-zA-Z0-9_\x80-\xff]*$}
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: range '\x07'-'z' (overlaps 'a'-'z'), '_' (covered by range '\x07'-'z'), ']' (covered by range '\x07'-'z'), '[' (covered by range '\x07'-'z') (and 3 more).
+
+  corpus/prestashop/tools/build/Library/Version.php:236:25
+      → ~^\d+(\.\d+){0,}$~
+     WARN  Quantified capturing group "(...)" with "{0,}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     TIP 
+         - ~^\d+(\.\d+){0,}$~
+         + ~^\d+(\.\d+)*$~
+
+  corpus/prestashop/classes/Connection.php:126:17
+      → /BotLink|ahoy|AlkalineBOT|anthill|appie|arale|araneo|AraybOt|ariadne|arks|ATN_Worldwide|Atomz|bbot|Bjaaland|Ukonline|borg\-bot\/0\.9|boxseabot|bspider|calif|christcrawler|CMC\/0\.01|combine|confuzzledbot|CoolBot|cosmos|Internet Cruiser Robot|cusco|cyberspyder|cydralspider|desertrealm, desert realm|digger|DIIbot|grabber|downloadexpress|DragonBot|dwcp|ecollector|ebiness|elfinbot|esculapio|esther|fastcrawler|FDSE|FELIX IDE|ESI|fido|H\xc3\xa4m\xc3\xa4h\xc3\xa4kki|KIT\-Fireball|fouineur|Freecrawl|gammaSpider|gazz|gcreep|golem|griffon|Gromit|gulliver|gulper|hambot|havIndex|hotwired|htdig|iajabot|INGRID\/0\.1|Informant|InfoSpiders|inspectorwww|irobot|Iron33|JBot|jcrawler|Teoma|Jeeves|jobo|image\.kapsi\.net|KDD\-Explorer|ko_yappo_robot|label\-grabber|larbin|legs|Linkidator|linkwalker|Lockon|logo_gif_crawler|marvin|mattie|mediafox|MerzScope|NEC\-MeshExplorer|MindCrawler|udmsearch|moget|Motor|msnbot|muncher|muninn|MuscatFerret|MwdSearch|sharp\-info\-agent|WebMechanic|NetScoop|newscan\-online|ObjectsSearch|Occam|Orbsearch\/1\.0|packrat|pageboy|ParaSite|patric|pegasus|perlcrawler|phpdig|piltdownman|Pimptrain|pjspider|PlumtreeWebAccessor|PortalBSpider|psbot|Getterrobo\-Plus|Raven|RHCS|RixBot|roadrunner|Robbie|robi|RoboCrawl|robofox|Scooter|Search\-AU|searchprocess|Senrigan|Shagseeker|sift|SimBot|Site Valet|skymob|SLCrawler\/2\.0|slurp|ESI|snooper|solbot|speedy|spider_monkey|SpiderBot\/1\.0|spiderline|nil|suke|http:\/\/www\.sygol\.com|tach_bw|TechBOT|templeton|titin|topiclink|UdmSearch|urlck|Valkyrie libwww\-perl|verticrawl|Victoria|void\-bot|Voyager|VWbot_K|crawlpaper|wapspider|WebBandit\/1\.0|webcatcher|T\-H\-U\-N\-D\-E\-R\-S\-T\-O\-N\-E|WebMoose|webquest|webreaper|webs|webspider|WebWalker|wget|winona|whowhere|wlm|WOLP|WWWC|none|XGET|Nederland\.zoek|AISearchBot|woriobot|NetSeer|Nutch|YandexBot|bingbot|Baiduspider|Applebot|Amazonbot|SeznamBot|Googlebot|AdsBot-Google|AhrefsBot|SemrushBot|DotBot|MJ12bot|PetalBot|DataForSeoBot|GPTBot|ClaudeBot|CCBot|Bytespider|PerplexityBot|DuckDuckBot|ia_archiver|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|lighthouse|PageSpeed/i
+     WARN  Duplicate alternation branch "ESI".
+         ↳ Remove the redundant alternative.
+     TIP 
+         - /BotLink|ahoy|AlkalineBOT|anthill|appie|arale|araneo|AraybOt|ariadne|arks|ATN_Worldwide|Atomz|bbot|Bjaaland|Ukonline|borg\-bot\/0\.9|boxseabot|bspider|calif|christcrawler|CMC\/0\.01|combine|confuzzledbot|CoolBot|cosmos|Internet Cruiser Robot|cusco|cyberspyder|cydralspider|desertrealm, desert realm|digger|DIIbot|grabber|downloadexpress|DragonBot|dwcp|ecollector|ebiness|elfinbot|esculapio|esther|fastcrawler|FDSE|FELIX IDE|ESI|fido|H\xc3\xa4m\xc3\xa4h\xc3\xa4kki|KIT\-Fireball|fouineur|Freecrawl|gammaSpider|gazz|gcreep|golem|griffon|Gromit|gulliver|gulper|hambot|havIndex|hotwired|htdig|iajabot|INGRID\/0\.1|Informant|InfoSpiders|inspectorwww|irobot|Iron33|JBot|jcrawler|Teoma|Jeeves|jobo|image\.kapsi\.net|KDD\-Explorer|ko_yappo_robot|label\-grabber|larbin|legs|Linkidator|linkwalker|Lockon|logo_gif_crawler|marvin|mattie|mediafox|MerzScope|NEC\-MeshExplorer|MindCrawler|udmsearch|moget|Motor|msnbot|muncher|muninn|MuscatFerret|MwdSearch|sharp\-info\-agent|WebMechanic|NetScoop|newscan\-online|ObjectsSearch|Occam|Orbsearch\/1\.0|packrat|pageboy|ParaSite|patric|pegasus|perlcrawler|phpdig|piltdownman|Pimptrain|pjspider|PlumtreeWebAccessor|PortalBSpider|psbot|Getterrobo\-Plus|Raven|RHCS|RixBot|roadrunner|Robbie|robi|RoboCrawl|robofox|Scooter|Search\-AU|searchprocess|Senrigan|Shagseeker|sift|SimBot|Site Valet|skymob|SLCrawler\/2\.0|slurp|ESI|snooper|solbot|speedy|spider_monkey|SpiderBot\/1\.0|spiderline|nil|suke|http:\/\/www\.sygol\.com|tach_bw|TechBOT|templeton|titin|topiclink|UdmSearch|urlck|Valkyrie libwww\-perl|verticrawl|Victoria|void\-bot|Voyager|VWbot_K|crawlpaper|wapspider|WebBandit\/1\.0|webcatcher|T\-H\-U\-N\-D\-E\-R\-S\-T\-O\-N\-E|WebMoose|webquest|webreaper|webs|webspider|WebWalker|wget|winona|whowhere|wlm|WOLP|WWWC|none|XGET|Nederland\.zoek|AISearchBot|woriobot|NetSeer|Nutch|YandexBot|bingbot|Baiduspider|Applebot|Amazonbot|SeznamBot|Googlebot|AdsBot-Google|AhrefsBot|SemrushBot|DotBot|MJ12bot|PetalBot|DataForSeoBot|GPTBot|ClaudeBot|CCBot|Bytespider|PerplexityBot|DuckDuckBot|ia_archiver|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|lighthouse|PageSpeed/i
+         + /BotLink|ahoy|AlkalineBOT|anthill|appie|arale|araneo|AraybOt|ariadne|arks|ATN_Worldwide|Atomz|bbot|Bjaaland|Ukonline|borg-bot\/0\.9|boxseabot|bspider|calif|christcrawler|CMC\/0\.01|combine|confuzzledbot|CoolBot|cosmos|Internet Cruiser Robot|cusco|cyberspyder|cydralspider|desertrealm, desert realm|digger|DIIbot|grabber|downloadexpress|DragonBot|dwcp|ecollector|ebiness|elfinbot|esculapio|esther|fastcrawler|FDSE|FELIX IDE|ESI|fido|H\xc3\xa4m\xc3\xa4h\xc3\xa4kki|KIT-Fireball|fouineur|Freecrawl|gammaSpider|gazz|gcreep|golem|griffon|Gromit|gulliver|gulper|hambot|havIndex|hotwired|htdig|iajabot|INGRID\/0\.1|Informant|InfoSpiders|inspectorwww|irobot|Iron33|JBot|jcrawler|Teoma|Jeeves|jobo|image\.kapsi\.net|KDD-Explorer|ko_yappo_robot|label-grabber|larbin|legs|Linkidator|linkwalker|Lockon|logo_gif_crawler|marvin|mattie|mediafox|MerzScope|NEC-MeshExplorer|MindCrawler|udmsearch|moget|Motor|msnbot|muncher|muninn|MuscatFerret|MwdSearch|sharp-info-agent|WebMechanic|NetScoop|newscan-online|ObjectsSearch|Occam|Orbsearch\/1\.0|packrat|pageboy|ParaSite|patric|pegasus|perlcrawler|phpdig|piltdownman|Pimptrain|pjspider|PlumtreeWebAccessor|PortalBSpider|psbot|Getterrobo-Plus|Raven|RHCS|RixBot|roadrunner|Robbie|robi|RoboCrawl|robofox|Scooter|Search-AU|searchprocess|Senrigan|Shagseeker|sift|SimBot|Site Valet|skymob|SLCrawler\/2\.0|slurp|snooper|solbot|speedy|spider_monkey|SpiderBot\/1\.0|spiderline|nil|suke|http:\/\/www\.sygol\.com|tach_bw|TechBOT|templeton|titin|topiclink|UdmSearch|urlck|Valkyrie libwww-perl|verticrawl|Victoria|void-bot|Voyager|VWbot_K|crawlpaper|wapspider|WebBandit\/1\.0|webcatcher|T-H-U-N-D-E-R-S-T-O-N-E|WebMoose|webquest|webreaper|webs|webspider|WebWalker|wget|winona|whowhere|wlm|WOLP|WWWC|none|XGET|Nederland\.zoek|AISearchBot|woriobot|NetSeer|Nutch|YandexBot|bingbot|Baiduspider|Applebot|Amazonbot|SeznamBot|Googlebot|AdsBot-Google|AhrefsBot|SemrushBot|DotBot|MJ12bot|PetalBot|DataForSeoBot|GPTBot|ClaudeBot|CCBot|Bytespider|PerplexityBot|DuckDuckBot|ia_archiver|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|lighthouse|PageSpeed/i
+
+  corpus/prestashop/classes/Dispatcher.php:1003:24
+      → /\{(?:\/:)?([\w_]+)\}/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/prestashop/classes/module/Module.php:1702:32
+      → /\n[\s\t]*?namespace\s.*?;/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/prestashop/classes/module/Module.php:1704:44
+      → /\n[\s\t]*?namespace\s/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/prestashop/classes/module/Module.php:3026:60
+      → #(\r\n|\r)#ism
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '#(\r\n|\r)#ism' contains no anchors.
+     TIP 
+         - #(\r\n|\r)#ism
+         + #(\r\n|\r)#i
+
+  corpus/prestashop/classes/module/Module.php:3089:36
+      → /module: (.*)/ism
+     WARN  Flag 'm' is useless: pattern '/module: (.*)/ism' contains no anchors.
+     TIP 
+         - /module: (.*)/ism
+         + /module: (.*)/is
+
+  corpus/prestashop/classes/module/Module.php:3089:132
+      → /date: (.*)/ism
+     WARN  Flag 'm' is useless: pattern '/date: (.*)/ism' contains no anchors.
+     TIP 
+         - /date: (.*)/ism
+         + /date: (.*)/is
+
+  corpus/prestashop/classes/module/Module.php:3089:226
+      → /version: ([0-9.]+)/ism
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/version: ([0-9.]+)/ism' contains no anchors.
+     TIP 
+         - /version: ([0-9.]+)/ism
+         + /version: ([0-9.]+)/i
+
+  corpus/prestashop/classes/module/Module.php:3265:56
+      → #(\r\n|\r)#ism
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '#(\r\n|\r)#ism' contains no anchors.
+     TIP 
+         - #(\r\n|\r)#ism
+         + #(\r\n|\r)#i
+
+  corpus/prestashop/classes/module/Module.php:3405:32
+      → /(^\s*\/\/.*)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/module/Module.php:3407:38
+      → /(^\s*\/\*)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/module/Module.php:3411:40
+      → /(^\s*\*\/)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/module/Module.php:3412:66
+      → /(.*?\*\/)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Cookie.php:145:24
+      → /^(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]|[1-9]).){1}((25[0-5]|2[0-4][0-9]|[1]{1}[0-9]{2}|[1-9]{1}[0-9]|[0-9]).){2}((25[0-5]|2[0-4][0-9]|[1]{1}[0-9]{2}|[1-9]{1}[0-9]|[0-9]){1}))$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     WARN  Quantified capturing group "(...)" with "{2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     TIP 
+         - /^(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]{1}[0-9]|[1-9]).){1}((25[0-5]|2[0-4][0-9]|[1]{1}[0-9]{2}|[1-9]{1}[0-9]|[0-9]).){2}((25[0-5]|2[0-4][0-9]|[1]{1}[0-9]{2}|[1-9]{1}[0-9]|[0-9]){1}))$/
+         + /^(((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]|[1-9]).)((25[0-5]|2[0-4][0-9]|[1][0-9]{2}|[1-9][0-9]|[0-9]).){2}((25[0-5]|2[0-4][0-9]|[1][0-9]{2}|[1-9][0-9]|[0-9])))$/
+
+  corpus/prestashop/classes/Cookie.php:160:32
+      → /^(?:.*\.)?([^.]*(?:.{2,4})?\..{2,3})$/Ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/RequestSql.php:257:24
+      → /((`(\()?([a-z0-9_])+`(\))?)|((\()?([a-z0-9_])+(\))?))\.((`(\()?([a-z0-9_])+`(\))?)|((\()?([a-z0-9_])+(\))?))$/i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/RequestSql.php:267:30
+      → /((`(\()?([a-z0-9_])+`(\))?)|((\()?([a-z0-9_])+(\))?))$/i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/Tools.php:341:27
+      → /^127\..*/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Tools.php:341:87
+      → /^172\.(1[6-9]|2\d|30|31)\..*/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Tools.php:342:27
+      → /^192\.168\.*/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Tools.php:342:91
+      → /^10\..*/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Tools.php:1334:28
+      → /(<\/?([\w+]+)[^>]*>)?([^<>]*)/
+     WARN  "+" is a literal character inside a character class, not a quantifier.
+         ↳ Inside [...], "+" matches a literal "+". If you meant to quantify a shorthand like \w, use \w+ outside the class.
+
+  corpus/prestashop/classes/Tools.php:1337:33
+      → /img|br|input|hr|area|base|basefont|col|frame|isindex|link|meta|param/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /img|br|input|hr|area|base|basefont|col|frame|isindex|link|meta|param/s
+         + /img|br|input|hr|area|base|basefont|col|frame|isindex|link|meta|param/
+
+  corpus/prestashop/classes/Tools.php:1338:36
+      → /<[\w]+[^>]*>/s
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /<[\w]+[^>]*>/s
+         + /<[\w]+[^>]*>/
+
+  corpus/prestashop/classes/Tools.php:1340:42
+      → /<\/([\w]+)[^>]*>/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /<\/([\w]+)[^>]*>/s
+         + /<\/([\w]+)[^>]*>/
+
+  corpus/prestashop/classes/Tools.php:1393:36
+      → /<[\w]+[^>]*>/s
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /<[\w]+[^>]*>/s
+         + /<[\w]+[^>]*>/
+
+  corpus/prestashop/classes/Tools.php:1774:28
+      → /(.*-----BEGIN CERTIFICATE-----.*-----END CERTIFICATE-----){50}$/Uims
+     WARN  Quantified capturing group "(...)" with "{50}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     TIP 
+         - /(.*-----BEGIN CERTIFICATE-----.*-----END CERTIFICATE-----){50}$/Uims
+         + /(.*-{5}BEGIN CERTIFICATE-{5}.*-{5}END CERTIFICATE-{5}){50}$/Uims
+
+  corpus/prestashop/classes/controller/AdminController.php:1096:37
+      → /<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)/ism
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)/ism
+         + /<([a-z]+)(?>([^<]+))*(?:>(.*)<\/\1>|\s+\/>)/ism
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Flag 'm' is useless: pattern '/<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)/ism' contains no anchors.
+     TIP 
+         - /<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)/ism
+         + /<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)/is
+
+  corpus/prestashop/classes/PrestaShopCollection.php:633:24
+      → #\{(([a-z0-9_]+\.)*[a-z0-9_]+)\}#i
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/webservice/WebserviceRequest.php:977:24
+      → #^\[(.*)\]$#Ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/webservice/WebserviceRequest.php:1051:28
+      → #^\[(.*)\]$#Ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/webservice/WebserviceRequest.php:1224:24
+      → #^\[(.*)\]$#Ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/webservice/WebserviceRequest.php:1446:24
+      → #^\[(.*)\]$#Ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/webservice/WebserviceRequest.php:1741:34
+      → #\[(\d)+\]#Ui
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Validate.php:372:28
+      → /[<>{}]/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/prestashop/classes/Validate.php:550:24
+      → /<[\s]*script/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*script/ims' contains no anchors.
+     TIP 
+         - /<[\s]*script/ims
+         + /<[\s]*script/i
+
+  corpus/prestashop/classes/Validate.php:550:162
+      → /.*script\:/ims
+     WARN  Flag 'm' is useless: pattern '/.*script:/ims' contains no anchors.
+     TIP 
+         - /.*script\:/ims
+         + /.*script\:/is
+
+  corpus/prestashop/classes/Validate.php:554:42
+      → /<[\s]*(i?frame|form|input|embed|object)/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*(i?frame|form|input|embed|object)/ims' contains no anchors.
+     TIP 
+         - /<[\s]*(i?frame|form|input|embed|object)/ims
+         + /<[\s]*(i?frame|form|input|embed|object)/i
+
+  corpus/prestashop/classes/Validate.php:677:34
+      → /^([0-9]{4})-((0?[0-9])|(1[0-2]))-((0?[0-9])|([1-2][0-9])|(3[01]))( [0-9]{2}:[0-9]{2}:[0-9]{2})?$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/prestashop/classes/Validate.php:689:25
+      → /^([0-9]{4})-((?:0?[0-9])|(?:1[0-2]))-((?:0?[0-9])|(?:[1-2][0-9])|(?:3[01]))( [0-9]{2}:[0-9]{2}:[0-9]{2})?$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/prestashop/classes/Validate.php:1006:27
+      → /^[~:#,$%&_=\(\)\.\? \+\-@\/a-zA-Z0-9\pL\pS-]+$/u
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '-' (duplicate)
+
+  corpus/prestashop/classes/Validate.php:1118:27
+      → /^([^<>{}]|<br \/>)*$/i
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/Validate.php:1262:45
+      → /^\-?[0-9]{1,8}\.[0-9]{1,8}$/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^\-?[0-9]{1,8}\.[0-9]{1,8}$/s
+         + /^\-?[0-9]{1,8}\.[0-9]{1,8}$/
+
+  corpus/prestashop/classes/Validate.php:1274:34
+      → /^[a-zA-Z]{2,3}$/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^[a-zA-Z]{2,3}$/s
+         + /^[a-zA-Z]{2,3}$/
+
+  corpus/prestashop/classes/Validate.php:1286:34
+      → /^[a-zA-Z]{2,3}\.(?:gzip|tar\.gz)$/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^[a-zA-Z]{2,3}\.(?:gzip|tar\.gz)$/s
+         + /^[a-zA-Z]{2,3}\.(?:gzip|tar\.gz)$/
+
+  corpus/prestashop/classes/Validate.php:1366:27
+      → /^[0-1]\.[0-9]{1,2}(\.[0-9]{1,2}){0,2}$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+     WARN  Quantified capturing group "(...)" with "{0,2}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/Validate.php:1408:31
+      → ~^((?!oProxyCommand).)*$~i
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/classes/helper/HelperList.php:304:37
+      → /a\s*.*class/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/prestashop/classes/helper/HelperList.php:310:43
+      → /a\s*.*class\s*=\s*\".*btn.*\"/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/prestashop/classes/helper/HelperList.php:312:29
+      → /a(\s*.*)class\s*=\s*\"(.*)\"/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/prestashop/controllers/admin/AdminImportController.php:690:31
+      → #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#is
+         + #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#i
+
+  corpus/prestashop/controllers/admin/AdminTranslationsController.php:1494:40
+      → /{\s*[^$]+/s
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /{\s*[^$]+/s
+         + /{\s*[^$]+/
+
+  corpus/prestashop/controllers/admin/AdminTranslationsController.php:2663:32
+      → /Mail::Send([^;]*);/si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /Mail::Send([^;]*);/si
+         + /Mail::Send([^;]*);/i
+
+  corpus/prestashop/controllers/admin/AdminCustomerThreadsController.php:855:13
+      → /(https?:\/\/[a-z0-9#%&_=\(\)\.\? \+\-@\/]{6,1000})([\s\n<])/Uui
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/prestashop/controllers/admin/AdminCustomerThreadsController.php:1079:28
+      → /\#tc([0-9-a-z-A-Z]*)/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '-' (duplicate)
+
+  corpus/prestashop/src/PrestaShopBundle/Install/SqlLoader.php:91:31
+      → #;\s*[\r\n]+#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/prestashop/src/PrestaShopBundle/Translation/Exporter/ThemeExporter.php:383:30
+      → /(?<file>\S+):(?<line>\S+)/m
+     WARN  Flag 'm' is useless: pattern '/(?<file>\S+):(?<line>\S+)/m' contains no anchors.
+     TIP 
+         - /(?<file>\S+):(?<line>\S+)/m
+         + /(?<file>\S+):(?<line>\S+)/
+
+  corpus/prestashop/src/PrestaShopBundle/DependencyInjection/Compiler/ModulesDoctrineCompilerPass.php:107:28
+      → ~namespace[ \t]+(.*)[ \t]*;~Um
+     WARN  Flag 'm' is useless: pattern '~namespace[ \t]+(.*)[ \t]*;~Um' contains no anchors.
+     TIP 
+         - ~namespace[ \t]+(.*)[ \t]*;~Um
+         + ~namespace[ \t]+(.*)[ \t]*;~U
+
+  corpus/prestashop/src/Core/Util/Url/UrlCleaner.php:35:31
+      → /\%5B([^\%5B\%5D]*?)\%5D/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '%' (duplicate), '5' (duplicate)
+
+  corpus/prestashop/src/Core/Image/Parser/ImageTagSourceParser.php:23:34
+      → /src="(\.\.\/|\.\/)+/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/prestashop/src/Core/Import/File/FileUploader.php:113:25
+      → #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#is
+         + #([^\.]*?)\.(csv|xls[xt]?|o[dt]s)$#i
+
+  corpus/prestashop/src/Core/Domain/CustomerService/CommandHandler/ForwardCustomerThreadHandler.php:312:13
+      → /(https?:\/\/[a-z0-9#%&_=\(\)\.\? \+\-@\/]{6,1000})([\s\n<])/Uui
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/prestashop/src/Core/ConstraintValidator/CleanHtmlValidator.php:49:42
+      → /<[\s]*script/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*script/ims' contains no anchors.
+     TIP 
+         - /<[\s]*script/ims
+         + /<[\s]*script/i
+
+  corpus/prestashop/src/Core/ConstraintValidator/CleanHtmlValidator.php:49:85
+      → /.*script\:/ims
+     WARN  Flag 'm' is useless: pattern '/.*script:/ims' contains no anchors.
+     TIP 
+         - /.*script\:/ims
+         + /.*script\:/is
+
+  corpus/prestashop/src/Core/ConstraintValidator/TypedRegexValidator.php:227:24
+      → /<[\s]*script/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*script/ims' contains no anchors.
+     TIP 
+         - /<[\s]*script/ims
+         + /<[\s]*script/i
+
+  corpus/prestashop/src/Core/ConstraintValidator/TypedRegexValidator.php:227:121
+      → /.*script\:/ims
+     WARN  Flag 'm' is useless: pattern '/.*script:/ims' contains no anchors.
+     TIP 
+         - /.*script\:/ims
+         + /.*script\:/is
+
+  corpus/prestashop/src/Core/ConstraintValidator/TypedRegexValidator.php:231:41
+      → /<[\s]*(i?frame|form|input|embed|object)/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*(i?frame|form|input|embed|object)/ims' contains no anchors.
+     TIP 
+         - /<[\s]*(i?frame|form|input|embed|object)/ims
+         + /<[\s]*(i?frame|form|input|embed|object)/i
+
+  corpus/prestashop/src/Core/Localization/Number/Formatter.php:328:41
+      → /#?(,#+)*0(\.[0#]+)*/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/src/Core/Localization/CLDR/Reader.php:108:25
+      → #^[a-zA-Z0-9]+(_[a-zA-Z0-9]+)*$#
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/src/Core/Localization/CLDR/Reader.php:389:21
+      → #^\.\.\/decimalFormats\[@numberSystem='([^)]+)'\]$#
+     TIP 
+         - #^\.\.\/decimalFormats\[@numberSystem='([^)]+)'\]$#
+         + #^\.\./decimalFormats\[@numberSystem='([^)]+)'\]$#
+
+  corpus/prestashop/src/Core/Localization/CLDR/Reader.php:421:21
+      → #^\.\.\/percentFormats\[@numberSystem='([^)]+)'\]$#
+     TIP 
+         - #^\.\.\/percentFormats\[@numberSystem='([^)]+)'\]$#
+         + #^\.\./percentFormats\[@numberSystem='([^)]+)'\]$#
+
+  corpus/prestashop/src/Core/Localization/CLDR/Reader.php:456:21
+      → #^\.\.\/currencyFormats\[@numberSystem='([^)]+)'\]$#
+     TIP 
+         - #^\.\.\/currencyFormats\[@numberSystem='([^)]+)'\]$#
+         + #^\.\./currencyFormats\[@numberSystem='([^)]+)'\]$#
+
+  corpus/prestashop/src/Adapter/ImageManager.php:48:35
+      → /src="(\.\.\/)+/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/prestashop/src/Adapter/ImageThumbnailsRegenerator.php:133:32
+      → /^[0-9]*(|_thumb)\.jpg$/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/prestashop/src/Adapter/Meta/ShopUrlDataConfiguration.php:119:46
+      → #^(?:[~\-_\/&\.\+]|\w|%\d+|\s)+$#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^(?:[~\-_\/&\.\+]|\w|%\d+|\s)+$#
+         + #^(?>(?:[~\-_\/&\.\+]|\w|%\d+|\s))+$#
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/prestashop/src/Adapter/Product/Validate/ProductValidator.php:138:49
+      → /<[\s]*(i?frame|form|input|embed|object)/ims
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     WARN  Flag 'm' is useless: pattern '/<[\s]*(i?frame|form|input|embed|object)/ims' contains no anchors.
+     TIP 
+         - /<[\s]*(i?frame|form|input|embed|object)/ims
+         + /<[\s]*(i?frame|form|input|embed|object)/i
 
   corpus/espocrm/application/Espo/Core/Mail/Account/GroupAccount/BouncedRecognizer.php:89:24
       → /permanent[ ]*[error|failure]/
@@ -2807,6 +5133,19 @@
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
      WARN  Alternation contains an empty alternative.
          ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/php-sql-parser/libs/codesniffer/PhOSCo/Sniffs/Commenting/FileCommentSniff.php:581:32
+      → /^([0-9]{4})((.{1})([0-9]{4}))? (.+)$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^([0-9]{4})((.{1})([0-9]{4}))? (.+)$/
+         + /^([0-9]{4})((.)([0-9]{4}))? (.+)$/
+
+  corpus/spiral-framework/src/Cookies/src/Config/CookiesConfig.php:49:25
+      → /^(\d{1,3}){4}:\d+$/
+     WARN  Quantified capturing group "(...)" with "{4}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
   corpus/Wixel/GUMP/ci/boot.php:46:20
       → /<div id="available_validators">(.*?)<.div>/ms
@@ -4342,6 +6681,26 @@
          - /([^$&.]+)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/
          + /([^$&.]+)(?:((?:\.\.\.)?[$&][^\s]+)(?:(\s+)(.*))?)?/
 
+  corpus/respect-validation/src-dev/Markdown/Linters/ValidatorHeaderLinter.php:61:28
+      → /^(# .+|- .+|<!--+|-->|SPDX-.+|)$/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/respect-validation/src-dev/Markdown/Linters/ValidatorHeaderLinter.php:96:28
+      → /^@param ([^$]+) \$([a-zA-Z0-1]+)$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/respect-validation/src/Validators/MacAddress.php:40:27
+      → /^(([0-9a-fA-F]{2}-){5}|([0-9a-fA-F]{2}:){5})[0-9a-fA-F]{2}$/
+     WARN  Quantified capturing group "(...)" with "{5}": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/respect-validation/src/Validators/Consonant.php:40:27
+      → /^(\s|[b-df-hj-np-tv-zB-DF-HJ-NP-TV-Z])*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
   corpus/php-debugbar/src/DataFormatter/QueryFormatter.php:17:29
       → /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
      WARN  Redundant elements detected in character class.
@@ -4804,6 +7163,280 @@
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
+  corpus/joomla/plugins/editors/tinymce/src/PluginTraits/DisplayTrait.php:69:41
+      → /(\s|[^A-Za-z0-9_])+/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/joomla/plugins/editors/tinymce/src/PluginTraits/DisplayTrait.php:70:54
+      → /\[\]|\]/
+     TIP 
+         - /\[\]|\]/
+         + /\[\]|]/
+
+  corpus/joomla/libraries/src/Mail/MailHelper.php:210:28
+      → #href="index.php\?([^"]+)"#m
+     WARN  Flag 'm' is useless: pattern '#href="index.php\?([^"]+)"#m' contains no anchors.
+     TIP 
+         - #href="index.php\?([^"]+)"#m
+         + #href="index.php\?([^"]+)"#
+
+  corpus/joomla/libraries/src/HTML/Helpers/StringHelper.php:56:62
+      → #\s+#mui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mui' contains no anchors.
+     TIP 
+         - #\s+#mui
+         + #\s+#ui
+
+  corpus/joomla/libraries/src/HTML/Helpers/StringHelper.php:63:62
+      → #\s+#mui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mui' contains no anchors.
+     TIP 
+         - #\s+#mui
+         + #\s+#ui
+
+  corpus/joomla/libraries/src/HTML/Helpers/StringHelper.php:212:44
+      → /(&nbsp;|\s)+(<\/[^>]+>)?$/u
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/joomla/libraries/src/HTML/Helpers/StringHelper.php:225:44
+      → /(&nbsp;|\s)+(<\/[^>]+>)?$/u
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/joomla/libraries/src/Feed/FeedFactory.php:109:25
+      → /\A(?!XML)[a-z][\w0-9-]*/i
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/joomla/libraries/src/Log/Logger/FormattedtextLogger.php:311:24
+      → /{(.*?)}/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/libraries/src/Filter/InputFilter.php:447:13
+      → /&#(\d+);/m
+     WARN  Flag 'm' is useless: pattern '/&#(\d+);/m' contains no anchors.
+     TIP 
+         - /&#(\d+);/m
+         + /&#(\d+);/
+
+  corpus/joomla/libraries/src/Filter/InputFilter.php:456:13
+      → /&#x([a-f0-9]+);/mi
+     WARN  Flag 'm' is useless: pattern '/&#x([a-f0-9]+);/mi' contains no anchors.
+     TIP 
+         - /&#x([a-f0-9]+);/mi
+         + /&#x([a-f0-9]+);/i
+
+  corpus/joomla/libraries/src/Filter/OutputFilter.php:96:29
+      → /(\s|[^A-Za-z0-9\-])+/
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+
+  corpus/joomla/libraries/src/Installer/Adapter/FileAdapter.php:507:35
+      → #/|\/#
+     WARN  Duplicate alternation branch "\/".
+         ↳ Remove the redundant alternative.
+     TIP 
+         - #/|\/#
+         + #[/]#
+
+  corpus/joomla/libraries/src/Console/SetConfigurationCommand.php:286:56
+      → #^[a-zA-Z]+[a-zA-Z0-9_]*$#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/joomla/libraries/src/Utility/Utility.php:40:24
+      → /([\w:-]+)[\s]?=[\s]?"([^"]*)"/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/installation/tmpl/remove/default.php:275:59
+      → #^([0-9\.]+)(|.*)$#
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/joomla/installation/src/Helper/DatabaseHelper.php:210:55
+      → #^[a-zA-Z]+[a-zA-Z0-9_]*$#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/joomla/administrator/components/com_installer/tmpl/languages/default.php:70:61
+      → #^([0-9\.]+)(|.*)$#
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/joomla/administrator/components/com_content/src/Model/ArticleModel.php:723:36
+      → ~^#[a-zA-Z]{1}[a-zA-Z0-9-_:.]*$~
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - ~^#[a-zA-Z]{1}[a-zA-Z0-9-_:.]*$~
+         + ~^#[a-zA-Z][a-zA-Z0-9\-_:.]*$~
+
+  corpus/joomla/administrator/components/com_languages/tmpl/installed/default.php:84:57
+      → #^([0-9\.]+)(|.*)$#
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Result.php:403:32
+      → #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (covered by range '+'-'.')
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui' contains no anchors.
+     TIP 
+         - #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui
+         + #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#ui
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Result.php:438:32
+      → #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (covered by range '+'-'.')
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui' contains no anchors.
+     TIP 
+         - #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#mui
+         + #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,_]+#ui
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language/Zh.php:64:31
+      → #\p{Han}#mui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\p{Han}#mui' contains no anchors.
+     TIP 
+         - #\p{Han}#mui
+         + #\p{Han}#ui
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Parser/Rtf.php:38:31
+      → #{\\pict[^}]*}#mi
+     WARN  Flag 'm' is useless: pattern '#\{\\pict[^}]*\}#mi' contains no anchors.
+     TIP 
+         - #{\\pict[^}]*}#mi
+         + #{\\pict[^}]*}#i
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Parser/Rtf.php:42:31
+      → #\\([^;]+?);#m
+     WARN  Flag 'm' is useless: pattern '#\\([^;]+?);#m' contains no anchors.
+     TIP 
+         - #\\([^;]+?);#m
+         + #\\([^;]+?);#
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Parser/Rtf.php:43:31
+      → #\\['a-zA-Z0-9]+#mi
+     WARN  Flag 'm' is useless: pattern '#\\['a-zA-Z0-9]+#mi' contains no anchors.
+     TIP 
+         - #\\['a-zA-Z0-9]+#mi
+         + #\\['a-zA-Z0-9]+#i
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:149:31
+      → #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,]+#mui
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (covered by range '+'-'.')
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,]+#mui' contains no anchors.
+     TIP 
+         - #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,]+#mui
+         + #[^\pL\pM\pN\p{Pi}\p{Pf}'+-.,]+#ui
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:150:31
+      → #(^|\s)[+-,]+([\pL\pM]+)#mui
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '+' and ',' explicitly instead of a range.
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:151:31
+      → #([\pL\pM\pN]+)[+-.,]+(\s|$)#mui
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (covered by range '+'-'.')
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:152:31
+      → #([\pL\pM]+)[+.,]+([\pL\pM]+)#muiU
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#([\pL\pM]+)[+.,]+([\pL\pM]+)#muiU' contains no anchors.
+     TIP 
+         - #([\pL\pM]+)[+.,]+([\pL\pM]+)#muiU
+         + #([\pL\pM]+)[+.,]+([\pL\pM]+)#uiU
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:153:31
+      → #(^|\s)['+-.,]+(\s|$)#mui
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (covered by range '+'-'.')
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:154:31
+      → #(^|\s)[\p{Pi}\p{Pf}]+(\s|$)#mui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Language.php:156:31
+      → #\s+#mui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mui' contains no anchors.
+     TIP 
+         - #\s+#mui
+         + #\s+#ui
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Query.php:745:32
+      → #\s+#mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mi' contains no anchors.
+     TIP 
+         - #\s+#mi
+         + #\s+#i
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Query.php:851:39
+      → #\s+#mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mi' contains no anchors.
+     TIP 
+         - #\s+#mi
+         + #\s+#i
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Query.php:864:32
+      → #\"([^"]+)\"#m
+     WARN  Flag 'm' is useless: pattern '#"([^"]+)"#m' contains no anchors.
+     TIP 
+         - #\"([^"]+)\"#m
+         + #\"([^"]+)\"#
+
+  corpus/joomla/administrator/components/com_finder/src/Indexer/Query.php:884:43
+      → #\s+#mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '#\s+#mi' contains no anchors.
+     TIP 
+         - #\s+#mi
+         + #\s+#i
+
+  corpus/joomla/build/bump.php:199:34
+      → #MAJOR_VERSION\s*=\s*[^;]*#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/joomla/build/bump.php:200:34
+      → #MINOR_VERSION\s*=\s*[^;]*#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/joomla/build/bump.php:201:34
+      → #PATCH_VERSION\s*=\s*[^;]*#
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/joomla/build/bump.php:268:38
+      → #Joomla! [0-9]+\.[0-9]+ (|\[)version#
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/webmozart-assert/bin/src/MixinGenerator.php:629:28
+      → ~^\*\s+@(\S+)(\s+.*)?$~
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
   corpus/laravel/framework/src/Illuminate/Database/Query/Grammars/PostgresGrammar.php:779:24
       → /(\[[^\]]+\])+$/
      WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
@@ -4965,6 +7598,16 @@
          - /\s/isSu
          + /\s/iSu
 
+  corpus/symfony-console/Command/Command.php:672:25
+      → /^[^\:]++(\:[^\:]++)*$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
+  corpus/symfony-console/Helper/Table.php:617:45
+      → /^<(\w+|(\w+=[\w,]+;?)*)>.+<\/(\w+|(\w+=\w+;?)*)?>$/
+     WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
+
   corpus/hyperf/src/database/src/Commands/Ast/ModelRewriteInheritanceVisitor.php:31:28
       → /\s*([a-z0-9\\]+)(as)?([a-z0-9]+)?;?\s*/is
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -5023,6 +7666,47 @@
      WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
+  corpus/dompdf/src/FontMetrics.php:194:32
+      → /[^-_\w]+/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/dompdf/src/Css/Stylesheet.php:1120:37
+      → '/\*.*?\*/'si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/dompdf/src/Dompdf.php:602:52
+      → /[\s\n,]/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/portable-utf8/src/voku/helper/UTF8.php:1204:13
+      → #@media\s+(?:only\s)?(?:[\s{(]|screen|all)\s?[^{]+{.*}\s*}\s*#isumU
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+     WARN  Flag 'm' is useless: pattern '#@media\s+(?:only\s)?(?:[\s{(]|screen|all)\s?[^{]+\{.*\}\s*\}\s*#isumU' contains no anchors.
+     TIP 
+         - #@media\s+(?:only\s)?(?:[\s{(]|screen|all)\s?[^{]+{.*}\s*}\s*#isumU
+         + #@media\s+(?:only\s)?(?:[\s{(]|screen|all)\s?[^{]+{.*}\s*}\s*#isuU
+
+  corpus/portable-utf8/src/voku/helper/UTF8.php:2852:25
+      → /^(?:\\u|U\+|)([a-zA-Z0-9]{4,6})$/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/portable-utf8/src/voku/helper/UTF8.php:3741:21
+      → /<\/?\w+(?:(?:\s+\w+(?:\s*=\s*(?:".*?"|'.*?'|[^'">\s]+))?)*\s*|\s*)\/?>/u
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /<\/?\w+(?:(?:\s+\w+(?:\s*=\s*(?:".*?"|'.*?'|[^'">\s]+))?)*\s*|\s*)\/?>/u
+         + /<\/?\w+(?:(?>(?:\s+\w+(?:\s*=\s*(?:".*?"|'.*?'|[^'">\s]+))?))*\s*|\s*)\/?>/u
+
+  corpus/portable-utf8/src/voku/helper/UTF8.php:5230:39
+      → #/\r\n|\r|\n|<br.*/?>#isU
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
   corpus/guzzle/psr7/src/Header.php:25:37
       → /;(?=([^"]*"[^"]*")*[^"]*$)/
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
@@ -5052,6 +7736,12 @@
          - /\/*(.+?)(?:\/|\.)/
          + /\/*(.+?)[\/.]/
 
+  corpus/woocommerce/plugins/woocommerce/includes/admin/plugin-updates/class-wc-plugins-screen-updates.php:126:40
+      → ~\[([^\]]*)\]\(([^\)]*)\)~
+     TIP 
+         - ~\[([^\]]*)\]\(([^\)]*)\)~
+         + ~\[([^\]]*)\]\(([^)]*)\)~
+
   corpus/phpseclib/phpseclib/File/SPKAC.php:124:30
       → #(?:SPKAC=)|[ \r\n\\]#
      TIP 
@@ -5063,6 +7753,48 @@
      TIP 
          - /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^\)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
          + /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
+
+  corpus/magento/app/code/Magento/CatalogInventory/Setup/Patch/Data/ConvertSerializedDataToJson.php:99:37
+      → /^((s|i|d|b|a|O|C):|N;)/
+     TIP 
+         - /^((s|i|d|b|a|O|C):|N;)/
+         + /^(([sidbaOC]):|N;)/
+
+  corpus/magento/lib/internal/Magento/Framework/App/Utility/Classes.php:277:13
+      → /.*\\[a-zA-Z0-9]{1,}(Factory|SearchResults|DataBuilder|Extension|ExtensionInterface)$/
+     TIP 
+         - /.*\\[a-zA-Z0-9]{1,}(Factory|SearchResults|DataBuilder|Extension|ExtensionInterface)$/
+         + /.*\\[a-zA-Z0-9]+(Factory|SearchResults|DataBuilder|Extension|ExtensionInterface)$/
+
+  corpus/magento/lib/internal/Magento/Framework/App/Utility/Classes.php:281:27
+      → /.*\\[a-zA-Z0-9]{1,}\\Proxy$/
+     TIP 
+         - /.*\\[a-zA-Z0-9]{1,}\\Proxy$/
+         + /.*\\[a-zA-Z0-9]+\\Proxy$/
+
+  corpus/magento/lib/internal/Magento/Framework/Data/Form/Element/Date.php:97:28
+      → /^[\-]{0,1}[0-9]+$/
+     TIP 
+         - /^[\-]{0,1}[0-9]+$/
+         + /^[\-]?[0-9]+$/
+
+  corpus/drupal/core/modules/views/src/Plugin/views/argument_default/QueryParameter.php:70:37
+      → #(\[|\]\[|\])#
+     TIP 
+         - #(\[|\]\[|\])#
+         + #(\[|\]\[|])#
+
+  corpus/wordpress/src/wp-includes/class-wp-customize-manager.php:2497:21
+      → /^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d$/
+     TIP 
+         - /^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d$/
+         + /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/
+
+  corpus/wordpress/src/wp-includes/class-wp-query.php:1083:22
+      → /^[^%]*%(?:postname)%/
+     TIP 
+         - /^[^%]*%(?:postname)%/
+         + /^[^%]*%postname%/
 
   corpus/phpstan-src/e2e/bug13425/plugins/oepnvMobilePlugin/lib/mobileService/MobileServiceApi.php:889:24
       → /\n      \s*((?:\w+-)*\w+)     # key                               \1\n      \s*=\s*               # =\n      ('|")?               # values may be included in ' or " \2\n      (.*?)                 # value                             \3\n      (?(2) \2)            # matching ' or " if needed        \4\n      \s*(?:\n        (?=\w+\s*=) | \s*$  # followed by another key= or the end of the string\n      )\n    /x
@@ -5089,6 +7821,12 @@
      TIP 
          - /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*\]\s+dddd/u
          + /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*]\s+d{4}/u
+
+  corpus/yii2/framework/db/Connection.php:996:13
+      → /(\{\{(%?[\w\-\. ]+%?)\}\}|\[\[([\w\-\. ]+)\]\])/
+     TIP 
+         - /(\{\{(%?[\w\-\. ]+%?)\}\}|\[\[([\w\-\. ]+)\]\])/
+         + /(\{\{(%?[\w\-. ]+%?)\}\}|\[\[([\w\-. ]+)\]\])/
 
   corpus/CodeIgniter4/admin/update-upgrade-guide.php:161:16
       → /^Config\n------\n\n(.*?)(?=^[^\s-][^\n]*\n(?:-+|=+)$|\z)/msu
@@ -5233,6 +7971,18 @@
      TIP 
          - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
          + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
+
+  corpus/spiral-framework/src/Console/src/Configurator/Signature/Parser.php:94:32
+      → /(.+)\[\]\=(.+)/
+     TIP 
+         - /(.+)\[\]\=(.+)/
+         + /(.+)\[\]=(.+)/
+
+  corpus/spiral-framework/src/Console/src/Configurator/Signature/Parser.php:141:32
+      → /(.+)\[\]\=(.+)/
+     TIP 
+         - /(.+)\[\]\=(.+)/
+         + /(.+)\[\]=(.+)/
 
   corpus/psalm/src/Psalm/Internal/Type/TypeParser.php:430:24
       → /^\-?(0|[1-9][0-9]*)(\.[0-9]{1,})$/
@@ -5384,9 +8134,21 @@
          - /((?:(?![$.]|&(?=\$)).)*)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/
          + /((?:(?![$.]|&(?=\$)).)*)(?:((?:\.\.\.)?[$&][^\s]+)(?:(\s+)(.*))?)?/
 
+  corpus/respect-validation/src-dev/Markdown/Content.php:145:29
+      → /\[(.+?)\](?:\[\]|\(.+?\))/
+     TIP 
+         - /\[(.+?)\](?:\[\]|\(.+?\))/
+         + /\[(.+?)](?:\[\]|\(.+?\))/
+
   corpus/laravel/roster/src/Roster.php:58:26
       → /[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}/
      TIP 
          - /[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}/
          + /[0-9]+\.[0-9]+\.[0-9]+/
+
+  corpus/symfony-console/Terminal.php:227:43
+      → /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
+     TIP 
+         - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
+         + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
 
