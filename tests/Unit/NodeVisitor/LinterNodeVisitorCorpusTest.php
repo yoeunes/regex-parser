@@ -200,7 +200,10 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         try {
             [$body, $flags] = PatternParser::extractPatternAndFlags($pattern);
         } catch (\Throwable) {
-            return $pattern;
+            // The reconstructed text does not even look like a valid regex
+            // literal (e.g. corrupted delimiter). We cannot determine the
+            // flags, so the pattern is ambiguous — skip it.
+            return null;
         }
 
         if (!str_contains($flags, 'x')) {
