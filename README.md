@@ -15,16 +15,23 @@
 
 # RegexParser: Static Analysis, Linter & Logic Solver
 
-RegexParser is a PHP 8.2+ library that treats regular expressions as code. 
+RegexParser is a PHP 8.2+ library that treats regular expressions as code.
 
-Unlike simple wrappers around `preg_match`, RegexParser implements a complete **compiler pipeline** (Lexer → Parser → AST) and an **Automata-based Logic Solver** (AST → NFA → DFA). 
+Unlike simple wrappers around `preg_match`, RegexParser implements a complete **compiler pipeline** (Lexer → Parser → AST) and an **Automata-based Logic Solver** (AST → NFA → DFA).
 
 This architecture allows for advanced static analysis:
-- **Linting:** Detect redundancy, useless flags, and optimizations.
-- **Safety:** Statically detect catastrophic backtracking (ReDoS).
-- **Logic:** Mathematically compare patterns (Intersection, Equivalence, Subset).
+- **Linting:** Detect redundancy, useless flags, and common mistakes.
+- **Safety:** Statically detect *potential* catastrophic backtracking (ReDoS).
+- **Logic:** Compare patterns via NFA/DFA (Intersection, Equivalence, Subset) for the regular subset it supports.
 
 Built for learning, validation, and robust tooling in PHP projects.
+
+> ⚠️ **What this is and is not.** RegexParser is a side project and a learning
+> exercise. It is **not** a hardened security product and should not be your
+> only line of defense. ReDoS detection is structural and conservative — treat
+> findings as *potential* risk to investigate, not as a guarantee of safety.
+> The parser aims for PCRE compatibility but does not cover every edge case of
+> the PCRE engine.
 
 If you are new to regex, start with the [Regex Tutorial](docs/tutorial/README.md). If you want a short overview, see the [Quick Start Guide](docs/QUICK_START.md).
 
@@ -41,9 +48,9 @@ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 ## What RegexParser provides
 
 - 🏗️ **Deep Parsing:** Parse `/pattern/flags` into a structured, typed AST.
-- 🧠 **Logic Solver:** Mathematically compare two regexes using NFA/DFA transformation. Detect route conflicts and validate security subsets.
-- 🛡️ **ReDoS Analysis:** Analyze potential catastrophic backtracking risks structure-wise.
-- 🧹 **Linter:** Clean up legacy code (useless flags, redundant groups) via the CLI.
+- 🧠 **Logic Solver:** Compare two regexes using NFA/DFA transformation (intersection, equivalence, subset). Works for patterns in the [regular subset](docs/ARCHITECTURE.md) it supports; falls back gracefully otherwise.
+- 🛡️ **ReDoS Analysis:** Detect *potential* catastrophic backtracking risks structure-wise. Findings are heuristic — treat them as risk to investigate, not a guarantee.
+- 🧹 **Linter:** Detect useless flags, redundant groups, and common mistakes via the CLI.
 - 📖 **Explanation:** Explain patterns in plain English.
 - 🔧 **Visitor API:** A flexible API for building custom regex tooling.
 
@@ -55,13 +62,28 @@ RegexParser separates what it can guarantee from what is heuristic:
 - Heuristic: ReDoS analysis is structural and conservative; treat it as potential risk unless confirmed.
 - Context matters: PCRE version, JIT, and backtrack/recursion limits change practical impact.
 
-### Validated against the real engine
+### Tested against the real engine
 
-Every release is differentially tested against PCRE itself: 6,600+ unique
-regex patterns extracted from 400+ real-world PHP projects (Symfony, Laravel,
-Composer, PHPUnit, ...) are compiled by both RegexParser and `preg_match()`.
-Current score: **zero false accepts, zero crashes, and zero semantic
-divergences** in `compile(parse(x))` round-trips across the whole corpus.
+Round-trip correctness (`compile(parse(x))` behaves like the original) is
+verified in CI by differential tests that compare RegexParser's output against
+PHP's native `preg_match()`:
+
+- A fixture of **212 PCRE patterns** is checked for validity, match result,
+  and captured groups (`OfficialPcreComplianceTest`).
+- Additional behavioral tests cover named groups, lookarounds, conditionals,
+  atomic groups, and other features (`BehavioralComplianceTest`,
+  `AdvancedFeaturesComplianceTest`).
+
+These tests compare against a limited set of subjects, so they catch clear
+regressions but are **not** a formal proof of full PCRE equivalence. There may
+be edge cases that the test suite does not yet cover.
+
+Separately, the linter and ReDoS analyzer have been run over a corpus of
+**~960 unique patterns collected from 279 real-world PHP projects** (Symfony,
+Laravel, Composer, PHPUnit, …). The results are in `corpus/corpus.log` and
+`corpus-redos.log`. This corpus run is **not** part of the automated CI
+differential test — it is a snapshot used to validate that the lint and ReDoS
+rules produce sensible output on real code.
 
 ## How to report a vulnerability responsibly
 
@@ -127,7 +149,7 @@ $regex = Regex::create([
 // Parse a pattern into AST
 $ast = $regex->parse('/^hello world$/i');
 
-// Validate pattern safety
+// Validate pattern syntax and semantics
 $result = $regex->validate('/(?<=test)foo/');
 if (!$result->isValid) {
     echo $result->error;

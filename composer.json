@@ -1,6 +1,6 @@
 {
     "name": "yoeunes/regex-parser",
-    "description": "A powerful PCRE regex parser with lexer, AST builder, validation, ReDoS analysis, and syntax highlighting. Zero dependencies, blazing fast, and production-ready.",
+    "description": "A PCRE regex parser with lexer, AST builder, validation, ReDoS analysis, and syntax highlighting. Zero runtime dependencies.",
     "keywords": ["regex", "parser", "pcre", "lexer", "ast", "validation", "redos", "security", "syntax-highlighting", "php", "cli"],
     "homepage": "https://github.com/yoeunes/regex-parser",
     "type": "library",
