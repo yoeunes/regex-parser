@@ -548,12 +548,6 @@
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
          ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
-  corpus/roundcubemail/program/lib/Roundcube/rcube_csv2vcard.php:312:38
-      → /[0[:^word:]]/
-     FAIL  Negation of POSIX class "word" is not supported.
-         ↳         [0[:^word:]]
-                     ^
-
   corpus/roundcubemail/program/lib/Roundcube/rcube_charset.php:230:28
       → /U[A-Z][A-Z](7|8|16|32)(BE|LE)*/
      WARN  Quantified capturing group "(...)" with "*": only the last iteration's capture is retained.
@@ -2043,12 +2037,6 @@
   corpus/drupal/core/lib/Drupal/Core/Validation/Plugin/Validation/Constraint/PrimitiveTypeConstraintValidator.php:49:64
       → /^[+-]?((\d+(\.\d*)?)|(\.\d+))$/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
-
-  corpus/drupal/core/lib/Drupal/Core/Utility/Token.php:299:20
-      → /\n      \[             # [ - pattern start\n      ([^\s\[\]:]+)  # match $type not containing whitespace : [ or ]\n      :              # : - separator\n      ([^\[\]]+)     # match $name not containing [ or ]\n      \]             # ] - pattern end\n      /x
-     FAIL  Unexpected token "]" (char_class_close) at position 58.
-         ↳               ([^\s\[\]:]+)  # match $type not containing whitespace : [ or ]
-                                   ^
 
   corpus/drupal/core/lib/Drupal/Component/Datetime/DateTimePlus.php:586:29
       → /^([1-2][0-3]|[01]?[0-9])$/
