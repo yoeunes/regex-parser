@@ -20,12 +20,18 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class RegexNode extends AbstractNode
 {
+    /**
+     * @param string|null $source the pattern body the AST was parsed from,
+     *                            used to reproduce the whitespace that /x
+     *                            makes ignorable and that no node carries
+     */
     public function __construct(
         public NodeInterface $pattern,
         public string $flags,
         public string $delimiter,
         int $startPosition,
-        int $endPosition
+        int $endPosition,
+        public ?string $source = null
     ) {
         parent::__construct($startPosition, $endPosition);
     }

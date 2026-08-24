@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
 ### Added
+- Recompiling an AST gives the pattern back byte for byte under `/x`: the whitespace the modifier makes ignorable is read back from the source, so `/  a  b  /x` and documented multi-line patterns keep their layout instead of collapsing to `/ab/x`. `RegexNode` carries the body it was parsed from for that purpose; an AST built by hand, a pretty-printed compile and normalized output are unaffected.
 - `/x` can be turned on from inside the pattern: `(?x)`, `(?x:...)`, `(?-x)` and `(?^x)` now drive extended mode in the lexer, the parser and the compiler, with PCRE's scoping — a bare `(?x)` holds until the end of the enclosing group and crosses `|`, while `(?x:...)` stops at its own `)`. Comments and ignorable whitespace were previously only recognised through the pattern-level `x` modifier.
 
 ### Fixed

@@ -84,6 +84,11 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
+    /**
+     * Pattern body the AST was parsed from, when it is known.
+     */
+    private ?string $source = null;
+
     private int $indentLevel;
 
     public function __construct(private readonly bool $pretty = false, /**
@@ -103,6 +108,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->closingDelimiter = '/';
         $this->flags = '';
         $this->indentLevel = 0;
+        $this->source = null;
     }
 
     #[\Override]
@@ -111,8 +117,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
         $this->closingDelimiter = $this->getClosingDelimiter($node->delimiter);
+        $this->source = $this->pretty || $this->collapseExtendedComments ? null : $node->source;
 
-        return $node->delimiter.$node->pattern->accept($this).$this->closingDelimiter.$node->flags;
+        $body = $node->pattern->accept($this);
+
+        return $node->delimiter
+            .$this->ignorableText(0, $node->pattern->getStartPosition())
+            .$body
+            .$this->ignorableText($node->pattern->getEndPosition(), null)
+            .$this->closingDelimiter
+            .$node->flags;
     }
 
     #[\Override]
@@ -146,13 +160,17 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         $separator = '|';
-        $result = $alternatives[0]->accept($this);
+        $result = $this->ignorableText($node->getStartPosition(), $alternatives[0]->getStartPosition());
+        $result .= $alternatives[0]->accept($this);
 
         for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
-            $result .= $separator.$alternatives[$i]->accept($this);
+            [$before, $after] = $this->ignorableTextAroundSeparator($alternatives[$i - 1], $alternatives[$i]);
+            $result .= $before.$separator.$after.$alternatives[$i]->accept($this);
         }
 
-        return $result;
+        $last = $alternatives[\count($alternatives) - 1];
+
+        return $result.$this->ignorableText($last->getEndPosition(), $node->getEndPosition());
     }
 
     #[\Override]
@@ -173,13 +191,17 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             return $result;
         }
 
-        $result = $children[0]->accept($this);
+        $result = $this->ignorableText($node->getStartPosition(), $children[0]->getStartPosition());
+        $result .= $children[0]->accept($this);
 
         for ($i = 1, $count = \count($children); $i < $count; $i++) {
+            $result .= $this->ignorableTextBetween($children[$i - 1], $children[$i]);
             $result .= $children[$i]->accept($this);
         }
 
-        return $result;
+        $last = $children[\count($children) - 1];
+
+        return $result.$this->ignorableText($last->getEndPosition(), $node->getEndPosition());
     }
 
     #[\Override]
@@ -213,20 +235,34 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
         $child = $this->compileGroupChild($node, $flags);
 
-        return match ($node->type) {
-            GroupType::T_GROUP_CAPTURING => '('.$child.')',
-            GroupType::T_GROUP_NON_CAPTURING => '(?:'.$child.')',
+        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && '' === $child) {
+            return '(?'.$flags.')';
+        }
+
+        $opening = match ($node->type) {
+            GroupType::T_GROUP_CAPTURING => '(',
+            GroupType::T_GROUP_NON_CAPTURING => '(?:',
             GroupType::T_GROUP_NAMED => $node->usePythonSyntax
-                ? '(?P<'.$node->name.'>'.$child.')'
-                : '(?<'.$node->name.'>'.$child.')',
-            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?='.$child.')',
-            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!'.$child.')',
-            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
-            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
-            GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
-            GroupType::T_GROUP_BRANCH_RESET => '(?|'.$child.')',
-            GroupType::T_GROUP_INLINE_FLAGS => '' === $child ? '(?'.$flags.')' : '(?'.$flags.':'.$child.')',
+                ? '(?P<'.$node->name.'>'
+                : '(?<'.$node->name.'>',
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?=',
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!',
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<=',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!',
+            GroupType::T_GROUP_ATOMIC => '(?>',
+            GroupType::T_GROUP_BRANCH_RESET => '(?|',
+            GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':',
         };
+
+        // Whitespace hugging the parentheses belongs to no node, so it is read
+        // back from the source like any other /x filler.
+        $start = $node->getStartPosition() + \strlen($opening);
+
+        return $opening
+            .$this->ignorableText($start, $node->child->getStartPosition())
+            .$child
+            .$this->ignorableText($node->child->getEndPosition(), $node->getEndPosition() - 1)
+            .')';
     }
 
     #[\Override]
@@ -580,6 +616,60 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Split the ignorable whitespace that surrounds the "|" between two
+     * alternatives, so it can be put back on either side of the separator.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function ignorableTextAroundSeparator(NodeInterface $left, NodeInterface $right): array
+    {
+        if (null === $this->source) {
+            return ['', ''];
+        }
+
+        $start = $left->getEndPosition();
+        $length = $right->getStartPosition() - $start;
+        if ($length <= 0 || $start < 0 || $start + $length > \strlen($this->source)) {
+            return ['', ''];
+        }
+
+        $text = substr($this->source, $start, $length);
+
+        return 1 === preg_match('/^(\s*)\|(\s*)$/', $text, $matches) ? [$matches[1], $matches[2]] : ['', ''];
+    }
+
+    /**
+     * Whitespace that /x makes ignorable is not represented in the AST, so it
+     * is read back from the source to keep a recompiled pattern identical to
+     * the one that was parsed. Anything else than whitespace is ignored: the
+     * nodes themselves are the only source of truth for what a pattern matches.
+     */
+    private function ignorableTextBetween(NodeInterface $left, NodeInterface $right): string
+    {
+        return $this->ignorableText($left->getEndPosition(), $right->getStartPosition());
+    }
+
+    /**
+     * @param int|null $end end offset, or null for the end of the source
+     */
+    private function ignorableText(int $start, ?int $end): string
+    {
+        if (null === $this->source) {
+            return '';
+        }
+
+        $end ??= \strlen($this->source);
+        $length = $end - $start;
+        if ($length <= 0 || $start < 0 || $end > \strlen($this->source)) {
+            return '';
+        }
+
+        $text = substr($this->source, $start, $length);
+
+        return ctype_space($text) ? $text : '';
     }
 
     /**

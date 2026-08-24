@@ -149,7 +149,7 @@ final class Parser
         $patternNode = $this->parseAlternation();
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
-        return new RegexNode($patternNode, $flags, $delimiter, 0, $patternLength);
+        return new RegexNode($patternNode, $flags, $delimiter, 0, $patternLength, $this->pattern);
     }
 
     /**
