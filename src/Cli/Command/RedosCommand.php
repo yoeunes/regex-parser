@@ -18,6 +18,7 @@ use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Internal\PatternParser;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\ReDoS\ReDoSInputGenerator;
@@ -892,7 +893,7 @@ final class RedosCommand extends AbstractCommand
 
     private function formatInput(string $value, ?int $limit): string
     {
-        $escaped = addcslashes($value, "\0..\37\177..\377");
+        $escaped = DisplayEscaper::escape($value);
         if (null !== $limit && \strlen($escaped) > $limit) {
             return substr($escaped, 0, $limit).'...';
         }

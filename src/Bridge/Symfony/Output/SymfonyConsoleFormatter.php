@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Output;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\Formatter\LinkFormatter;
 use RegexParser\Lint\Formatter\OutputFormatterInterface;
 use RegexParser\Lint\RegexAnalysisService;
@@ -144,7 +145,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         }
 
         // Always escape control characters to prevent layout issues
-        $escapedPattern = addcslashes($pattern, "\0..\37\177..\377");
+        $escapedPattern = DisplayEscaper::escape($pattern);
 
         if (!$this->decorated) {
             return OutputFormatter::escape($escapedPattern);

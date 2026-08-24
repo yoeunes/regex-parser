@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Rule;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\Rule\Support\NodePredicates;
 use RegexParser\LintIssue;
 use RegexParser\Node\AlternationNode;
@@ -64,7 +65,7 @@ final class DuplicateDisjunctionRule extends AbstractLintRule
             $compiler = new CompilerNodeVisitor();
             $signature = $alt->accept($compiler);
             if (isset($seen[$signature])) {
-                $display = addcslashes($signature, "\0..\37\177..\377");
+                $display = DisplayEscaper::escape($signature);
 
                 return [new LintIssue(
                     'regex.lint.alternation.duplicateDisjunction',

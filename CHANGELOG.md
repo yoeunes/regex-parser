@@ -71,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
 ### Fixed
+- Reported patterns keep their non-ASCII characters instead of being rewritten as octal escapes. `/《붉은별》/iu` used to be printed as `/\343\200\212…/iu`, which is a different pattern under `/u` (`\343` is `ã`, so the `i` flag stops being useless) and could not be copied back into PHP. Control bytes are still escaped, and invalid UTF-8 still falls back to full byte escaping.
+- Inline flag diagnostics no longer claim a flag is "already set globally" when it was set by an earlier inline flag group: `/^(?U)a(?U)b/` now reports the second `(?U)` against the first one.
 - Optimizer suggestions no longer un-escape literal `\{n\}` sequences into quantifiers: `/^(\{0\}.+)/` was rewritten to the non-compiling `/^({0}.+)/`. Found by proving all 435 corpus optimization suggestions against PCRE + automata equivalence (253 proven equivalent, 0 divergent, 2 invalid — both this bug).
 - `SolverOptions::$maxTransitionsProcessed` now defaults to a finite 1,000,000 instead of unlimited; pathological patterns could previously spin the determinization loop for tens of minutes.
 - `--generate-baseline` combined with `--baseline` now writes a baseline covering the full report; previously issues suppressed by the old baseline silently vanished from the newly generated one.

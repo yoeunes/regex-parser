@@ -71,7 +71,11 @@ final class InlineFlagsRule extends AbstractLintRule
             if (str_contains($baseFlags, $flag)) {
                 $issues[] = new LintIssue(
                     'regex.lint.flag.redundant',
-                    \sprintf("Inline flag '%s' is redundant; it is already set globally.", $flag),
+                    \sprintf(
+                        "Inline flag '%s' is redundant; it is already %s.",
+                        $flag,
+                        $this->originOf($flag, $context, $resetAll),
+                    ),
                     $node->startPosition,
                 );
             }
@@ -85,20 +89,35 @@ final class InlineFlagsRule extends AbstractLintRule
             if (!str_contains($baseFlags, $flag)) {
                 $issues[] = new LintIssue(
                     'regex.lint.flag.redundant',
-                    \sprintf("Inline flag '-%s' is redundant; the flag is not set globally.", $flag),
+                    \sprintf("Inline flag '-%s' is redundant; the flag is not set at this position.", $flag),
                     $node->startPosition,
-                    \sprintf("Remove '-%s' from the inline flag group; it has no effect unless the flag is enabled globally.", $flag),
+                    \sprintf("Remove '-%s' from the inline flag group; it has no effect unless the flag is enabled first.", $flag),
                 );
             } else {
                 $issues[] = new LintIssue(
                     'regex.lint.flag.override',
-                    \sprintf("Inline flag '-%s' overrides a global modifier.", $flag),
+                    \sprintf(
+                        "Inline flag '-%s' overrides a flag %s.",
+                        $flag,
+                        $this->originOf($flag, $context, $resetAll),
+                    ),
                     $node->startPosition,
-                    'Consider removing the global flag or limiting it to specific groups.',
+                    'Consider removing the outer flag or limiting it to specific groups.',
                 );
             }
         }
 
         return $issues;
+    }
+
+    /**
+     * Tell apart a flag inherited from the pattern modifiers and one enabled
+     * by an inline flag group earlier in the pattern.
+     */
+    private function originOf(string $flag, LintContext $context, bool $resetAll): string
+    {
+        return !$resetAll && str_contains($context->pattern->flags, $flag)
+            ? 'set globally'
+            : 'set by an earlier inline flag group';
     }
 }

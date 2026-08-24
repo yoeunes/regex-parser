@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -127,7 +128,7 @@ final class AsciiTreeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(LiteralNode $node): string
     {
-        $value = addcslashes($node->value, "\0..\37\177..\377");
+        $value = DisplayEscaper::escape($node->value);
         $this->addLine("Literal ('".$value."')");
 
         return '';
