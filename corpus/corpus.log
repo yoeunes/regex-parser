@@ -6619,13 +6619,13 @@
       → {\n\t\t\t\t(?:\n|\A)\n\t\t\t\t# 1: Opening marker\n\t\t\t\t(\n\t\t\t\t\t~{3,} # Marker: three tilde or more.\n\t\t\t\t)\n\t\t\t\t[ ]* \n # Whitespace and newline following marker.\n\n\t\t\t\t# 2: Content\n\t\t\t\t(\n\t\t\t\t\t(?>\n\t\t\t\t\t\t(?!\1 [ ]* \n)\t# Not a closing marker.\n\t\t\t\t\t\t.*\n+\n\t\t\t\t\t)+\n\t\t\t\t)\n\n\t\t\t\t# Closing marker.\n\t\t\t\t\1 [ ]* \n\n\t\t\t}xm
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the second quantifier to its minimum.
-     WARN  Flag 'm' is useless: pattern '{(?:\n|\A)(?## 1: Opening marker
-         ↳ )(~{3,}(?## Marker: three tilde or more.
-           ))[ ]*\n(?## Whitespace and newline following marker.
-           )(?## 2: Content
-           )((?>(?!\1[ ]*\n)(?## Not a closing marker.
-           ).*\n+)+)(?## Closing marker.
-           )\1[ ]*\n}xm' contains no anchors.
+     WARN  Flag 'm' is useless: pattern '{(?:\n|\A)# 1: Opening marker
+         ↳ (~{3,}# Marker: three tilde or more.
+           )[ ]*\n# Whitespace and newline following marker.
+           # 2: Content
+           ((?>(?!\1[ ]*\n)# Not a closing marker.
+           .*\n+)+)# Closing marker.
+           \1[ ]*\n}xm' contains no anchors.
      TIP 
            ...
                )+
