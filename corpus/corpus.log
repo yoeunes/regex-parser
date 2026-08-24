@@ -454,14 +454,6 @@
      WARN  Unicode property "\p{P}" requires /u flag.
          ↳ Add /u flag to enable Unicode property matching.
 
-  corpus/snipe-it/app/Models/CheckoutAcceptance.php:281:35
-      → /\R(?:[ \t]*\R)+/
-     WARN  Nested quantifiers can cause catastrophic backtracking.
-         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
-     TIP 
-         - /\R(?:[ \t]*\R)+/
-         + /\R(?>(?:[ \t]*\R))+/
-
   corpus/snipe-it/app/Models/Setting.php:281:36
       → /@import\s+[^;]*;?/i
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
@@ -1727,6 +1719,11 @@
       → !\n    (                       # project OR project and version OR empty (group 1)\n      ([a-z_]+)             # project name (group 2)\n      \.                    # .\n      |                     # OR\n      ([a-z_]+)             # project name (group 3)\n      \-                    # -\n      ([0-9a-z\.\-\+]+)     # version (group 4)\n      \.                    # .\n      |                     # OR\n    )                       # (empty)\n    ([^\./]+)               # language code (group 5)\n    \.                      # .\n    po                      # po extension\n    $!x
      WARN  Alternation contains an empty alternative.
          ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/drupal/core/modules/locale/src/LocaleXss.php:58:28
+      → /\[[a-z0-9_-]+(:[a-z0-9_-]+)+\]/i
+     WARN  Quantified capturing group "(...)" with "+": only the last iteration's capture is retained.
+         ↳ Use a non-capturing group (?:...) for the repetition and capture the whole match, or restructure the pattern.
 
   corpus/drupal/core/modules/file/src/Plugin/Field/FieldType/FileItem.php:265:23
       → /^([a-z0-9]+([._][a-z0-9])* ?)+$/
