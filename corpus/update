@@ -132,6 +132,13 @@ function parseArgs(array $argv): array
         'force' => false,
         'debug' => false,
         'help' => false,
+        'clone' => true,
+        'clone-only' => false,
+        'write-manifest' => false,
+        'add' => [],
+        'as' => null,
+        'branch' => null,
+        'depth' => null,
     ];
 
     for ($i = 1; $i < \count($argv); $i++) {
@@ -147,6 +154,46 @@ function parseArgs(array $argv): array
         if ('--debug' === $arg) {
             $options['debug'] = true;
             continue;
+        }
+        if ('--no-clone' === $arg) {
+            $options['clone'] = false;
+            continue;
+        }
+        if ('--clone-only' === $arg) {
+            $options['clone-only'] = true;
+            continue;
+        }
+        if ('--write-manifest' === $arg) {
+            $options['write-manifest'] = true;
+            continue;
+        }
+        if ('--add' === $arg) {
+            $next = $argv[$i + 1] ?? null;
+            if (null === $next || str_starts_with($next, '-')) {
+                throw new InvalidArgumentException('The --add option requires a repository URL.');
+            }
+            $options['add'][] = $next;
+            $i++;
+            continue;
+        }
+        if (str_starts_with($arg, '--add=')) {
+            $options['add'][] = substr($arg, \strlen('--add='));
+            continue;
+        }
+        foreach (['as', 'branch', 'depth'] as $name) {
+            if ('--'.$name === $arg) {
+                $next = $argv[$i + 1] ?? null;
+                if (null === $next || str_starts_with($next, '-')) {
+                    throw new InvalidArgumentException(sprintf('The --%s option requires a value.', $name));
+                }
+                $options[$name] = $next;
+                $i++;
+                continue 2;
+            }
+            if (str_starts_with($arg, '--'.$name.'=')) {
+                $options[$name] = substr($arg, \strlen('--'.$name.'='));
+                continue 2;
+            }
         }
         if ('--jobs' === $arg || '-j' === $arg) {
             $next = $argv[$i + 1] ?? null;
@@ -186,13 +233,25 @@ function printUsage(): void
 {
     echo <<<'TXT'
 Usage: corpus/update [--jobs[=<n>|auto]] [--timeout=<sec>] [--force] [--debug] [--help]
+       corpus/update --add <url> [--as <path>] [--branch <name>] [--depth <n>]
+       corpus/update --write-manifest
+
+Clones every repository listed in corpus/corpus.json that is missing on disk,
+then pulls the repositories that are already there.
 
 Options:
-  --jobs, -j      Number of parallel workers (default: auto, 2x CPUs)
-  --timeout, -t   Per-repo timeout in seconds (default: 120)
-  --force         Reset tracked changes and remove untracked files before pulling
-  --debug         Show git commands and detailed diagnostics per repo
-  --help, -h      Show this help message
+  --jobs, -j        Number of parallel workers (default: auto, 2x CPUs)
+  --timeout, -t     Per-repo timeout in seconds (default: 120)
+  --force           Reset tracked changes and remove untracked files before pulling
+  --debug           Show git commands and detailed diagnostics per repo
+  --no-clone        Do not clone missing repositories, only pull existing ones
+  --clone-only      Only clone missing repositories, do not pull existing ones
+  --add <url>       Add a repository to the manifest and clone it (repeatable)
+  --as <path>       Target path under corpus/ for --add (default: derived from the URL)
+  --branch <name>   Branch to record for --add (default: the remote default branch)
+  --depth <n>       Clone depth for --add, 0 for a full clone (default: manifest default)
+  --write-manifest  Rewrite corpus/corpus.json from the repositories found on disk
+  --help, -h        Show this help message
 
 TXT;
 }
@@ -311,6 +370,422 @@ function formatRepoLabel(string $repoPath, string $corpusDir): string
     }
 
     return $repoReal;
+}
+
+// ---------------------------------------------------------------------------
+// Manifest (corpus/corpus.json)
+// ---------------------------------------------------------------------------
+
+const MANIFEST_DEFAULTS = ['remote' => 'origin', 'depth' => 1, 'protocol' => 'https'];
+
+const MANIFEST_PROTOCOLS = ['https', 'ssh', 'preserve'];
+
+function manifestPath(string $corpusDir): string
+{
+    return $corpusDir.\DIRECTORY_SEPARATOR.'corpus.json';
+}
+
+/**
+ * A manifest entry is either a URL string or an object with url/branch/depth.
+ *
+ * @return array{defaults: array{remote: string, depth: int}, repositories: array<string, array{url: string, branch: ?string, depth: int}>}
+ */
+function loadManifest(string $path): array
+{
+    if (!is_file($path)) {
+        return ['defaults' => MANIFEST_DEFAULTS, 'repositories' => []];
+    }
+
+    $raw = file_get_contents($path);
+    if (false === $raw) {
+        throw new RuntimeException(sprintf('Unable to read %s.', $path));
+    }
+
+    try {
+        $data = json_decode($raw, true, 32, \JSON_THROW_ON_ERROR);
+    } catch (JsonException $e) {
+        throw new RuntimeException(sprintf('Invalid JSON in %s: %s', $path, $e->getMessage()));
+    }
+
+    if (!\is_array($data)) {
+        throw new RuntimeException(sprintf('The manifest %s must contain a JSON object.', $path));
+    }
+
+    $defaults = MANIFEST_DEFAULTS;
+    if (isset($data['defaults']) && \is_array($data['defaults'])) {
+        if (isset($data['defaults']['remote']) && \is_string($data['defaults']['remote'])) {
+            $defaults['remote'] = $data['defaults']['remote'];
+        }
+        if (isset($data['defaults']['depth']) && is_numeric($data['defaults']['depth'])) {
+            $defaults['depth'] = max(0, (int) $data['defaults']['depth']);
+        }
+        if (isset($data['defaults']['protocol']) && \in_array($data['defaults']['protocol'], MANIFEST_PROTOCOLS, true)) {
+            $defaults['protocol'] = $data['defaults']['protocol'];
+        }
+    }
+
+    $repositories = [];
+    $entries = $data['repositories'] ?? [];
+    if (!\is_array($entries)) {
+        throw new RuntimeException(sprintf('The "repositories" key of %s must be an object.', $path));
+    }
+
+    foreach ($entries as $relPath => $entry) {
+        if (!\is_string($relPath)) {
+            throw new RuntimeException('Manifest repository keys must be paths relative to corpus/.');
+        }
+
+        $relPath = normalizeManifestPath($relPath);
+        $repositories[$relPath] = normalizeManifestEntry($relPath, $entry, $defaults);
+    }
+
+    ksort($repositories, \SORT_NATURAL | \SORT_FLAG_CASE);
+
+    return ['defaults' => $defaults, 'repositories' => $repositories];
+}
+
+/**
+ * @param array{remote: string, depth: int} $defaults
+ *
+ * @return array{url: string, branch: ?string, depth: int}
+ */
+function normalizeManifestEntry(string $relPath, mixed $entry, array $defaults): array
+{
+    if (\is_string($entry)) {
+        $entry = ['url' => $entry];
+    }
+
+    if (!\is_array($entry) || !isset($entry['url']) || !\is_string($entry['url'])) {
+        throw new RuntimeException(sprintf('Manifest entry "%s" needs a "url" string.', $relPath));
+    }
+
+    $url = trim($entry['url']);
+    if (!isValidRepoUrl($url)) {
+        throw new RuntimeException(sprintf('Manifest entry "%s" has an unsupported URL: %s', $relPath, $url));
+    }
+
+    $branch = null;
+    if (isset($entry['branch']) && \is_string($entry['branch']) && '' !== trim($entry['branch'])) {
+        $branch = trim($entry['branch']);
+        if (str_starts_with($branch, '-')) {
+            throw new RuntimeException(sprintf('Manifest entry "%s" has an invalid branch: %s', $relPath, $branch));
+        }
+    }
+
+    $depth = $defaults['depth'];
+    if (isset($entry['depth']) && is_numeric($entry['depth'])) {
+        $depth = max(0, (int) $entry['depth']);
+    }
+
+    return [
+        'url' => normalizeCloneUrl($url, $defaults['protocol']),
+        'branch' => $branch,
+        'depth' => $depth,
+    ];
+}
+
+function isValidRepoUrl(string $url): bool
+{
+    return 1 === preg_match('~^(?:https://|ssh://|git://|[\w.-]+@[\w.-]+:)[^\s]+$~', $url);
+}
+
+/**
+ * Rewrite a clone URL to the protocol requested by the manifest defaults.
+ *
+ * "preserve" keeps the URL as-is, "https" produces https://host/path and
+ * "ssh" produces git@host:path.
+ */
+function normalizeCloneUrl(string $url, string $protocol): string
+{
+    if ('preserve' === $protocol) {
+        return $url;
+    }
+
+    $matches = [];
+    if (1 === preg_match('~^(?:https?|ssh|git)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)$~', $url, $matches)) {
+        [, $host, $path] = $matches;
+    } elseif (1 === preg_match('~^[\w.-]+@([\w.-]+):(.+)$~', $url, $matches)) {
+        [, $host, $path] = $matches;
+    } else {
+        return $url;
+    }
+
+    $path = ltrim($path, '/');
+
+    return 'https' === $protocol ? sprintf('https://%s/%s', $host, $path) : sprintf('git@%s:%s', $host, $path);
+}
+
+/**
+ * Reject absolute paths, traversal and anything that would escape corpus/.
+ */
+function normalizeManifestPath(string $relPath): string
+{
+    $relPath = trim(str_replace('\\', '/', $relPath));
+    $relPath = trim($relPath, '/');
+
+    if ('' === $relPath) {
+        throw new RuntimeException('Manifest repository paths must not be empty.');
+    }
+
+    foreach (explode('/', $relPath) as $segment) {
+        if ('' === $segment || '.' === $segment || '..' === $segment) {
+            throw new RuntimeException(sprintf('Unsafe manifest repository path: %s', $relPath));
+        }
+    }
+
+    return $relPath;
+}
+
+/**
+ * @param array{defaults: array{remote: string, depth: int}, repositories: array<string, array{url: string, branch: ?string, depth: int}>} $manifest
+ */
+function encodeManifest(array $manifest): string
+{
+    $encode = static function (mixed $value): string {
+        $json = json_encode($value, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE);
+
+        return false === $json ? '""' : $json;
+    };
+
+    $lines = [];
+    $lines[] = '{';
+    $lines[] = '    "defaults": {';
+    $lines[] = '        "remote": '.$encode($manifest['defaults']['remote']).',';
+    $lines[] = '        "depth": '.$manifest['defaults']['depth'].',';
+    $lines[] = '        "protocol": '.$encode($manifest['defaults']['protocol']);
+    $lines[] = '    },';
+    $lines[] = '    "repositories": {';
+
+    $entries = [];
+    foreach ($manifest['repositories'] as $relPath => $entry) {
+        $parts = ['"url": '.$encode($entry['url'])];
+        if (null !== $entry['branch']) {
+            $parts[] = '"branch": '.$encode($entry['branch']);
+        }
+        if ($entry['depth'] !== $manifest['defaults']['depth']) {
+            $parts[] = '"depth": '.$entry['depth'];
+        }
+
+        $entries[] = '        '.$encode($relPath).': { '.implode(', ', $parts).' }';
+    }
+
+    $lines[] = implode(','.PHP_EOL, $entries);
+    $lines[] = '    }';
+    $lines[] = '}';
+
+    return implode(PHP_EOL, $lines).PHP_EOL;
+}
+
+/**
+ * @param array{defaults: array{remote: string, depth: int}, repositories: array<string, array{url: string, branch: ?string, depth: int}>} $manifest
+ */
+function saveManifest(string $path, array $manifest): void
+{
+    ksort($manifest['repositories'], \SORT_NATURAL | \SORT_FLAG_CASE);
+
+    if (false === file_put_contents($path, encodeManifest($manifest))) {
+        throw new RuntimeException(sprintf('Unable to write %s.', $path));
+    }
+}
+
+/**
+ * @param array<string>                       $repos
+ * @param array{remote: string, depth: int}   $defaults
+ *
+ * @return array{defaults: array{remote: string, depth: int}, repositories: array<string, array{url: string, branch: ?string, depth: int}>, skipped: array<string>}
+ */
+function buildManifestFromDisk(string $corpusDir, array $repos, array $defaults, int $timeout): array
+{
+    $repositories = [];
+    $skipped = [];
+
+    foreach ($repos as $repoPath) {
+        $relPath = formatRepoLabel($repoPath, $corpusDir);
+        $url = getRemoteUrl($repoPath, $defaults['remote'], $timeout);
+        if (null === $url || !isValidRepoUrl($url)) {
+            $skipped[] = $relPath;
+            continue;
+        }
+
+        $repositories[$relPath] = [
+            'url' => normalizeCloneUrl($url, $defaults['protocol']),
+            'branch' => getCurrentBranch($repoPath, $timeout),
+            'depth' => $defaults['depth'],
+        ];
+    }
+
+    ksort($repositories, \SORT_NATURAL | \SORT_FLAG_CASE);
+
+    return ['defaults' => $defaults, 'repositories' => $repositories, 'skipped' => $skipped];
+}
+
+function getRemoteUrl(string $repoPath, string $remote, int $timeout): ?string
+{
+    $result = runGit($repoPath, ['remote', 'get-url', $remote], $timeout);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $url = trim($result['output']);
+
+    return '' === $url ? null : $url;
+}
+
+/**
+ * Derive "vendor/repo" style target paths from a clone URL.
+ */
+function deriveTargetPath(string $url, array $taken): string
+{
+    $path = preg_replace('~^(?:https?://|ssh://|git://)[^/]+/~', '', $url) ?? $url;
+    $path = preg_replace('~^git@[^:]+:~', '', $path) ?? $path;
+    $path = preg_replace('~\.git$~', '', $path) ?? $path;
+    $path = trim($path, '/');
+
+    $segments = array_values(array_filter(explode('/', $path), static fn (string $s): bool => '' !== $s));
+    if ([] === $segments) {
+        throw new RuntimeException(sprintf('Unable to derive a target path from %s.', $url));
+    }
+
+    $name = normalizeManifestPath(end($segments));
+    if (!isset($taken[$name])) {
+        return $name;
+    }
+
+    if (\count($segments) >= 2) {
+        $nested = normalizeManifestPath($segments[\count($segments) - 2].'/'.$name);
+        if (!isset($taken[$nested])) {
+            return $nested;
+        }
+    }
+
+    return $name;
+}
+
+/**
+ * @param array{url: string, branch: ?string, depth: int} $entry
+ *
+ * @return array{path: string, status: string, output: string, command: string, code: int, log: array<string>}
+ */
+function cloneRepo(string $relPath, array $entry, string $corpusDir, bool $debug, int $timeout): array
+{
+    $target = $corpusDir.\DIRECTORY_SEPARATOR.$relPath;
+    $log = [];
+
+    $result = static fn (string $status, string $output, string $command, int $code): array => [
+        'path' => $target,
+        'status' => $status,
+        'output' => $output,
+        'command' => $command,
+        'code' => $code,
+        'log' => $log,
+    ];
+
+    if (is_dir($target.'/.git')) {
+        return $result('SKIP', 'Already cloned.', 'N/A', 0);
+    }
+
+    if (is_dir($target) && [] !== array_diff((array) (scandir($target) ?: []), ['.', '..'])) {
+        return $result('FAIL', 'Target directory exists and is not empty.', 'N/A', 1);
+    }
+
+    $parent = \dirname($target);
+    if (!is_dir($parent) && !mkdir($parent, 0o775, true) && !is_dir($parent)) {
+        return $result('FAIL', sprintf('Unable to create directory %s.', $parent), 'N/A', 1);
+    }
+
+    $args = ['clone', '--quiet'];
+    if ($entry['depth'] > 0) {
+        $args[] = '--depth';
+        $args[] = (string) $entry['depth'];
+        $args[] = '--single-branch';
+    }
+    if (null !== $entry['branch']) {
+        $args[] = '--branch';
+        $args[] = $entry['branch'];
+    }
+    $args[] = '--';
+    $args[] = $entry['url'];
+    $args[] = $target;
+
+    $command = 'git '.implode(' ', $args);
+    $log[] = $command;
+
+    $clone = runGit($corpusDir, $args, $timeout);
+    if (0 !== $clone['code']) {
+        return $result('FAIL', $clone['output'], $command, $clone['code']);
+    }
+
+    return $result('OK', 'Cloned into '.$relPath.'.', $command, 0);
+}
+
+/**
+ * Generic worker pool used for cloning; falls back to sequential execution.
+ *
+ * @param array<int, mixed> $items
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function runJobsParallel(array $items, int $jobs, callable $task, callable $onComplete): array
+{
+    $results = [];
+    $queue = $items;
+    /** @var array<int, array{tmp: string, item: mixed}> $active */
+    $active = [];
+    $completed = 0;
+    $total = \count($items);
+
+    while ($queue || $active) {
+        while (\count($active) < $jobs && $queue) {
+            $item = array_shift($queue);
+            $tmp = 1 === $jobs ? false : tempnam(sys_get_temp_dir(), 'corpus_');
+            $pid = false === $tmp ? -1 : pcntl_fork();
+
+            if (-1 === $pid) {
+                if (false !== $tmp) {
+                    @unlink($tmp);
+                }
+                $results[] = $task($item);
+                $completed++;
+                $onComplete($completed, $total);
+                continue;
+            }
+
+            if (0 === $pid) {
+                file_put_contents((string) $tmp, serialize($task($item)));
+                exit(0);
+            }
+
+            $active[$pid] = ['tmp' => (string) $tmp, 'item' => $item];
+        }
+
+        if ([] === $active) {
+            break;
+        }
+
+        $pid = pcntl_waitpid(-1, $status);
+        if ($pid > 0 && isset($active[$pid])) {
+            $info = $active[$pid];
+            unset($active[$pid]);
+
+            $data = @file_get_contents($info['tmp']);
+            @unlink($info['tmp']);
+            $decoded = false === $data ? false : @unserialize($data);
+
+            $results[] = \is_array($decoded) ? $decoded : [
+                'path' => \is_string($info['item']) ? $info['item'] : 'unknown',
+                'status' => 'FAIL',
+                'output' => 'Worker produced no result.',
+                'command' => 'N/A',
+                'code' => 1,
+                'log' => [],
+            ];
+
+            $completed++;
+            $onComplete($completed, $total);
+        }
+    }
+
+    return $results;
 }
 
 // ---------------------------------------------------------------------------
@@ -801,6 +1276,239 @@ function printResult(array $result, string $corpusDir, ConsoleStyle $io, bool $d
 }
 
 // ---------------------------------------------------------------------------
+// Manifest commands
+// ---------------------------------------------------------------------------
+
+/**
+ * @param array<string, array{url: string, branch: ?string, depth: int}> $repositories
+ *
+ * @return array<string, array{url: string, branch: ?string, depth: int}>
+ */
+function missingRepositories(array $repositories, string $corpusDir): array
+{
+    $missing = [];
+    foreach ($repositories as $relPath => $entry) {
+        if (!is_dir($corpusDir.\DIRECTORY_SEPARATOR.$relPath.'/.git')) {
+            $missing[$relPath] = $entry;
+        }
+    }
+
+    return $missing;
+}
+
+/**
+ * @param array<string, array{url: string, branch: ?string, depth: int}> $missing
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function cloneMissing(
+    array $missing,
+    int $jobs,
+    string $corpusDir,
+    bool $debug,
+    int $timeout,
+    bool $dynamicProgress,
+): array {
+    $items = [];
+    foreach ($missing as $relPath => $entry) {
+        $items[] = ['path' => $relPath, 'entry' => $entry];
+    }
+
+    $task = static fn (array $item): array => cloneRepo(
+        $item['path'],
+        $item['entry'],
+        $corpusDir,
+        $debug,
+        $timeout,
+    );
+
+    $onComplete = static function (int $current, int $total) use ($dynamicProgress): void {
+        renderProgress($current, $total, $dynamicProgress, $current >= $total);
+    };
+
+    renderProgress(0, \count($items), $dynamicProgress);
+    $results = runJobsParallel($items, $jobs, $task, $onComplete);
+
+    usort($results, static fn (array $a, array $b): int => strcmp($a['path'] ?? '', $b['path'] ?? ''));
+
+    return $results;
+}
+
+function writeManifestCommand(string $manifestFile, string $corpusDir, int $timeout, ConsoleStyle $io): int
+{
+    $defaults = is_file($manifestFile) ? loadManifest($manifestFile)['defaults'] : MANIFEST_DEFAULTS;
+    $repos = findGitRepos($corpusDir);
+
+    if ([] === $repos) {
+        $io->error('No git repositories found in corpus/; refusing to write an empty manifest.');
+
+        return 1;
+    }
+
+    $built = buildManifestFromDisk($corpusDir, $repos, $defaults, $timeout);
+    saveManifest($manifestFile, ['defaults' => $built['defaults'], 'repositories' => $built['repositories']]);
+
+    $io->info(sprintf('Wrote %d repositories to %s.', \count($built['repositories']), $manifestFile));
+    foreach ($built['skipped'] as $relPath) {
+        $io->warn(sprintf('Skipped %s: no usable "%s" remote.', $relPath, $defaults['remote']));
+    }
+
+    return 0;
+}
+
+/**
+ * @param array<string, mixed> $options
+ */
+function addCommand(
+    array $options,
+    string $manifestFile,
+    string $corpusDir,
+    bool $debug,
+    int $timeout,
+    ConsoleStyle $io,
+): int {
+    /** @var array<int, string> $urls */
+    $urls = $options['add'];
+    $as = \is_string($options['as']) ? normalizeManifestPath($options['as']) : null;
+
+    if (null !== $as && \count($urls) > 1) {
+        $io->error('The --as option cannot be combined with several --add options.');
+
+        return 1;
+    }
+
+    $depth = null;
+    if (\is_string($options['depth'])) {
+        if (!ctype_digit($options['depth'])) {
+            $io->error('The --depth value must be a non-negative integer.');
+
+            return 1;
+        }
+        $depth = (int) $options['depth'];
+    }
+
+    $manifest = loadManifest($manifestFile);
+    $failed = 0;
+
+    foreach ($urls as $url) {
+        $url = trim($url);
+        if (!isValidRepoUrl($url)) {
+            $io->error(sprintf('Unsupported repository URL: %s', $url));
+            $failed++;
+            continue;
+        }
+
+        $relPath = $as ?? deriveTargetPath($url, $manifest['repositories']);
+
+        if (isset($manifest['repositories'][$relPath]) && $manifest['repositories'][$relPath]['url'] !== $url) {
+            $io->error(sprintf('The manifest already maps %s to %s; pass --as to pick another path.', $relPath, $manifest['repositories'][$relPath]['url']));
+            $failed++;
+            continue;
+        }
+
+        $entry = [
+            'url' => normalizeCloneUrl($url, $manifest['defaults']['protocol']),
+            'branch' => \is_string($options['branch']) && '' !== trim($options['branch']) ? trim($options['branch']) : null,
+            'depth' => $depth ?? $manifest['defaults']['depth'],
+        ];
+
+        $result = cloneRepo($relPath, $entry, $corpusDir, $debug, $timeout);
+        printResult($result, $corpusDir, $io, $debug);
+
+        if ('FAIL' === $result['status']) {
+            $failed++;
+            continue;
+        }
+
+        $entry['branch'] ??= getCurrentBranch($corpusDir.\DIRECTORY_SEPARATOR.$relPath, $timeout);
+        $manifest['repositories'][$relPath] = $entry;
+        saveManifest($manifestFile, $manifest);
+
+        $io->info(sprintf('  Added %s to %s.', $relPath, basename($manifestFile)));
+    }
+
+    return $failed > 0 ? 1 : 0;
+}
+
+/**
+ * @param array<string, array{url: string, branch: ?string, depth: int}> $repositories
+ * @param array<string>                                                  $repos
+ */
+function printManifestDrift(array $repositories, array $repos, string $corpusDir, ConsoleStyle $io): void
+{
+    $untracked = [];
+    foreach ($repos as $repoPath) {
+        $relPath = formatRepoLabel($repoPath, $corpusDir);
+        if (!isset($repositories[$relPath])) {
+            $untracked[] = $relPath;
+        }
+    }
+
+    if ([] === $untracked) {
+        return;
+    }
+
+    $io->info('');
+    $io->warn(sprintf('%d repositories on disk are not in the manifest; run corpus/update --write-manifest.', \count($untracked)));
+    foreach (\array_slice($untracked, 0, 10) as $relPath) {
+        $io->info('  - '.$relPath);
+    }
+    if (\count($untracked) > 10) {
+        $io->info('  ... and '.(\count($untracked) - 10).' more');
+    }
+}
+
+/**
+ * @param array<int, array<string, mixed>> $results
+ */
+function countFailures(array $results): int
+{
+    $failed = 0;
+    foreach ($results as $result) {
+        if ('OK' !== $result['status'] && 'SKIP' !== $result['status']) {
+            $failed++;
+        }
+    }
+
+    return $failed;
+}
+
+/**
+ * @param array<int, array<string, mixed>> $results
+ */
+function printSummary(array $results, float $elapsed, ConsoleStyle $io): void
+{
+    $ok = 0;
+    $failed = 0;
+    $skipped = 0;
+    $timedOut = 0;
+
+    foreach ($results as $result) {
+        switch ($result['status']) {
+            case 'OK':
+                $ok++;
+                break;
+            case 'SKIP':
+                $skipped++;
+                break;
+            default:
+                if (-1 === ($result['code'] ?? 0)) {
+                    $timedOut++;
+                }
+                $failed++;
+                break;
+        }
+    }
+
+    $io->info('');
+    $io->info($io->bold('Summary'));
+    $io->info('Updated  : '.$ok);
+    $io->info('Failed   : '.$failed.($timedOut > 0 ? ' ('.$timedOut.' timed out)' : ''));
+    $io->info('Skipped  : '.$skipped);
+    $io->info('Elapsed  : '.round($elapsed, 1).'s');
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -828,13 +1536,6 @@ function main(array $argv): int
         $io->error('Unable to resolve corpus directory.');
 
         return 1;
-    }
-
-    $repos = findGitRepos($corpusDir);
-    if ([] === $repos) {
-        $io->info('No git repositories found in corpus/.');
-
-        return 0;
     }
 
     // --- Resolve jobs ---
@@ -878,6 +1579,27 @@ function main(array $argv): int
 
     $debug = (bool) $options['debug'];
     $force = (bool) $options['force'];
+    $manifestFile = manifestPath($corpusDir);
+
+    // --- Manifest-only commands ---
+    try {
+        if ($options['write-manifest']) {
+            return writeManifestCommand($manifestFile, $corpusDir, $timeout, $io);
+        }
+
+        if ([] !== $options['add']) {
+            return addCommand($options, $manifestFile, $corpusDir, $debug, $timeout, $io);
+        }
+
+        $manifest = loadManifest($manifestFile);
+    } catch (RuntimeException $e) {
+        $io->error($e->getMessage());
+
+        return 1;
+    }
+
+    $missing = missingRepositories($manifest['repositories'], $corpusDir);
+    $repos = findGitRepos($corpusDir);
 
     $io->header('Corpus Updater');
     $io->info('Runtime : PHP '.PHP_VERSION);
@@ -886,11 +1608,41 @@ function main(array $argv): int
     $io->info('Timeout : '.$timeout.'s per repo');
     $io->info('Force   : '.($force ? 'yes' : 'no'));
     $io->info('Debug   : '.($debug ? 'on' : 'off'));
+    $io->info('Manifest: '.(is_file($manifestFile)
+        ? \count($manifest['repositories']).' entries'.([] === $missing ? '' : ', '.\count($missing).' missing on disk')
+        : 'not found (run corpus/update --write-manifest)'));
     $io->info('Repos   : '.\count($repos));
     $io->info('');
 
     $dynamicProgress = canUseDynamicProgress() && !$debug;
     $startTime = microtime(true);
+
+    // --- Clone phase ---
+    $cloneResults = [];
+    if ($options['clone'] && [] !== $missing) {
+        $io->info($io->bold('Cloning '.\count($missing).' missing repositories'));
+        $cloneResults = cloneMissing($missing, $jobs, $corpusDir, $debug, $timeout, $dynamicProgress);
+        $io->info('');
+
+        foreach ($cloneResults as $result) {
+            printResult($result, $corpusDir, $io, $debug);
+        }
+
+        $io->info('');
+        $repos = findGitRepos($corpusDir);
+    }
+
+    if ($options['clone-only']) {
+        printSummary($cloneResults, microtime(true) - $startTime, $io);
+
+        return countFailures($cloneResults) > 0 ? 1 : 0;
+    }
+
+    if ([] === $repos) {
+        $io->info('No git repositories found in corpus/.');
+
+        return countFailures($cloneResults) > 0 ? 1 : 0;
+    }
 
     if (1 === $jobs) {
         // Sequential: print each result immediately
@@ -937,36 +1689,11 @@ function main(array $argv): int
     }
 
     // --- Summary ---
-    $ok = 0;
-    $failed = 0;
-    $skipped = 0;
-    $timedOut = 0;
+    $results = array_merge($cloneResults, $results);
+    printSummary($results, $elapsed, $io);
+    printManifestDrift($manifest['repositories'], $repos, $corpusDir, $io);
 
-    foreach ($results as $result) {
-        switch ($result['status']) {
-            case 'OK':
-                $ok++;
-                break;
-            case 'SKIP':
-                $skipped++;
-                break;
-            default:
-                if (-1 === ($result['code'] ?? 0)) {
-                    $timedOut++;
-                }
-                $failed++;
-                break;
-        }
-    }
-
-    $io->info('');
-    $io->info($io->bold('Summary'));
-    $io->info('Updated  : '.$ok);
-    $io->info('Failed   : '.$failed.($timedOut > 0 ? ' ('.$timedOut.' timed out)' : ''));
-    $io->info('Skipped  : '.$skipped);
-    $io->info('Elapsed  : '.round($elapsed, 1).'s');
-
-    return $failed > 0 ? 1 : 0;
+    return countFailures($results) > 0 ? 1 : 0;
 }
 
 exit(main($argv));
