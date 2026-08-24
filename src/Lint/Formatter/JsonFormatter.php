@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\RegexLintReport;
 
 /**
@@ -56,9 +57,55 @@ final class JsonFormatter extends AbstractOutputFormatter
 
             $entry = $result;
             unset($entry['problems']);
-            $normalized[] = $entry;
+            $normalized[] = $this->escapeStrings($entry);
         }
 
         return $normalized;
+    }
+
+    /**
+     * Byte-mode patterns are not valid UTF-8, which json_encode() rejects.
+     * Every string of the report — including the ones held by issue and
+     * optimization objects — is escaped the way the console renders them, so
+     * the report stays encodable and the patterns remain readable.
+     *
+     * @template TKey of array-key
+     *
+     * @param array<TKey, mixed> $value
+     *
+     * @return array<TKey, mixed>
+     */
+    private function escapeStrings(array $value): array
+    {
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->escapeValue($item);
+        }
+
+        return $value;
+    }
+
+    private function escapeValue(mixed $value): mixed
+    {
+        if (\is_string($value)) {
+            return DisplayEscaper::escape($value);
+        }
+
+        if (\is_array($value)) {
+            return $this->escapeStrings($value);
+        }
+
+        if ($value instanceof \JsonSerializable) {
+            return $this->escapeValue($value->jsonSerialize());
+        }
+
+        if ($value instanceof \BackedEnum) {
+            return $value->value;
+        }
+
+        if (\is_object($value)) {
+            return $this->escapeStrings(get_object_vars($value));
+        }
+
+        return $value;
     }
 }
