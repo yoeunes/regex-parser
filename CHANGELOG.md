@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
 ### Fixed
+- PCRE conformance, found by linting the corpus: `[[:^word:]]` is accepted (PCRE negates every POSIX class it supports, and only `word` was rejected), and a `#` comment under `/x` no longer lets its `[` or `(` be tokenized as regex syntax — `/a # [ x\nb/x` compiles in PCRE but was reported as an unclosed character class.
 - `--format=json` no longer dies with "Failed to encode JSON" on byte-mode patterns: every string of the report, including the ones held by issue and optimization objects, is escaped the way the console renders them. The checkstyle and JUnit formatters used to silently drop such values, since `htmlspecialchars()` returns an empty string on invalid UTF-8.
 - Reported patterns keep their non-ASCII characters instead of being rewritten as octal escapes. `/《붉은별》/iu` used to be printed as `/\343\200\212…/iu`, which is a different pattern under `/u` (`\343` is `ã`, so the `i` flag stops being useless) and could not be copied back into PHP. Control bytes are still escaped, and invalid UTF-8 still falls back to full byte escaping.
 - Inline flag diagnostics no longer claim a flag is "already set globally" when it was set by an earlier inline flag group: `/^(?U)a(?U)b/` now reports the second `(?U)` against the first one.

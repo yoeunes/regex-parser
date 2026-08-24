@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
@@ -317,11 +318,35 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(a)\1/');
     }
 
-    public function test_throws_on_negated_posix_word_class(): void
+    #[DoesNotPerformAssertions]
+    public function test_accepts_negated_posix_word_class(): void
     {
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('Negation of POSIX class "word" is not supported.');
+        // PCRE negates every POSIX class it supports, "word" included.
         $this->validate('/[[:^word:]]/');
+    }
+
+    #[DataProvider('providePosixClasses')]
+    public function test_negated_posix_classes_match_pcre(string $class): void
+    {
+        $pattern = \sprintf('/[[:^%s:]]/', $class);
+
+        $this->assertNotFalse(@preg_match($pattern, ''), 'PCRE must accept the pattern');
+
+        $this->validate($pattern);
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function providePosixClasses(): iterable
+    {
+        foreach ([
+            'alnum', 'alpha', 'ascii', 'blank', 'cntrl', 'digit', 'graph',
+            'lower', 'print', 'punct', 'space', 'upper', 'word', 'xdigit',
+        ] as $class) {
+            yield $class => [$class];
+        }
     }
 
     private function validate(string $pattern): void

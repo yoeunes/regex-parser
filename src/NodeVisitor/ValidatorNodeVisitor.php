@@ -604,13 +604,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        if ($isNegated && 'word' === $class) {
-            $this->raiseSemanticError(
-                'Negation of POSIX class "word" is not supported.',
-                $node->startPosition,
-                'regex.posix.word_negation',
-            );
-        }
     }
 
     /**

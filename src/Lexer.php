@@ -145,6 +145,8 @@ final class Lexer
 
     private bool $byteMode = false;
 
+    private bool $extendedMode = false;
+
     /**
      * @var array<int>
      */
@@ -167,6 +169,7 @@ final class Lexer
 
         $this->pattern = $pattern;
         $this->length = \strlen($this->pattern);
+        $this->extendedMode = str_contains($flags, 'x');
         $this->resetState();
 
         /** @var array<Token> $tokens */
@@ -256,7 +259,41 @@ final class Lexer
             return true;
         }
 
+        if ($this->extendedMode && !$this->inCharClass && '#' === ($this->pattern[$this->position] ?? '')) {
+            $this->consumeExtendedComment($tokens);
+
+            return true;
+        }
+
         return false;
+    }
+
+    /**
+     * Under /x a '#' starts a comment that runs to the end of the line, so its
+     * content is text: '[', '(' and friends must not be tokenized as regex
+     * syntax. The comment is emitted as literals — '#', the body and the
+     * closing newline — which is what the parser turns into a CommentNode.
+     *
+     * @param array<Token> $tokens
+     */
+    private function consumeExtendedComment(array &$tokens): void
+    {
+        $tokens[] = new Token(TokenType::T_LITERAL, '#', $this->position);
+        $this->position++;
+
+        $end = strpos($this->pattern, "\n", $this->position);
+        $bodyEnd = false === $end ? $this->length : $end;
+
+        if ($bodyEnd > $this->position) {
+            $body = substr($this->pattern, $this->position, $bodyEnd - $this->position);
+            $tokens[] = new Token(TokenType::T_LITERAL, $body, $this->position);
+            $this->position = $bodyEnd;
+        }
+
+        if (false !== $end) {
+            $tokens[] = new Token(TokenType::T_LITERAL, "\n", $this->position);
+            $this->position++;
+        }
     }
 
     /**
