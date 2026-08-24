@@ -35,7 +35,7 @@ final class RoundTripTest extends TestCase
         yield ['/abc/'];
         yield ['/^test$/i'];
         // The compiler escapes the hyphen for safety
-        yield ['/[a-z0-9_-]+/', '/[a-z0-9_\-]+/'];
+        yield ['/[a-z0-9_-]+/', '/[a-z0-9_-]+/'];
         yield ['/(?:foo|bar){1,2}?/s'];
         yield ['/(?<name>\w+)/'];
         yield ['/\\/home\\/user/'];

@@ -89,15 +89,30 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      */
     private ?string $source = null;
 
+    /**
+     * Cached \Q...\E regions of $source.
+     *
+     * @var array<array{0: int, 1: int}>|null
+     */
+    private ?array $quotedSpans = null;
+
     private int $indentLevel;
 
-    public function __construct(private readonly bool $pretty = false, /**
+    public function __construct(
+        private readonly bool $pretty = false,
+        /**
      * When true, comments in extended (/x) mode are collapsed to a generic
      * "(?#...)" placeholder. This is useful for generating a normalized
      * representation of verbose regexes without leaking full comment text.
      */
-        private readonly bool $collapseExtendedComments = false)
-    {
+        private readonly bool $collapseExtendedComments = false,
+        /**
+         * When false, escapes and comment syntax are normalized instead of
+         * being given back the way the pattern spelled them. Comparing two
+         * patterns needs that normalized form.
+         */
+        private readonly bool $preserveSpelling = true
+    ) {
         $this->indentLevel = 0;
     }
 
@@ -109,6 +124,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->flags = '';
         $this->indentLevel = 0;
         $this->source = null;
+        $this->quotedSpans = null;
     }
 
     #[\Override]
@@ -117,7 +133,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
         $this->closingDelimiter = $this->getClosingDelimiter($node->delimiter);
-        $this->source = $this->pretty || $this->collapseExtendedComments ? null : $node->source;
+        $this->source = $this->pretty || $this->collapseExtendedComments || !$this->preserveSpelling
+            ? null
+            : $node->source;
+        $this->quotedSpans = null;
 
         $body = $node->pattern->accept($this);
 
@@ -302,11 +321,11 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
         // Special case for closing bracket outside char class
         if (!$this->inCharClass && ']' === $value && ']' !== $this->closingDelimiter) {
-            return $value;
+            return $this->asWritten($node, $value, $value);
         }
 
         // Intelligent escaping with optimized character processing
-        return $this->escapeString($value);
+        return $this->asWritten($node, $this->escapeString($value), $value);
     }
 
     #[\Override]
@@ -363,11 +382,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(BackrefNode $node): string
     {
-        if (ctype_digit($node->ref)) {
-            return '\\'.$node->ref;
+        $compiled = ctype_digit($node->ref) ? '\\'.$node->ref : $node->ref;
+
+        // "(?P=name)", "\k<name>" and "\k{name}" are the same reference, so
+        // the pattern keeps the syntax it was written with.
+        $written = $this->writtenText($node);
+        if (null !== $written && $this->referenceName($written) === $this->referenceName($compiled)) {
+            return $written;
         }
 
-        return $node->ref;
+        return $compiled;
     }
 
     #[\Override]
@@ -375,6 +399,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         $rep = $node->originalRepresentation;
         $unicodeMode = str_contains($this->flags, 'u');
+
+        // A code point can be spelled in many ways — "\a", "\x07", the raw
+        // character — and they are all valid where the pattern already used
+        // them, so the original spelling wins over a normalized one.
+        $written = $this->writtenText($node);
+        if (null !== $written && $node->codePoint === $this->codePointOf($written)) {
+            return $written;
+        }
 
         // If it's already an escape sequence, return as is
         if (str_starts_with($rep, '\\')) {
@@ -542,20 +574,24 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
 
+        // An assertion condition brings its own parentheses: PCRE spells it
+        // "(?(?<!x)yes|no)", not "(?((?<!x))yes|no)".
+        $condition = $this->isAssertionCondition($node->condition) ? $cond : '('.$cond.')';
+
         if ($this->pretty) {
             $indent = str_repeat(' ', $this->indentLevel * 4);
             if ('' === $no) {
-                return $indent.'(?('.$cond.")\n".$yes."\n".$indent.')';
+                return $indent.'(?'.$condition."\n".$yes."\n".$indent.')';
             }
 
-            return $indent.'(?('.$cond.")\n".$yes."\n".$indent.'|'.$no."\n".$indent.')';
+            return $indent.'(?'.$condition."\n".$yes."\n".$indent.'|'.$no."\n".$indent.')';
         }
 
         if ('' === $no) {
-            return '(?('.$cond.')'.$yes.')';
+            return '(?'.$condition.$yes.')';
         }
 
-        return '(?('.$cond.')'.$yes.'|'.$no.')';
+        return '(?'.$condition.$yes.'|'.$no.')';
     }
 
     #[\Override]
@@ -616,6 +652,156 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Give back the spelling the pattern was written with.
+     *
+     * Escaping punctuation is optional in many places — "\{" and "{", "\-"
+     * and "-" — and normalizing it would rewrite a pattern the author did not
+     * ask to have rewritten. The source is only trusted when it says the same
+     * thing as the compiled form, escaping aside, which keeps a stale position
+     * from ever changing what the pattern matches.
+     */
+    private function asWritten(NodeInterface $node, string $compiled, ?string $value = null): string
+    {
+        $written = $this->writtenText($node);
+        if (null === $written) {
+            return $compiled;
+        }
+
+        if ($this->withoutOptionalEscapes($written) === $this->withoutOptionalEscapes($compiled)) {
+            return $written;
+        }
+
+        // The compiler may also spell a character as an escape — "\x07" for
+        // "\a", "\xC2\xAB" for "«" — while the pattern spelled it plainly.
+        return null !== $value && $this->spells($written, $value) ? $written : $compiled;
+    }
+
+    /**
+     * Whether a piece of source text stands for exactly this literal.
+     */
+    private function spells(string $written, string $value): bool
+    {
+        if ($this->withoutOptionalEscapes($written) === $value) {
+            return true;
+        }
+
+        $codePoint = $this->codePointOf($written);
+
+        return null !== $codePoint && $codePoint === $this->codePointOf($value);
+    }
+
+    /**
+     * The source text a node was parsed from, when it is available and its
+     * offsets still fit the source.
+     */
+    private function writtenText(NodeInterface $node): ?string
+    {
+        if (null === $this->source) {
+            return null;
+        }
+
+        $start = $node->getStartPosition();
+        $length = $node->getEndPosition() - $start;
+        if ($length <= 0 || $start < 0 || $start + $length > \strlen($this->source)) {
+            return null;
+        }
+
+        // Text quoted by \Q...\E means something else once the quoting is
+        // gone: "\Q[a-z]\E" compiles to an escaped literal, not to a class.
+        foreach ($this->quotedSpans() as [$from, $to]) {
+            if ($start < $to && $from < $start + $length) {
+                return null;
+            }
+        }
+
+        return substr($this->source, $start, $length);
+    }
+
+    /**
+     * Offsets of the \Q...\E regions of the source.
+     *
+     * @return array<array{0: int, 1: int}>
+     */
+    private function quotedSpans(): array
+    {
+        if (null !== $this->quotedSpans) {
+            return $this->quotedSpans;
+        }
+
+        $spans = [];
+        $source = (string) $this->source;
+        $offset = 0;
+
+        while (false !== ($start = strpos($source, '\\Q', $offset))) {
+            $end = strpos($source, '\\E', $start + 2);
+            $stop = false === $end ? \strlen($source) : $end + 2;
+            $spans[] = [$start, $stop];
+            $offset = $stop;
+        }
+
+        return $this->quotedSpans = $spans;
+    }
+
+    /**
+     * Drop the backslashes that only escape punctuation, leaving escapes such
+     * as "\d" or "\n" — which mean something else entirely — alone.
+     */
+    private function withoutOptionalEscapes(string $text): string
+    {
+        return preg_replace('/\\\\([^a-zA-Z0-9])/', '$1', $text) ?? $text;
+    }
+
+    /**
+     * The group a backreference points at, whatever syntax spells it.
+     */
+    private function referenceName(string $reference): ?string
+    {
+        $matches = [];
+        $syntax = '/^(?:\\(\\?P=|\\\\k[<{\']?|\\\\g[<{\']?|\\\\)([A-Za-z_][A-Za-z0-9_]*|[0-9]+)/';
+
+        return 1 === preg_match($syntax, $reference, $matches) ? $matches[1] : null;
+    }
+
+    /**
+     * Read back the code point a single-character spelling stands for, or null
+     * when the text is not one.
+     */
+    private function codePointOf(string $text): ?int
+    {
+        $named = ['\\a' => 7, '\\e' => 27, '\\f' => 12, '\\n' => 10, '\\r' => 13, '\\t' => 9];
+        if (isset($named[$text])) {
+            return $named[$text];
+        }
+
+        $matches = [];
+        if (1 === preg_match('/^\\\\[xu]\\{?([0-9a-fA-F]{1,8})\\}?$/', $text, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        if (1 === preg_match('/^\\\\(?:o\\{([0-7]+)\\}|([0-7]{1,3}))$/', $text, $matches)) {
+            return (int) octdec($matches[1] ?: ($matches[2] ?? ''));
+        }
+
+        if (1 === preg_match('/^.$/us', $text)) {
+            $codePoint = mb_ord($text, 'UTF-8');
+
+            return false === $codePoint ? null : $codePoint;
+        }
+
+        return 1 === \strlen($text) ? \ord($text) : null;
+    }
+
+    private function isAssertionCondition(NodeInterface $condition): bool
+    {
+        return $condition instanceof GroupNode && \in_array($condition->type, [
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+        ], true);
     }
 
     /**
@@ -812,7 +998,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     private function compileCharClassNode(NodeInterface $node, ?NodeInterface $next): string
     {
         if ($node instanceof LiteralNode && '[' === $node->value) {
-            return $this->shouldEscapeCharClassOpen($next) ? '\\[' : '[';
+            return $this->writtenText($node) ?? ($this->shouldEscapeCharClassOpen($next) ? '\\[' : '[');
         }
 
         if ($node instanceof RangeNode) {

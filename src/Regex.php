@@ -341,8 +341,11 @@ final readonly class Regex
         }
 
         $pretty = str_contains($ast->flags, 'x');
-        $originalCompiled = $ast->accept(new CompilerNodeVisitor($pretty));
-        $optimizedCompiled = $optimizedAst->accept(new CompilerNodeVisitor($pretty));
+        // Both sides are normalized so that a pattern only counts as optimized
+        // when its structure changed, not when it merely spells an escape
+        // differently.
+        $originalCompiled = $ast->accept(new CompilerNodeVisitor($pretty, preserveSpelling: false));
+        $optimizedCompiled = $optimizedAst->accept(new CompilerNodeVisitor($pretty, preserveSpelling: false));
 
         [$originalPattern] = PatternParser::extractPatternAndFlags($originalCompiled, $this->getParserPhpVersionId());
         [$optimizedPatternPart] = PatternParser::extractPatternAndFlags($optimizedCompiled, $this->getParserPhpVersionId());

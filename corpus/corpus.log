@@ -2017,7 +2017,7 @@
 
   corpus/drupal/core/lib/Drupal/Core/Mail/MailFormatHelper.php:64:28
       → /(?(?<!^--) +\n|  +\n)/m
-     WARN  Flag 'm' is useless: pattern '/(?((?<!^--)) +\n|  +\n)/m' contains no anchors.
+     WARN  Flag 'm' is useless: pattern '/(?(?<!^--) +\n|  +\n)/m' contains no anchors.
 
   corpus/drupal/core/lib/Drupal/Core/Template/ComponentNodeVisitor.php:120:21
       → /^[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*:[a-z]([a-zA-Z0-9_-]*[a-zA-Z0-9])*$/
