@@ -118,6 +118,12 @@ final class Lexer
     private const PATTERN_UNICODE_PROP_NEGATION_START = 1; // After ^
     private const ERROR_CONTEXT_LENGTH = 10;
 
+    /**
+     * Modifier letters accepted inside "(?...)", mirroring Parser::INLINE_FLAG_CHARS
+     * plus the PCRE2 10.43 "r" modifier.
+     */
+    private const INLINE_FLAG_LETTERS = 'imsxUJnudr';
+
     // Precompiled regex patterns for maximum performance (version-aware)
     /**
      * @var array<int, string>
@@ -146,6 +152,13 @@ final class Lexer
     private bool $byteMode = false;
 
     private bool $extendedMode = false;
+
+    /**
+     * Values of $extendedMode saved by each open group, restored when it closes.
+     *
+     * @var array<bool>
+     */
+    private array $extendedModeStack = [];
 
     /**
      * @var array<int>
@@ -232,6 +245,7 @@ final class Lexer
     private function resetState(): void
     {
         $this->position = 0;
+        $this->extendedModeStack = [];
         $this->inCharClass = false;
         $this->inQuoteMode = false;
         $this->inCommentMode = false;
@@ -414,6 +428,10 @@ final class Lexer
         int $startPos,
         array $currentTokens
     ): ?Token {
+        if (!$this->inCharClass) {
+            $this->trackExtendedModeScope($type);
+        }
+
         return match ($type) {
             TokenType::T_CHAR_CLASS_OPEN => $this->handleCharClassOpen($startPos, $currentTokens),
             TokenType::T_CHAR_CLASS_CLOSE => $this->closeCharClass($startPos, $currentTokens),
@@ -421,6 +439,89 @@ final class Lexer
             TokenType::T_QUOTE_MODE_START => $this->openQuoteMode($startPos),
             default => $this->handleContextualLiteral($type, $matchedValue, $startPos, $currentTokens),
         };
+    }
+
+    /**
+     * Follow the /x setting through the group structure, so that "(?x)" and
+     * "(?x:...)" turn '#' comments on the way PCRE does: "(?x)" holds until
+     * the end of the enclosing group, "(?x:...)" only inside its own group.
+     */
+    private function trackExtendedModeScope(TokenType $type): void
+    {
+        if (TokenType::T_GROUP_CLOSE === $type) {
+            $this->extendedMode = array_pop($this->extendedModeStack) ?? $this->extendedMode;
+
+            return;
+        }
+
+        if (TokenType::T_GROUP_OPEN === $type) {
+            $this->extendedModeStack[] = $this->extendedMode;
+
+            return;
+        }
+
+        if (TokenType::T_GROUP_MODIFIER_OPEN !== $type) {
+            return;
+        }
+
+        $inlineFlags = $this->readInlineFlags();
+        if (null === $inlineFlags) {
+            $this->extendedModeStack[] = $this->extendedMode;
+
+            return;
+        }
+
+        [$flags, $scoped] = $inlineFlags;
+        $updated = $this->applyInlineFlags($flags);
+
+        // "(?x)" survives its own closing parenthesis: push the new value so
+        // the pop performed by ")" leaves it in place. "(?x:...)" pushes the
+        // previous value instead, which the pop restores.
+        $this->extendedModeStack[] = $scoped ? $this->extendedMode : $updated;
+        $this->extendedMode = $updated;
+    }
+
+    /**
+     * Read the modifier letters that follow "(?", if the group is an inline
+     * flag group at all.
+     *
+     * @return array{0: string, 1: bool}|null the flag string, and whether the
+     *                                        group is scoped with ':'
+     */
+    private function readInlineFlags(): ?array
+    {
+        if (!preg_match('/\G(\^?[a-zA-Z]*(?:-[a-zA-Z]+)?)([:)])/A', $this->pattern, $matches, 0, $this->position)) {
+            return null;
+        }
+
+        $flags = $matches[1];
+        if ('' === $flags || 1 !== preg_match('/^\^?['.self::INLINE_FLAG_LETTERS.']*(?:-['.self::INLINE_FLAG_LETTERS.']+)?$/', $flags)) {
+            return null;
+        }
+
+        return [$flags, ':' === $matches[2]];
+    }
+
+    private function applyInlineFlags(string $flags): bool
+    {
+        if (str_starts_with($flags, '^')) {
+            // "(?^...)" unsets every modifier that it does not list.
+            $flags = substr($flags, 1);
+
+            return str_contains(explode('-', $flags, 2)[0], 'x');
+        }
+
+        [$set, $unset] = str_contains($flags, '-') ? explode('-', $flags, 2) : [$flags, ''];
+
+        if (str_contains($set, 'x')) {
+            return true;
+        }
+
+        if (str_contains($unset, 'x')) {
+            return false;
+        }
+
+        return $this->extendedMode;
     }
 
     /**

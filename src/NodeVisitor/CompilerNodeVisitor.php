@@ -204,14 +204,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             };
             $closing = ')';
             $this->indentLevel++;
-            $child = $node->child->accept($this);
+            $child = $this->compileGroupChild($node, $flags);
             $this->indentLevel--;
             $indent = str_repeat(' ', $this->indentLevel * 4);
 
             return $indent.$opening."\n".$child."\n".$indent.$closing;
         }
 
-        $child = $node->child->accept($this);
+        $child = $this->compileGroupChild($node, $flags);
 
         return match ($node->type) {
             GroupType::T_GROUP_CAPTURING => '('.$child.')',
@@ -436,7 +436,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitComment(CommentNode $node): string
     {
-        $isExtended = str_contains($this->flags, 'x');
+        // A comment written as "# ..." is extended-mode whatever the pattern
+        // flags say: /x can also be turned on inline with "(?x)".
+        $isExtended = $node->extended || str_contains($this->flags, 'x');
 
         // In normalized mode, collapse all extended (/x) comments to a
         // lightweight inline placeholder so that we preserve structure
@@ -450,7 +452,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         // We still indent them when pretty-printing so they line up with
         // surrounding constructs, but we keep the original "# ..." text and
         // trailing newline intact.
-        if ($isExtended && str_starts_with($node->comment, '#')) {
+        if ($isExtended && ($node->extended || str_starts_with($node->comment, '#'))) {
             if ($this->pretty) {
                 $indent = str_repeat(' ', $this->indentLevel * 4);
                 $lines = explode("\n", rtrim($node->comment, "\n"));
@@ -578,6 +580,55 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Compile the body of a group with the modifiers that are in force inside
+     * it. "(?x:...)" applies only to its own body, while a bare "(?x)" keeps
+     * going until the end of the enclosing group, like PCRE scopes them.
+     */
+    private function compileGroupChild(GroupNode $node, string $flags): string
+    {
+        $previousFlags = $this->flags;
+
+        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type) {
+            $this->flags = $this->withInlineFlags($previousFlags, $flags);
+        }
+
+        $child = $node->child->accept($this);
+
+        if (GroupType::T_GROUP_INLINE_FLAGS !== $node->type || '' !== $child) {
+            $this->flags = $previousFlags;
+        }
+
+        return $child;
+    }
+
+    /**
+     * Apply an inline modifier string such as "x", "-x", "im-sx" or "^i" to
+     * the modifiers currently in force.
+     */
+    private function withInlineFlags(string $current, string $inline): string
+    {
+        if (str_starts_with($inline, '^')) {
+            // "(?^...)" drops every modifier that it does not list.
+            $current = '';
+            $inline = substr($inline, 1);
+        }
+
+        [$set, $unset] = str_contains($inline, '-') ? explode('-', $inline, 2) : [$inline, ''];
+
+        foreach (str_split($unset) as $flag) {
+            $current = str_replace($flag, '', $current);
+        }
+
+        foreach (str_split($set) as $flag) {
+            if ('' !== $flag && !str_contains($current, $flag)) {
+                $current .= $flag;
+            }
+        }
+
+        return $current;
     }
 
     private function normalizeQuantifier(string $quantifier): string

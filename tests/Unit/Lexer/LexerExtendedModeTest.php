@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 use RegexParser\TokenType;
 
@@ -89,5 +90,47 @@ final class LexerExtendedModeTest extends TestCase
         yield 'escaped hash is not a comment' => ['/a\\#b/x'];
         yield 'hash inside character class' => ['/[a#b]/x'];
         yield 'drupal token scanner' => ["/\n      \\[             # [ - pattern start\n      ([^\\s\\[\\]:]+)  # match \$type not containing whitespace : [ or ]\n      :              # : - separator\n      ([^\\[\\]]+)     # match \$name not containing [ or ]\n      \\]             # ] - pattern end\n      /x"];
+        yield 'inline (?x) before a comment' => ["/(?x)a # [ x\nb/"];
+        yield 'inline (?x) mid-pattern' => ["/a(?x)b # [ x\nc/"];
+        yield 'scoped (?x:...) comment' => ["/(?x:a # [ x\nb)c/"];
+        yield 'inline (?x) inside a group' => ["/((?x)a # [ x\nb)c/"];
+    }
+
+    /**
+     * "(?x)" holds until the end of the enclosing group and crosses "|",
+     * "(?x:...)" stops at its own ')', and "(?-x)" turns the mode back off.
+     */
+    #[Test]
+    #[DataProvider('provideInlineExtendedPatterns')]
+    public function test_inline_x_matches_pcre(string $pattern): void
+    {
+        $compiled = Regex::create()->parse($pattern)->accept(new CompilerNodeVisitor());
+
+        foreach (['ab', 'a b', 'abc d', 'a bc d', 'cd', 'c d', 'a#b', 'ab c'] as $subject) {
+            $this->assertSame(
+                @preg_match($pattern, $subject),
+                @preg_match($compiled, $subject),
+                \sprintf('%s and its recompiled form %s disagree on %s', $pattern, $compiled, var_export($subject, true)),
+            );
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideInlineExtendedPatterns(): iterable
+    {
+        yield 'global x' => ['/a b/x'];
+        yield 'inline x' => ['/(?x)a b/'];
+        yield 'scoped x' => ['/(?x:a b)c d/'];
+        yield 'inline x crosses alternation' => ['/(?:(?x)a b|c d)/'];
+        yield 'inline x ends with its group' => ['/((?x)a b)c d/'];
+        yield 'inline x then (?-x)' => ['/(?x)a(?-x)b c/'];
+        yield 'reset with (?^x)' => ['/(?^x)a b/'];
+        yield 'reset drops x' => ['/(?x)(?^i)a b/'];
+        yield 'escaped space stays literal' => ['/(?x)a\\ b/'];
+        yield 'escaped hash stays literal' => ['/(?x)a\\#b/'];
+        yield 'space inside a class is literal' => ['/(?x)[a b]/'];
+        yield 'comment after inline x' => ["/(?x)a # comment\nb/"];
     }
 }

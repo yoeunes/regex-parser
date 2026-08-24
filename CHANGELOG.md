@@ -70,6 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
+### Added
+- `/x` can be turned on from inside the pattern: `(?x)`, `(?x:...)`, `(?-x)` and `(?^x)` now drive extended mode in the lexer, the parser and the compiler, with PCRE's scoping — a bare `(?x)` holds until the end of the enclosing group and crosses `|`, while `(?x:...)` stops at its own `)`. Comments and ignorable whitespace were previously only recognised through the pattern-level `x` modifier.
+
 ### Fixed
 - PCRE conformance, found by linting the corpus: `[[:^word:]]` is accepted (PCRE negates every POSIX class it supports, and only `word` was rejected), and a `#` comment under `/x` no longer lets its `[` or `(` be tokenized as regex syntax — `/a # [ x\nb/x` compiles in PCRE but was reported as an unclosed character class.
 - `--format=json` no longer dies with "Failed to encode JSON" on byte-mode patterns: every string of the report, including the ones held by issue and optimization objects, is escaped the way the console renders them. The checkstyle and JUnit formatters used to silently drop such values, since `htmlspecialchars()` returns an empty string on invalid UTF-8.

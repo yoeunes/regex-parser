@@ -20,10 +20,15 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 final readonly class CommentNode extends AbstractNode
 {
+    /**
+     * @param bool $extended whether the comment was written as a "# ..." line
+     *                       under /x rather than as a "(?#...)" group
+     */
     public function __construct(
         public string $comment,
         int $startPosition,
-        int $endPosition
+        int $endPosition,
+        public bool $extended = false
     ) {
         parent::__construct($startPosition, $endPosition);
     }

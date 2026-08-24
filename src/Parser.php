@@ -91,6 +91,8 @@ final class Parser
 
     private bool $JModifier = false;
 
+    private bool $extendedMode = false;
+
     private bool $inQuoteMode = false;
 
     /**
@@ -134,6 +136,7 @@ final class Parser
         $this->pattern = $stream->getPattern();
         $this->flags = $flags;
         $this->JModifier = str_contains($flags, 'J');
+        $this->extendedMode = str_contains($flags, 'x');
         $this->inQuoteMode = false;
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
@@ -147,6 +150,22 @@ final class Parser
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
         return new RegexNode($patternNode, $flags, $delimiter, 0, $patternLength);
+    }
+
+    /**
+     * Parse the body of a group. A "(?x)" setting holds until the end of the
+     * enclosing group — crossing "|" — so the mode is restored here and not
+     * per alternation branch, the way PCRE scopes it.
+     */
+    private function parseScopedAlternation(): NodeInterface
+    {
+        $extendedMode = $this->extendedMode;
+
+        try {
+            return $this->parseAlternation();
+        } finally {
+            $this->extendedMode = $extendedMode;
+        }
     }
 
     private function parseAlternation(): NodeInterface
@@ -235,7 +254,7 @@ final class Parser
      */
     private function consumeExtendedModeContent(array &$nodes): bool
     {
-        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
+        if (!$this->extendedMode || $this->inQuoteMode) {
             return false;
         }
 
@@ -297,7 +316,7 @@ final class Parser
 
         $endPosition = $startPosition + \strlen($comment);
 
-        return new CommentNode($comment, $startPosition, $endPosition);
+        return new CommentNode($comment, $startPosition, $endPosition, true);
     }
 
     /**
@@ -307,7 +326,7 @@ final class Parser
      */
     private function skipExtendedModeContent(): int
     {
-        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
+        if (!$this->extendedMode || $this->inQuoteMode) {
             return 0;
         }
 
@@ -364,7 +383,7 @@ final class Parser
 
             // In extended (/x) mode, whitespace may separate a quantifier from
             // its lazy/possessive modifier: "a* +" means "a*+" to PCRE.
-            if (QuantifierType::T_GREEDY === $type && str_contains($this->flags, 'x') && !$this->inQuoteMode) {
+            if (QuantifierType::T_GREEDY === $type && $this->extendedMode && !$this->inQuoteMode) {
                 $skippedModifier = $this->skipExtendedModeContent();
                 if ($this->check(TokenType::T_QUANTIFIER) && \in_array($this->current()->value, ['+', '?'], true)) {
                     $modifier = $this->current()->value;
@@ -613,7 +632,7 @@ final class Parser
     {
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $startToken = $this->previous();
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -913,7 +932,7 @@ final class Parser
         // 3. PCRE-style quoted named groups (?'name'...)
         if ($this->checkLiteral("'")) {
             $name = $this->parseGroupName($startPosition);
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1007,7 +1026,7 @@ final class Parser
         // Parse the rest of the pattern after the verb group
         $expr = null;
         if (!$this->isAtEnd()) {
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
         } else {
             $expr = $this->createEmptyLiteralNodeAt($endPosition);
         }
@@ -1037,7 +1056,7 @@ final class Parser
 
         $verbNode = $this->createPcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
 
-        $expr = $this->parseAlternation();
+        $expr = $this->parseScopedAlternation();
         $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
 
         return new SequenceNode(
@@ -1155,7 +1174,7 @@ final class Parser
             }
             $this->advance();
 
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1172,7 +1191,7 @@ final class Parser
         if ($this->matchLiteral('<')) { // (?P<name>...)
             $name = $this->parseGroupName($pPos);
             $this->consumeLiteral('>', 'Expected > after group name');
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1212,7 +1231,7 @@ final class Parser
     private function parseStandardGroup(int $startPos): NodeInterface
     {
         if ($this->matchLiteral('=')) { // (?<=...)
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1224,7 +1243,7 @@ final class Parser
         }
 
         if ($this->matchLiteral('!')) { // (?<!...)
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1238,7 +1257,7 @@ final class Parser
         // (?<name>...)
         $name = $this->parseGroupName($startPos);
         $this->consumeLiteral('>', 'Expected > after group name');
-        $expr = $this->parseAlternation();
+        $expr = $this->parseScopedAlternation();
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
         return $this->createGroupNode(
@@ -1417,9 +1436,18 @@ final class Parser
                 $this->JModifier = false;
             }
 
+            $previousExtendedMode = $this->extendedMode;
+            if (str_contains($setFlags, 'x')) {
+                $this->extendedMode = true;
+            } elseif (str_contains($unsetFlags, 'x')) {
+                $this->extendedMode = false;
+            }
+
             $expr = null;
             if ($this->matchLiteral(':')) {
-                $expr = $this->parseAlternation();
+                $expr = $this->parseScopedAlternation();
+                // "(?x:...)" only covers its own group; "(?x)" keeps going.
+                $this->extendedMode = $previousExtendedMode;
             }
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -1481,7 +1509,7 @@ final class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition');
         }
 
-        $yes = $this->parseAlternation();
+        $yes = $this->parseScopedAlternation();
 
         // Special case: (?(DEFINE)...) creates a DefineNode instead of ConditionalNode
         if ($condition instanceof AssertionNode && 'DEFINE' === $condition->value) {
@@ -1524,7 +1552,7 @@ final class Parser
     private function parseLookaroundCondition(int $startPosition): NodeInterface
     {
         if ($this->matchLiteral('=')) {
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1536,7 +1564,7 @@ final class Parser
         }
 
         if ($this->matchLiteral('!')) {
-            $expr = $this->parseAlternation();
+            $expr = $this->parseScopedAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
@@ -1550,7 +1578,7 @@ final class Parser
         if ($this->matchLiteral('<')) {
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('=')) {
-                $expr = $this->parseAlternation();
+                $expr = $this->parseScopedAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return $this->createGroupNode(
@@ -1562,7 +1590,7 @@ final class Parser
             }
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('!')) {
-                $expr = $this->parseAlternation();
+                $expr = $this->parseScopedAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return $this->createGroupNode(
@@ -2369,7 +2397,7 @@ final class Parser
      */
     private function parseSimpleGroup(int $startPosition, GroupType $type): GroupNode
     {
-        $expr = $this->parseAlternation();
+        $expr = $this->parseScopedAlternation();
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
         return $this->createGroupNode($expr, $type, $startPosition, $endToken);
