@@ -16,6 +16,7 @@ namespace RegexParser;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\SyntaxErrorException;
+use RegexParser\Internal\CodePointReader;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -564,7 +565,7 @@ final class Parser
 
         if ($this->match(TokenType::T_CONTROL_CHAR)) {
             $token = $this->previous();
-            $codePoint = $this->parseControlCharCodePoint($token->value);
+            $codePoint = CodePointReader::fromControlChar($token->value);
 
             return new ControlCharNode($token->value, $codePoint, $startPosition, $token->end());
         }
@@ -768,83 +769,11 @@ final class Parser
 
         return new CharLiteralNode(
             $representation,
-            $this->parseCharLiteralCodePoint($representation, $charType),
+            CodePointReader::fromLiteral($representation, $charType),
             $charType,
             $startPosition,
-            $startPosition + \strlen($representation),
+            $token->end(),
         );
-    }
-
-    private function parseCharLiteralCodePoint(string $representation, CharLiteralType $type): int
-    {
-        return match ($type) {
-            CharLiteralType::UNICODE => $this->parseUnicodeCodePoint($representation),
-            CharLiteralType::UNICODE_NAMED => $this->parseNamedUnicodeCodePoint($representation),
-            CharLiteralType::OCTAL,
-            CharLiteralType::OCTAL_LEGACY => $this->parseOctalCodePoint($representation),
-        };
-    }
-
-    private function parseUnicodeCodePoint(string $representation): int
-    {
-        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $representation, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        if (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $representation, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $representation, $matches)) {
-            return (int) hexdec($matches[1]);
-        }
-
-        return -1;
-    }
-
-    private function parseNamedUnicodeCodePoint(string $representation): int
-    {
-        if (!preg_match('/^\\\\N\\{(.+)}$/', $representation, $matches)) {
-            return -1;
-        }
-
-        $name = $matches[1];
-
-        // \N{U+hhhh} form: the codepoint is given directly.
-        if (1 === preg_match('/^U\+([0-9a-fA-F]+)$/', $name, $hex)) {
-            return (int) hexdec($hex[1]);
-        }
-
-        if (class_exists(\IntlChar::class)) {
-            $char = \IntlChar::charFromName($name);
-            if (null !== $char) {
-                return (int) \IntlChar::ord($char);
-            }
-        }
-
-        return -1;
-    }
-
-    private function parseOctalCodePoint(string $representation): int
-    {
-        if (preg_match('/^\\\\o\\{([0-7]++)\\}$/', $representation, $matches)) {
-            return (int) octdec($matches[1]);
-        }
-
-        if (preg_match('/^\\\\([0-7]{1,3})$/', $representation, $matches)) {
-            return (int) octdec($matches[1]);
-        }
-
-        return -1;
-    }
-
-    private function parseControlCharCodePoint(string $char): int
-    {
-        if ('' === $char) {
-            return -1;
-        }
-
-        return \ord(strtoupper($char)) ^ 64;
     }
 
     /**
@@ -2054,7 +1983,7 @@ final class Parser
             return [
                 new ControlCharNode(
                     $token->value,
-                    $this->parseControlCharCodePoint($token->value),
+                    CodePointReader::fromControlChar($token->value),
                     $startPosition,
                     $token->end(),
                 ),

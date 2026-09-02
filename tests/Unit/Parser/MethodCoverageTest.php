@@ -73,21 +73,6 @@ final class MethodCoverageTest extends TestCase
     }
 
     /**
-     * Test Parser.parseUnicodeCodePoint() \x hex parsing path
-     * This triggers the first if condition for \xXX format
-     */
-    public function test_parser_parse_unicode_code_point_hex(): void
-    {
-        $parser = new Parser();
-        $accessor = new ParserAccessor($parser);
-
-        // Call parseUnicodeCodePoint with \xFF format
-        $result = $accessor->callPrivateMethod('parseUnicodeCodePoint', ['\\xFF']);
-
-        $this->assertSame(255, $result);
-    }
-
-    /**
      * Test Parser.guardRecursionDepth() by exceeding recursion limit
      * This triggers the recursion limit exception
      */
@@ -205,36 +190,6 @@ final class MethodCoverageTest extends TestCase
 
         // Call parseCharClassPart which should throw for unexpected token in range
         $accessor->callPrivateMethod('parseCharClassPart');
-    }
-
-    /**
-     * Test Parser.parseNamedUnicodeCodePoint() invalid format
-     * This triggers the preg_match failure path that returns -1
-     */
-    public function test_parser_parse_named_unicode_code_point_invalid(): void
-    {
-        $parser = new Parser();
-        $accessor = new ParserAccessor($parser);
-
-        // Call parseNamedUnicodeCodePoint with invalid format
-        $result = $accessor->callPrivateMethod('parseNamedUnicodeCodePoint', ['invalid']);
-
-        $this->assertSame(-1, $result);
-    }
-
-    /**
-     * Test Parser.parseControlCharCodePoint() empty char
-     * This triggers the empty string check that returns -1
-     */
-    public function test_parser_parse_control_char_code_point_empty(): void
-    {
-        $parser = new Parser();
-        $accessor = new ParserAccessor($parser);
-
-        // Call parseControlCharCodePoint with empty string
-        $result = $accessor->callPrivateMethod('parseControlCharCodePoint', ['']);
-
-        $this->assertSame(-1, $result);
     }
 
     /**
