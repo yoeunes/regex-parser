@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Fixed
+- `\N{U+0041}` inside a character class is parsed instead of rejected; PCRE accepts it.
 - A duplicate group name was reported at the wrong offset when the pattern held an alternation or an inline flag group before it: `/(?<name>a)|(?<name>b)/` pointed at the `|`, and `/(?J)(?<name>a)(?-J)(?<name>b)/` inside the `(?-J)`. Both now point at the second group.
 - Recompiling a recursion condition produced a pattern PCRE refuses: `(?(R)yes|no)` came back as `(?((?R))yes|no)`.
 

@@ -66,7 +66,6 @@ final class Parser
     // Token length constants for calculating positions
     private const PCRE_VERB_WRAPPER_LENGTH = 3; // (*...)
     private const CALLOUT_WRAPPER_LENGTH = 4; // (?C...)
-    private const POSIX_CLASS_WRAPPER_LENGTH = 4; // [[:...:]]
 
     /**
      * PCRE2 10.32+ alphabetic assertion verbs and their group equivalents.
@@ -81,6 +80,32 @@ final class Parser
         'negative_lookbehind' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
         'nlb' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
         'atomic' => GroupType::T_GROUP_ATOMIC,
+    ];
+
+    /**
+     * Token types that describe a character the same way wherever they appear.
+     */
+    private const ATOM_TYPES = [
+        TokenType::T_LITERAL,
+        TokenType::T_LITERAL_ESCAPED,
+        TokenType::T_CHAR_TYPE,
+        TokenType::T_UNICODE_PROP,
+        TokenType::T_CONTROL_CHAR,
+        TokenType::T_UNICODE,
+        TokenType::T_UNICODE_NAMED,
+        TokenType::T_OCTAL,
+        TokenType::T_OCTAL_LEGACY,
+    ];
+
+    /**
+     * Atoms a character class cannot hold: inside "[...]" a "^" is a literal
+     * or a negation, and "\1" is an octal escape, so a class that receives
+     * one of these has been built by hand rather than by the lexer.
+     */
+    private const OUTSIDE_ATOM_TYPES = [
+        TokenType::T_ANCHOR,
+        TokenType::T_ASSERTION,
+        TokenType::T_BACKREF,
     ];
 
     private TokenStream $stream;
@@ -513,85 +538,16 @@ final class Parser
 
     private function parseSimpleAtom(int $startPosition): ?NodeInterface
     {
-        if ($this->match(TokenType::T_LITERAL) || $this->match(TokenType::T_LITERAL_ESCAPED)) {
-            $token = $this->previous();
-
-            return new LiteralNode($token->value, $startPosition, $token->end());
-        }
-
-        if ($this->match(TokenType::T_CHAR_TYPE)) {
-            $token = $this->previous();
-
-            return new CharTypeNode($token->value, $startPosition, $token->end());
+        if (null !== $atom = $this->matchAtom($startPosition, self::OUTSIDE_ATOM_TYPES)) {
+            return $atom;
         }
 
         if ($this->match(TokenType::T_DOT)) {
-            return new DotNode($startPosition, $startPosition + 1);
-        }
-
-        if ($this->match(TokenType::T_ANCHOR)) {
-            $token = $this->previous();
-
-            return new AnchorNode($token->value, $startPosition, $token->end());
-        }
-
-        if ($this->match(TokenType::T_ASSERTION)) {
-            $token = $this->previous();
-
-            return new AssertionNode($token->value, $startPosition, $token->end());
-        }
-
-        if ($this->match(TokenType::T_BACKREF)) {
-            $token = $this->previous();
-
-            return new BackrefNode($token->value, $startPosition, $token->end());
+            return new DotNode($startPosition, $this->previous()->end());
         }
 
         if ($this->match(TokenType::T_G_REFERENCE)) {
             return $this->parseGReference($startPosition);
-        }
-
-        if ($this->match(TokenType::T_UNICODE)) {
-            return $this->createCharLiteralNodeFromToken($this->previous(), TokenType::T_UNICODE, $startPosition);
-        }
-
-        if ($this->match(TokenType::T_UNICODE_NAMED)) {
-            return $this->createCharLiteralNodeFromToken(
-                $this->previous(),
-                TokenType::T_UNICODE_NAMED,
-                $startPosition,
-            );
-        }
-
-        if ($this->match(TokenType::T_CONTROL_CHAR)) {
-            $token = $this->previous();
-            $codePoint = CodePointReader::fromControlChar($token->value);
-
-            return new ControlCharNode($token->value, $codePoint, $startPosition, $token->end());
-        }
-
-        if ($this->match(TokenType::T_OCTAL)) {
-            return $this->createCharLiteralNodeFromToken($this->previous(), TokenType::T_OCTAL, $startPosition);
-        }
-
-        if ($this->match(TokenType::T_OCTAL_LEGACY)) {
-            return $this->createCharLiteralNodeFromToken(
-                $this->previous(),
-                TokenType::T_OCTAL_LEGACY,
-                $startPosition,
-            );
-        }
-
-        if ($this->match(TokenType::T_UNICODE_PROP)) {
-            $token = $this->previous();
-
-            return new UnicodePropNode(
-                $token->value,
-                str_starts_with($token->value, '{'),
-                $startPosition,
-                $token->end(),
-                $this->isNegatedPropertySyntax($startPosition),
-            );
         }
 
         if ($this->match(TokenType::T_KEEP)) {
@@ -599,6 +555,54 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * Read the next token if it describes a character, and turn it into a node.
+     *
+     * These are the atoms whose meaning does not depend on where they are
+     * written: "\d" is the same inside a class and outside it. What differs
+     * between the two contexts is the rest — a dot, a subroutine call, a
+     * range — and that is handled by the callers.
+     */
+    /**
+     * @param list<TokenType> $extraTypes atoms the calling context also accepts
+     */
+    private function matchAtom(int $startPosition, array $extraTypes = []): ?NodeInterface
+    {
+        foreach ([...self::ATOM_TYPES, ...$extraTypes] as $type) {
+            if ($this->match($type)) {
+                return $this->atomFromToken($this->previous(), $type, $startPosition);
+            }
+        }
+
+        return null;
+    }
+
+    private function atomFromToken(Token $token, TokenType $type, int $startPosition): NodeInterface
+    {
+        return match ($type) {
+            TokenType::T_LITERAL,
+            TokenType::T_LITERAL_ESCAPED => new LiteralNode($token->value, $startPosition, $token->end()),
+            TokenType::T_CHAR_TYPE => new CharTypeNode($token->value, $startPosition, $token->end()),
+            TokenType::T_ANCHOR => new AnchorNode($token->value, $startPosition, $token->end()),
+            TokenType::T_ASSERTION => new AssertionNode($token->value, $startPosition, $token->end()),
+            TokenType::T_BACKREF => new BackrefNode($token->value, $startPosition, $token->end()),
+            TokenType::T_CONTROL_CHAR => new ControlCharNode(
+                $token->value,
+                CodePointReader::fromControlChar($token->value),
+                $startPosition,
+                $token->end(),
+            ),
+            TokenType::T_UNICODE_PROP => new UnicodePropNode(
+                $token->value,
+                str_starts_with($token->value, '{'),
+                $startPosition,
+                $token->end(),
+                $this->isNegatedPropertySyntax($startPosition),
+            ),
+            default => $this->createCharLiteralNodeFromToken($token, $type, $startPosition),
+        };
     }
 
     /**
@@ -1934,16 +1938,12 @@ final class Parser
      */
     private function parseCharClassAtom(int $startPosition): array
     {
-        if ($this->match(TokenType::T_LITERAL) || $this->match(TokenType::T_LITERAL_ESCAPED)) {
-            $token = $this->previous();
-
-            return [new LiteralNode($token->value, $startPosition, $token->end()), $token->end()];
-        }
-
-        if ($this->match(TokenType::T_CHAR_TYPE)) {
-            $token = $this->previous();
-
-            return [new CharTypeNode($token->value, $startPosition, $token->end()), $token->end()];
+        // An anchor, an assertion or a backreference is a plain character
+        // inside a class: "[$]" is a dollar sign, not an anchor. The lexer
+        // already gives them as literals there, so what is left is the same
+        // set of atoms as outside, plus what only a class can hold.
+        if (null !== $atom = $this->matchAtom($startPosition)) {
+            return [$atom, $atom->getEndPosition()];
         }
 
         if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
@@ -1952,74 +1952,16 @@ final class Parser
             return [$node, $node->getEndPosition()];
         }
 
-        if ($this->match(TokenType::T_UNICODE_PROP)) {
-            $token = $this->previous();
-
-            return [
-                new UnicodePropNode(
-                    $token->value,
-                    str_starts_with($token->value, '{'),
-                    $startPosition,
-                    $token->end(),
-                    $this->isNegatedPropertySyntax($startPosition),
-                ),
-                $token->end(),
-            ];
-        }
-
-        if ($this->match(TokenType::T_UNICODE)) {
-            $node = $this->createCharLiteralNodeFromToken(
-                $this->previous(),
-                TokenType::T_UNICODE,
-                $startPosition,
-            );
-
-            return [$node, $node->getEndPosition()];
-        }
-
-        if ($this->match(TokenType::T_CONTROL_CHAR)) {
-            $token = $this->previous();
-
-            return [
-                new ControlCharNode(
-                    $token->value,
-                    CodePointReader::fromControlChar($token->value),
-                    $startPosition,
-                    $token->end(),
-                ),
-                $token->end(),
-            ];
-        }
-
-        if ($this->match(TokenType::T_OCTAL)) {
-            $node = $this->createCharLiteralNodeFromToken(
-                $this->previous(),
-                TokenType::T_OCTAL,
-                $startPosition,
-            );
-
-            return [$node, $node->getEndPosition()];
-        }
-
-        if ($this->match(TokenType::T_OCTAL_LEGACY)) {
-            $node = $this->createCharLiteralNodeFromToken(
-                $this->previous(),
-                TokenType::T_OCTAL_LEGACY,
-                $startPosition,
-            );
-
-            return [$node, $node->getEndPosition()];
-        }
-
         if ($this->match(TokenType::T_RANGE)) {
-            return [new LiteralNode($this->previous()->value, $startPosition, $startPosition + 1), $startPosition + 1];
+            $token = $this->previous();
+
+            return [new LiteralNode($token->value, $startPosition, $token->end()), $token->end()];
         }
 
         if ($this->match(TokenType::T_POSIX_CLASS)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + self::POSIX_CLASS_WRAPPER_LENGTH;
 
-            return [new PosixClassNode($token->value, $startPosition, $endPosition), $endPosition];
+            return [new PosixClassNode($token->value, $startPosition, $token->end()), $token->end()];
         }
 
         throw $this->parserException(
