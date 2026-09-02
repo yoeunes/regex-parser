@@ -72,6 +72,22 @@ final class Parser
     private const CALLOUT_WRAPPER_LENGTH = 4; // (?C...)
 
     /**
+     * The two lookaheads, by the character that introduces them.
+     */
+    private const LOOKAHEADS = [
+        '=' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+        '!' => GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+    ];
+
+    /**
+     * The two lookbehinds, which follow a "<".
+     */
+    private const LOOKBEHINDS = [
+        '=' => GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+        '!' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+    ];
+
+    /**
      * Token types that describe a character the same way wherever they appear.
      */
     private const ATOM_TYPES = [
@@ -780,17 +796,7 @@ final class Parser
 
         // 3. PCRE-style quoted named groups (?'name'...)
         if ($this->stream->checkLiteral("'")) {
-            $name = $this->groupNames->read($startPosition);
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_NAMED,
-                $startPosition,
-                $endToken,
-                $name,
-            );
+            return $this->parseNamedGroup($startPosition, $startPosition, false);
         }
 
         // 4. Check for standard lookarounds and named groups
@@ -976,36 +982,11 @@ final class Parser
         // "(?P'name'...)" and "(?P\"name\"...)" name a group the way
         // "(?'name'...)" does, quotes included.
         if ($this->stream->checkLiteral("'") || $this->stream->checkLiteral('"')) {
-            $name = $this->groupNames->read($pPos);
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_NAMED,
-                $startPos,
-                $endToken,
-                $name,
-                null,
-                true,
-            );
+            return $this->parseNamedGroup($startPos, $pPos, false, true);
         }
 
         if ($this->stream->matchLiteral('<')) { // (?P<name>...)
-            $name = $this->groupNames->read($pPos);
-            $this->stream->consumeLiteral('>', 'Expected > after group name');
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_NAMED,
-                $startPos,
-                $endToken,
-                $name,
-                null,
-                true, // Python syntax: (?P<name>...)
-            );
+            return $this->parseNamedGroup($startPos, $pPos, true, true);
         }
 
         if ($this->stream->matchLiteral('>')) { // (?P>name) subroutine
@@ -1033,43 +1014,10 @@ final class Parser
      */
     private function parseStandardGroup(int $startPos): NodeInterface
     {
-        if ($this->stream->matchLiteral('=')) { // (?<=...)
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-                $startPos,
-                $endToken,
-            );
-        }
-
-        if ($this->stream->matchLiteral('!')) { // (?<!...)
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-                $startPos,
-                $endToken,
-            );
-        }
-
-        // (?<name>...)
-        $name = $this->groupNames->read($startPos);
-        $this->stream->consumeLiteral('>', 'Expected > after group name');
-        $expr = $this->parseScopedAlternation();
-        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-        return $this->createGroupNode(
-            $expr,
-            GroupType::T_GROUP_NAMED,
-            $startPos,
-            $endToken,
-            $name,
-        );
+        // "(?<=...)" and "(?<!...)" are lookbehinds; anything else after the
+        // "<" is the name of a group.
+        return $this->matchLookaround($startPos, self::LOOKBEHINDS)
+            ?? $this->parseNamedGroup($startPos, $startPos, true);
     }
 
     /**
@@ -1325,54 +1273,15 @@ final class Parser
      */
     private function parseLookaroundCondition(int $startPosition): NodeInterface
     {
-        if ($this->stream->matchLiteral('=')) {
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-                $startPosition,
-                $endToken,
-            );
-        }
-
-        if ($this->stream->matchLiteral('!')) {
-            $expr = $this->parseScopedAlternation();
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-                $startPosition,
-                $endToken,
-            );
+        $lookaround = $this->matchLookaround($startPosition, self::LOOKAHEADS);
+        if (null !== $lookaround) {
+            return $lookaround;
         }
 
         if ($this->stream->matchLiteral('<')) {
-            // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
-            if ($this->stream->matchLiteral('=')) {
-                $expr = $this->parseScopedAlternation();
-                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-                return $this->createGroupNode(
-                    $expr,
-                    GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-                    $startPosition,
-                    $endToken,
-                );
-            }
-            // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
-            if ($this->stream->matchLiteral('!')) {
-                $expr = $this->parseScopedAlternation();
-                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-                return $this->createGroupNode(
-                    $expr,
-                    GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-                    $startPosition,
-                    $endToken,
-                );
+            $lookbehind = $this->matchLookaround($startPosition, self::LOOKBEHINDS);
+            if (null !== $lookbehind) {
+                return $lookbehind;
             }
         }
 
@@ -1904,6 +1813,53 @@ final class Parser
      * Parses a simple group: alternation content followed by closing paren.
      * Used for non-capturing groups, lookaheads, atomic groups, etc.
      */
+    /**
+     * Read a lookaround, given the characters that introduce the ones this
+     * position accepts.
+     *
+     * @param array<string, GroupType> $kinds
+     */
+    private function matchLookaround(int $startPosition, array $kinds): ?GroupNode
+    {
+        foreach ($kinds as $literal => $type) {
+            if ($this->stream->matchLiteral((string) $literal)) {
+                return $this->parseSimpleGroup($startPosition, $type);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Read a named group, whichever of the four ways the pattern names it.
+     *
+     * @param bool $expectAngle  true for "(?<name>" and "(?P<name>", where a
+     *                           ">" closes the name
+     * @param bool $pythonSyntax true for the "(?P...)" spellings, which are
+     *                           written back out as they were read
+     */
+    private function parseNamedGroup(int $startPosition, int $namePosition, bool $expectAngle, bool $pythonSyntax = false): GroupNode
+    {
+        $name = $this->groupNames->read($namePosition);
+
+        if ($expectAngle) {
+            $this->stream->consumeLiteral('>', 'Expected > after group name');
+        }
+
+        $expr = $this->parseScopedAlternation();
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+        return $this->createGroupNode(
+            $expr,
+            GroupType::T_GROUP_NAMED,
+            $startPosition,
+            $endToken,
+            $name,
+            null,
+            $pythonSyntax,
+        );
+    }
+
     private function parseSimpleGroup(int $startPosition, GroupType $type): GroupNode
     {
         $expr = $this->parseScopedAlternation();
