@@ -42,7 +42,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -239,28 +238,6 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
         return $this->wrap('VERSION', 'keyword')
             .$this->wrap($this->escape($node->operator), 'meta')
             .$this->wrap($this->escape($node->version), 'number');
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        // For non-printable characters (control chars and extended ASCII),
-        // convert back to hex representation to avoid display issues
-        if (1 === \strlen($node->code)) {
-            $charCode = \ord($node->code);
-            // Control characters (0x00-0x1F, 0x7F) and extended ASCII (0x80-0xFF)
-            if ($charCode <= 0x1F
-                || 0x7F === $charCode
-                || $charCode >= 0x80) {
-                return $this->wrap(
-                    $this->escape('\\x'.strtoupper(str_pad(dechex($charCode), 2, '0', \STR_PAD_LEFT))),
-                    'escape',
-                );
-            }
-        }
-
-        // For regular Unicode escape sequences, use the original format
-        return $this->wrap($this->escape('\\x'.$node->code), 'escape');
     }
 
     #[\Override]

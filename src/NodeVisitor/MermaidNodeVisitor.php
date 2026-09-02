@@ -36,7 +36,6 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
@@ -225,15 +224,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         $nodeId = $this->nextNodeId();
         $label = $node->type->label().': '.$node->originalRepresentation;
         $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $this->escape($label));
-
-        return $nodeId;
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->code));
 
         return $nodeId;
     }

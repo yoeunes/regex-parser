@@ -22,7 +22,6 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\SequenceNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\ReDoS\CharSet;
 
 /**
@@ -57,7 +56,7 @@ final class CharClassSets
 
     public static function partCharSet(NodeInterface $node, bool $unicodeMode, bool $intlAvailable): ?CharSet
     {
-        if ($node instanceof LiteralNode || $node instanceof CharLiteralNode || $node instanceof UnicodeNode) {
+        if ($node instanceof LiteralNode || $node instanceof CharLiteralNode) {
             $codePoint = CodePoints::fromNode($node, $unicodeMode, $intlAvailable);
             if (null === $codePoint) {
                 return null;

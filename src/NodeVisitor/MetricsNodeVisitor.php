@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -165,12 +164,6 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitBackref(BackrefNode $node): array
-    {
-        return $this->record($node);
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): array
     {
         return $this->record($node);
     }

@@ -23,7 +23,6 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\RangeNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
@@ -55,7 +54,6 @@ final class UselessIFlagRule extends AbstractLintRule
         return [
             LiteralNode::class,
             CharClassNode::class,
-            UnicodeNode::class,
             CharLiteralNode::class,
             UnicodePropNode::class,
             BackrefNode::class,
@@ -108,15 +106,6 @@ final class UselessIFlagRule extends AbstractLintRule
             return [];
         }
 
-        if ($node instanceof UnicodeNode) {
-            $code = CodePoints::parseUnicodeEscape($node->code);
-            if (null !== $code && $this->codePointHasCase($code)) {
-                $this->hasCaseSensitiveChars = true;
-            }
-
-            return [];
-        }
-
         if ($node instanceof CharLiteralNode) {
             if ($this->charLiteralHasCaseSensitiveLetter($node)) {
                 $this->hasCaseSensitiveChars = true;
@@ -154,12 +143,6 @@ final class UselessIFlagRule extends AbstractLintRule
 
         if ($node instanceof CharLiteralNode) {
             return $this->charLiteralHasCaseSensitiveLetter($node);
-        }
-
-        if ($node instanceof UnicodeNode) {
-            $codePoint = CodePoints::parseUnicodeEscape($node->code);
-
-            return null !== $codePoint && $this->codePointHasCase($codePoint);
         }
 
         if ($node instanceof UnicodePropNode) {

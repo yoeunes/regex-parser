@@ -46,35 +46,12 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 final class LinterNodeVisitorCoverageTest extends TestCase
 {
-    public function test_unicode_escape_out_of_range_adds_issue(): void
-    {
-        $linter = new LinterNodeVisitor();
-
-        $node = new UnicodeNode('\\u{110000}', 0, 0);
-        $node->accept($linter);
-
-        $warnings = $linter->getWarnings();
-        $this->assertNotEmpty($warnings);
-        $this->assertStringContainsString('Suspicious Unicode escape', $warnings[0]);
-    }
-
-    public function test_unicode_escape_hex_and_braced_paths_are_parsed(): void
-    {
-        $linter = new LinterNodeVisitor();
-
-        (new UnicodeNode('\\x41', 0, 0))->accept($linter);
-        (new UnicodeNode('\\u{0041}', 0, 0))->accept($linter);
-
-        $this->assertSame([], $linter->getWarnings());
-    }
-
     public function test_octal_escape_out_of_range_adds_issue(): void
     {
         $linter = new LinterNodeVisitor();
@@ -85,22 +62,6 @@ final class LinterNodeVisitorCoverageTest extends TestCase
         $warnings = $linter->getWarnings();
         $this->assertNotEmpty($warnings);
         $this->assertStringContainsString('Suspicious octal escape', $warnings[0]);
-    }
-
-    public function test_unicode_named_unknown_adds_issue(): void
-    {
-        if (!class_exists(\IntlChar::class)) {
-            $this->markTestSkipped('IntlChar is not available.');
-        }
-
-        $linter = new LinterNodeVisitor();
-
-        $node = new CharLiteralNode('\\N{NOT_A_NAME}', 0, CharLiteralType::UNICODE_NAMED, 0, 0);
-        $node->accept($linter);
-
-        $warnings = $linter->getWarnings();
-        $this->assertNotEmpty($warnings);
-        $this->assertStringContainsString('Unknown Unicode character name', $warnings[0]);
     }
 
     public function test_count_capturing_groups_handles_conditionals(): void

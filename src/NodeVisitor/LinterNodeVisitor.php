@@ -39,7 +39,6 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
@@ -308,14 +307,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->context->pushParent($node);
         $node->node->accept($this);
         $this->context->popParent();
-
-        return $node;
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): NodeInterface
-    {
-        $this->dispatch($node);
 
         return $node;
     }

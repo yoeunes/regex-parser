@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -175,12 +174,6 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     public function visitBackref(BackrefNode $node): string
     {
         return "Backref(\\{$node->ref})";
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        return "Unicode({$node->code})";
     }
 
     #[\Override]

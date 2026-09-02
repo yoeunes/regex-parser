@@ -14,32 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 
 final class HighlighterVisitorCoverageTest extends TestCase
 {
-    public function test_unicode_highlight_uses_original_hex_format(): void
-    {
-        $visitor = new HtmlHighlighterVisitor();
-        $node = new UnicodeNode('41', 0, 0);
-
-        $output = $node->accept($visitor);
-
-        $this->assertStringContainsString('\\x41', $output);
-    }
-
-    public function test_console_unicode_highlight_uses_hex_format(): void
-    {
-        $visitor = new ConsoleHighlighterVisitor();
-        $node = new UnicodeNode('41', 0, 0);
-
-        $output = $node->accept($visitor);
-
-        $this->assertStringContainsString('\\x41', $output);
-    }
-
     public function test_console_highlighter_visitor_wrap_with_empty_content(): void
     {
         $visitor = new ConsoleHighlighterVisitor();

@@ -50,7 +50,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
@@ -607,7 +606,6 @@ final readonly class Regex
             ScriptRunNode::class,
             SequenceNode::class,
             SubroutineNode::class,
-            UnicodeNode::class,
             UnicodePropNode::class,
             VersionConditionNode::class,
         ];

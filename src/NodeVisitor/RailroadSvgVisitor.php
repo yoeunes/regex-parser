@@ -43,7 +43,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -201,12 +200,6 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitCharType(CharTypeNode $node)
     {
         return $this->createNodeLayout('CharType (\\'.$node->value.')', 'node control');
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node)
-    {
-        return $this->createNodeLayout('Unicode (\\x'.$node->code.')', 'node control');
     }
 
     #[\Override]

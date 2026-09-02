@@ -46,7 +46,6 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
@@ -335,7 +334,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitRange(RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
-        // We allow LiteralNode, but also CharLiteralNode, UnicodeNode, etc.
+        // We allow LiteralNode, but also CharLiteralNode and friends.
         if (!$this->isSingleCharNode($node->start) || !$this->isSingleCharNode($node->end)) {
             $this->raiseSemanticError(
                 \sprintf(
@@ -503,27 +502,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $node->startPosition,
             'regex.backref.invalid_syntax',
         );
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): void
-    {
-        // The Lexer/Parser combination already ensures these are
-        // syntactically valid hex/octal. We validate the *value*.
-        $code = -1;
-        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            $code = (int) hexdec($m[1]);
-        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
-            $code = (int) hexdec($m[1]);
-        }
-
-        if ($code > 0x10FFFF) {
-            $this->raiseSemanticError(
-                \sprintf('Invalid Unicode codepoint "%s" (out of range).', $node->code),
-                $node->startPosition,
-                'regex.unicode.out_of_range',
-            );
-        }
     }
 
     #[\Override]
@@ -1035,7 +1013,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         return $node instanceof LiteralNode
             || $node instanceof CharLiteralNode
-            || $node instanceof UnicodeNode
             || $node instanceof ControlCharNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.

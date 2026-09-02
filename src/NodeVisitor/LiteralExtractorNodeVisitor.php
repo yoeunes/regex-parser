@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -282,12 +281,6 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitControlChar(ControlCharNode $node): LiteralSet
-    {
-        return LiteralSet::empty();
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }

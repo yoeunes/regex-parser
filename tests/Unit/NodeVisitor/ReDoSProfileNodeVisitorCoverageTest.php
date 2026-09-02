@@ -32,7 +32,6 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
@@ -122,7 +121,6 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
             new AssertionNode('A', 0, 0),
             new KeepNode(0, 0),
             new RangeNode(new LiteralNode('a', 0, 0), new LiteralNode('z', 0, 0), 0, 0),
-            new UnicodeNode('\\x{41}', 0, 0),
             new UnicodePropNode('L', true, 0, 0),
             new PosixClassNode('alpha', 0, 0),
             new CommentNode('note', 0, 0),

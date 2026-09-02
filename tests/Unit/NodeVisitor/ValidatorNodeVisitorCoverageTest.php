@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Exception\ParserException;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\GroupNumbering;
 use RegexParser\Node\AlternationNode;
@@ -40,8 +39,6 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
@@ -158,58 +155,6 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         $result = $regex->validate('/(a)\\g{1}/');
 
         $this->assertTrue($result->isValid);
-    }
-
-    public function test_unicode_node_out_of_range_is_rejected(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $node = new UnicodeNode('\\u{110000}', 0, 0);
-
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('out of range');
-
-        $node->accept($validator);
-    }
-
-    public function test_unicode_node_hex_escape_is_accepted(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-
-        $node = new UnicodeNode('\\xFF', 0, 0);
-        $node->accept($validator);
-        $this->expectNotToPerformAssertions();
-    }
-
-    public function test_unicode_property_invalid_includes_suggestion(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
-        $unicodePropCache = $ref->getProperty('unicodePropCache');
-        $unicodePropCache->setValue(null, ['p{Letter}' => false]);
-
-        $node = new UnicodePropNode('Letter', false, 0, 0);
-
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('Invalid or unsupported Unicode property');
-
-        $node->accept($validator);
-    }
-
-    public function test_unicode_property_cache_eviction_runs(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
-        $unicodePropCache = $ref->getProperty('unicodePropCache');
-        $cache = [];
-        for ($i = 0; $i < 1000; $i++) {
-            $cache['p{X'.$i.'}'] = true;
-        }
-        $unicodePropCache->setValue(null, $cache);
-
-        $node = new UnicodePropNode('Z', true, 0, 0);
-        $node->accept($validator);
-
-        $this->assertNotEmpty($unicodePropCache->getValue());
     }
 
     public function test_control_char_out_of_range_is_rejected(): void
@@ -387,15 +332,6 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         $node->accept($validator);
     }
 
-    public function test_unicode_named_invalid_format_throws_parser_exception(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $node = new CharLiteralNode('\\N{', 0, CharLiteralType::UNICODE_NAMED, 0, 0);
-
-        $this->expectException(ParserException::class);
-        $node->accept($validator);
-    }
-
     public function test_calculate_fixed_length_helpers(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -465,15 +401,6 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
 
         $quantifier = new QuantifierNode(new LiteralNode('a', 0, 0), '{3}', QuantifierType::T_GREEDY, 0, 0);
         $this->assertSame(3, $method->invoke($validator, $quantifier));
-    }
-
-    public function test_extract_unicode_property_key_handles_wrapped_values(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $method = (new \ReflectionClass($validator))->getMethod('extractUnicodePropertyKey');
-
-        $this->assertSame('L', $method->invoke($validator, '\\p{L}'));
-        $this->assertSame('Ll', $method->invoke($validator, '{Ll}'));
     }
 
     public function test_quantifier_bounds_cache_eviction_runs(): void

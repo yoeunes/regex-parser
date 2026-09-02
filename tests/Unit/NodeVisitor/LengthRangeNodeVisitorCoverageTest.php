@@ -16,11 +16,8 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\LengthRangeNodeVisitor;
 
 final class LengthRangeNodeVisitorCoverageTest extends TestCase
@@ -35,19 +32,5 @@ final class LengthRangeNodeVisitorCoverageTest extends TestCase
         $range = $alternation->accept($visitor);
 
         $this->assertSame([0, null], $range);
-    }
-
-    public function test_visit_range_unicode_and_posix_class_are_fixed_length(): void
-    {
-        $visitor = new LengthRangeNodeVisitor();
-
-        $rangeNode = new RangeNode(new LiteralNode('a', 0, 0), new LiteralNode('z', 0, 0), 0, 0);
-        $this->assertSame([1, 1], $rangeNode->accept($visitor));
-
-        $unicode = new UnicodeNode('\\x{41}', 0, 0);
-        $this->assertSame([1, 1], $unicode->accept($visitor));
-
-        $posix = new PosixClassNode('alpha', 0, 0);
-        $this->assertSame([1, 1], $posix->accept($visitor));
     }
 }

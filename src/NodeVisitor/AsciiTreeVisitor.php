@@ -42,7 +42,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -146,14 +145,6 @@ final class AsciiTreeVisitor extends AbstractNodeVisitor
     public function visitCharType(CharTypeNode $node): string
     {
         $this->addLine('CharType (\\'.$node->value.')');
-
-        return '';
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        $this->addLine('Unicode (\\x'.$node->code.')');
 
         return '';
     }

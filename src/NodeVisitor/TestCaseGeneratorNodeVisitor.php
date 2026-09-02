@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -356,15 +355,6 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
 
         return [
             'matching' => [$char],
-            'non_matching' => ['!'],
-        ];
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): array
-    {
-        return [
-            'matching' => ['a'],
             'non_matching' => ['!'],
         ];
     }

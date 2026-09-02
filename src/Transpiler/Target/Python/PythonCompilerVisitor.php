@@ -44,7 +44,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\Transpiler\Target\AbstractCompilerVisitor;
@@ -186,20 +185,6 @@ final class PythonCompilerVisitor extends AbstractCompilerVisitor
         }
 
         return $this->formatCodePoint($codePoint);
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        $code = $node->code;
-
-        if (ctype_xdigit($code)) {
-            $codePoint = (int) hexdec($code);
-
-            return $this->formatCodePoint($codePoint);
-        }
-
-        return $this->unsupported('Unsupported Unicode escape sequence.', $node);
     }
 
     #[\Override]

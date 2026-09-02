@@ -22,7 +22,6 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\TestCaseGeneratorNodeVisitor;
 
 final class TestCaseGeneratorNodeVisitorCoverageTest extends TestCase
@@ -54,15 +53,6 @@ final class TestCaseGeneratorNodeVisitorCoverageTest extends TestCase
         $range = new RangeNode(new CharTypeNode('d', 0, 0), new LiteralNode('z', 0, 0), 0, 0);
 
         $cases = $range->accept($visitor);
-
-        $this->assertSame(['a'], $cases['matching']);
-        $this->assertSame(['!'], $cases['non_matching']);
-    }
-
-    public function test_visit_unicode_returns_basic_cases(): void
-    {
-        $visitor = new TestCaseGeneratorNodeVisitor();
-        $cases = (new UnicodeNode('\\x{41}', 0, 0))->accept($visitor);
 
         $this->assertSame(['a'], $cases['matching']);
         $this->assertSame(['!'], $cases['non_matching']);

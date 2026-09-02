@@ -23,7 +23,6 @@ use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
@@ -315,37 +314,11 @@ final class AdditionalMissingCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
-    public function test_highlighter_visitor_unicode_extended_ascii(): void
-    {
-        $visitor = new class extends HighlighterVisitor {
-            protected function wrap(string $content, string $type): string
-            {
-                return "<span class=\"{$type}\">{$content}</span>";
-            }
-
-            protected function escape(string $string): string
-            {
-                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
-            }
-        };
-        $node = new UnicodeNode(\chr(0x80), 0, 4);
-        $result = $node->accept($visitor);
-        $this->assertStringContainsString('\\x80', $result);
-    }
-
     public function test_html_highlighter_visitor_dot(): void
     {
         $visitor = new HtmlHighlighterVisitor();
         $node = new DotNode(1, 2);
         $result = $visitor->visitDot($node);
-        $this->assertNotEmpty($result);
-    }
-
-    public function test_html_highlighter_visitor_unicode(): void
-    {
-        $visitor = new HtmlHighlighterVisitor();
-        $node = new UnicodeNode('1F600', 0, 7);
-        $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
 
@@ -381,14 +354,6 @@ final class AdditionalMissingCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
-    public function test_html_explain_visitor_unicode(): void
-    {
-        $visitor = new HtmlExplainNodeVisitor();
-        $node = new UnicodeNode('1F600', 0, 7);
-        $result = $node->accept($visitor);
-        $this->assertNotEmpty($result);
-    }
-
     public function test_html_explain_visitor_limit_match(): void
     {
         $visitor = new HtmlExplainNodeVisitor();
@@ -397,26 +362,10 @@ final class AdditionalMissingCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
-    public function test_mermaid_visitor_unicode(): void
-    {
-        $visitor = new MermaidNodeVisitor();
-        $node = new UnicodeNode('1F600', 0, 7);
-        $result = $node->accept($visitor);
-        $this->assertNotEmpty($result);
-    }
-
     public function test_mermaid_visitor_limit_match(): void
     {
         $visitor = new MermaidNodeVisitor();
         $node = new LimitMatchNode(1000, 0, 16);
-        $result = $node->accept($visitor);
-        $this->assertNotEmpty($result);
-    }
-
-    public function test_metrics_visitor_unicode(): void
-    {
-        $visitor = new MetricsNodeVisitor();
-        $node = new UnicodeNode('1F600', 0, 7);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }

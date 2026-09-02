@@ -29,7 +29,7 @@ final class AstCachePayloadTest extends TestCase
      * gains, loses or renames a property: entries written by an older release
      * would otherwise be restored as objects with uninitialized properties.
      */
-    private const NODE_SHAPE = 'a4f1637a6b1459442f5de6bca3218f18';
+    private const NODE_SHAPE = '14a5f7985b2451397f1ed6ae48dddeef';
 
     private string $cacheDir;
 
@@ -44,13 +44,12 @@ final class AstCachePayloadTest extends TestCase
             return;
         }
 
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->cacheDir, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST,
-        );
+        foreach ($this->cacheFiles() as $file) {
+            @unlink($file);
+        }
 
-        foreach ($files as $file) {
-            $file->isDir() ? @rmdir((string) $file) : @unlink((string) $file);
+        foreach ((array) glob($this->cacheDir.'/*', \GLOB_ONLYDIR) as $directory) {
+            @rmdir((string) $directory);
         }
 
         @rmdir($this->cacheDir);
@@ -122,17 +121,25 @@ final class AstCachePayloadTest extends TestCase
 
     private function onlyCacheFile(): string
     {
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->cacheDir, \FilesystemIterator::SKIP_DOTS),
-        );
-
-        foreach ($files as $file) {
-            if ($file->isFile()) {
-                return (string) $file;
-            }
+        $files = $this->cacheFiles();
+        if ([] === $files) {
+            self::fail('No cache file was written.');
         }
 
-        self::fail('No cache file was written.');
+        return $files[0];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function cacheFiles(): array
+    {
+        $files = [];
+        foreach ((array) glob($this->cacheDir.'/*/*.php') as $file) {
+            $files[] = (string) $file;
+        }
+
+        return $files;
     }
 
     /**

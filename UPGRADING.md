@@ -2,6 +2,31 @@
 
 This guide helps you upgrade RegexParser between versions. For detailed changes, see [CHANGELOG.md](CHANGELOG.md).
 
+## 1.3.0 → [Unreleased]
+
+### Breaking Changes
+
+#### `UnicodeNode` and `visitUnicode()` are gone
+
+No parser path ever produced a `UnicodeNode`: a `\u{...}` or `\x{...}` escape
+becomes a `CharLiteralNode`. The node is removed, and with it the
+`visitUnicode()` method of `NodeVisitorInterface`.
+
+A custom visitor keeps working as it is — an extra `visitUnicode()` method on
+your class is simply never called, and you can delete it. Code that names
+`RegexParser\Node\UnicodeNode` has to be updated to `CharLiteralNode`, whose
+`codePoint` holds the value the `code` string used to spell.
+
+#### `ReDoSAnalyzerInterface` is gone
+
+Nothing implemented it, `ReDoSAnalyzer` included. Type against `ReDoSAnalyzer`.
+
+#### Cached ASTs are rebuilt
+
+`Regex::CACHE_VERSION` moved to `1.4.0`, so entries written by 1.3.0 are
+ignored and the patterns are parsed once more. Nothing to do; a warm cache
+directory rebuilds itself.
+
 ## [Unreleased] → 1.3.0
 
 ### Breaking Changes
