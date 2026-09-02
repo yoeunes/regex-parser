@@ -52,6 +52,16 @@ final class ParserConstructsTest extends TestCase
         $this->assertTrue($compiles, \sprintf('PCRE rejects "%s", recompiled from "%s".', $recompiled, $pattern));
     }
 
+    #[Test]
+    public function test_a_recursion_condition_is_written_back_as_a_condition(): void
+    {
+        // "(?(R)" asks whether the pattern is recursing. Compiling it as a
+        // subroutine call, "(?((?R))", gives a pattern PCRE refuses.
+        $recompiled = Regex::create()->parse('/(?(R)yes|no)/')->accept(new CompilerNodeVisitor());
+
+        $this->assertSame('/(?(R)yes|no)/', $recompiled);
+    }
+
     /**
      * @return iterable<string, array{pattern: string, recompiled: string}>
      */

@@ -559,6 +559,11 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         if ($node->condition instanceof BackrefNode) {
             $cond = $node->condition->ref;
+        } elseif ($node->condition instanceof SubroutineNode) {
+            // "(?(R)...)" asks whether the pattern is recursing; it is not a
+            // call, so the reference is written on its own. Compiling it as
+            // "(?((?R))...)" gives a pattern PCRE refuses.
+            $cond = $node->condition->reference;
         } else {
             $cond = $node->condition->accept($this);
         }
