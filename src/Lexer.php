@@ -218,6 +218,20 @@ final class Lexer
     }
 
     /**
+     * Anchor a sub-pattern at the cursor, reading the subject the way the
+     * pattern itself is read.
+     *
+     * A pattern that is not valid UTF-8 is tokenized byte by byte, so the
+     * "u" modifier must go with it: asking PCRE to read invalid UTF-8 under
+     * /u fails, and a failure here used to be taken for "nothing left to
+     * read".
+     */
+    private function anchored(string $pattern, string $modifiers = ''): string
+    {
+        return '/'.$pattern.'/A'.$modifiers.($this->byteMode ? '' : 'u');
+    }
+
+    /**
      * Compile patterns into an optimized regex with named groups.
      *
      * @param array<string, string> $patterns
@@ -605,15 +619,20 @@ final class Lexer
 
     private function consumeQuoteMode(): ?Token
     {
-        if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
-            // preg_match failed (e.g., malformed UTF-8) - exit quote mode and move to end
-            $this->inQuoteMode = false;
-            $this->position = $this->length;
-
-            return null;
+        if (!preg_match($this->anchored('(.*?)((\\\\E|$))', 's'), $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+            // Nothing here can fail to match, so a failure means PCRE itself
+            // gave up. Leaving quote mode and skipping to the end would drop
+            // the rest of the pattern without a word.
+            throw LexerException::withContext(
+                \sprintf('PCRE Error while reading a quoted run: %s', (string) preg_last_error_msg()),
+                $this->position,
+                $this->pattern,
+            );
         }
 
-        $literalText = $matches[1];
+        // Both groups always take part in the match; the null the unmatched
+        // flag would give is not reachable.
+        $literalText = (string) $matches[1];
         $endSequence = $matches[2];
         $startPos = $this->position;
 
@@ -640,14 +659,15 @@ final class Lexer
 
     private function consumeCommentMode(): ?Token
     {
-        if (!preg_match('/([^)]*)(\)|$)/uA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
-            $this->inCommentMode = false;
-            $this->position = $this->length;
-
-            return null;
+        if (!preg_match($this->anchored('([^)]*)(\)|$)'), $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+            throw LexerException::withContext(
+                \sprintf('PCRE Error while reading a comment: %s', (string) preg_last_error_msg()),
+                $this->position,
+                $this->pattern,
+            );
         }
 
-        $commentText = $matches[1];
+        $commentText = (string) $matches[1];
         $endSequence = $matches[2];
         $startPos = $this->position;
 

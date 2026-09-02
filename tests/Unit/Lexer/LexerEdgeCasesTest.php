@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lexer;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
@@ -125,33 +124,27 @@ final class LexerEdgeCasesTest extends TestCase
     }
 
     /**
-     * Tests the fallback of consumeQuoteMode (if preg_match fails completely).
-     * This is theoretically impossible with the current pattern, but we secure coverage.
+     * Tests that a PCRE failure while reading a quoted run is reported.
      */
-    #[DoesNotPerformAssertions]
-    public function test_lex_quote_mode_failure_fallback(): void
-    {
-        // This test is difficult because it requires a simple preg_match to fail.
-        // If you have a @codeCoverageIgnoreStart in Lexer::consumeQuoteMode, ignore this test.
-        // Otherwise, we move on.
-    }
-
-    public function test_consume_quote_mode_handles_pcre_error(): void
+    public function test_consume_quote_mode_reports_a_pcre_failure(): void
     {
         $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
-        $invalid = "\xC3"; // malformed UTF-8 byte to trigger preg_match failure with /u
 
+        // Reading a malformed byte as UTF-8 is what tokenize() avoids by
+        // choosing byte mode; forced into it, the lexer must say so rather
+        // than skip to the end of the pattern and lose everything after the
+        // quoted run.
+        $invalid = "\xC3";
         $accessor->setPattern($invalid);
         $accessor->setLength(\strlen($invalid));
         $accessor->setPosition(0);
         $accessor->setInQuoteMode(true);
 
-        $result = $accessor->callPrivateMethod('consumeQuoteMode');
+        $this->expectException(LexerException::class);
+        $this->expectExceptionMessage('PCRE Error while reading a quoted run');
 
-        $this->assertNull($result);
-        $this->assertSame(\strlen($invalid), $accessor->getPosition());
-        $this->assertFalse($accessor->getInQuoteMode());
+        $accessor->callPrivateMethod('consumeQuoteMode');
     }
 
     public function test_consume_quote_mode_reaches_eof_without_closing(): void
@@ -195,22 +188,23 @@ final class LexerEdgeCasesTest extends TestCase
         $this->assertFalse($accessor->getInQuoteMode());
     }
 
-    public function test_consume_comment_mode_handles_pcre_error(): void
+    public function test_consume_comment_mode_reports_a_pcre_failure(): void
     {
         $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
-        $invalid = "\xC3";
 
+        // As for a quoted run: a comment that PCRE cannot read is an error,
+        // not a reason to drop the rest of the pattern.
+        $invalid = "\xC3";
         $accessor->setPattern($invalid);
         $accessor->setLength(\strlen($invalid));
         $accessor->setPosition(0);
         $accessor->setInCommentMode(true);
 
-        $result = $accessor->callPrivateMethod('consumeCommentMode');
+        $this->expectException(LexerException::class);
+        $this->expectExceptionMessage('PCRE Error while reading a comment');
 
-        $this->assertNull($result);
-        $this->assertSame(\strlen($invalid), $accessor->getPosition());
-        $this->assertFalse($this->getPrivateBool($lexer, 'inCommentMode'));
+        $accessor->callPrivateMethod('consumeCommentMode');
     }
 
     public function test_consume_comment_mode_unclosed_reaches_eof(): void
