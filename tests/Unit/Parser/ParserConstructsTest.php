@@ -35,7 +35,7 @@ final class ParserConstructsTest extends TestCase
     {
         $ast = Regex::create()->parse($pattern);
 
-        self::assertInstanceOf(RegexNode::class, $ast);
+        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertSame($recompiled, $ast->accept(new CompilerNodeVisitor()));
     }
 

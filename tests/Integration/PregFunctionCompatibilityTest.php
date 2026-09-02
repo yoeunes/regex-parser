@@ -369,7 +369,7 @@ final class PregFunctionCompatibilityTest extends TestCase
 
         $this->assertSame($originalResult, $compiledResult);
 
-        self::assertIsArray($compiledResult);
+        $this->assertIsArray($compiledResult);
         $firstItem = $compiledResult[0];
         $this->assertIsArray($firstItem);
         $this->assertCount(2, $firstItem);

@@ -914,15 +914,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      */
     private function getClosingDelimiter(string $delimiter): string
     {
-        if (!isset(self::$delimiterCache[$delimiter])) {
-            self::$delimiterCache[$delimiter] = match ($delimiter) {
-                '(' => ')',
-                '[' => ']',
-                '{' => '}',
-                '<' => '>',
-                default => $delimiter,
-            };
-        }
+        self::$delimiterCache[$delimiter] ??= match ($delimiter) {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '<' => '>',
+            default => $delimiter,
+        };
 
         return self::$delimiterCache[$delimiter];
     }

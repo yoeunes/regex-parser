@@ -637,9 +637,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             if ($expectString) {
                 if (\is_array($token) && \T_CONSTANT_ENCAPSED_STRING === $token[0]) {
                     $parts[] = $this->decodeStringToken($token[1]);
-                    if (null === $firstLine) {
-                        $firstLine = $token[2];
-                    }
+                    $firstLine ??= $token[2];
                     if (null === $firstTokenOffset) {
                         $tokenIndex = $tokenIndexes[$index] ?? null;
                         if (\is_int($tokenIndex) && isset($tokenOffsets[$tokenIndex])) {

@@ -188,13 +188,13 @@ final class MessageTest extends TestCase
     public function test_reading_stops_when_the_body_never_arrives(): void
     {
         $stream = fopen('php://memory', 'r+');
-        self::assertIsResource($stream);
+        $this->assertIsResource($stream);
         fwrite($stream, "Content-Length: 64\r\n\r\n{\"jsonrpc\"");
         rewind($stream);
 
         // A closed connection reads as an empty string forever: the reader
         // has to give up rather than spin.
-        $this->assertNull(Message::readFrom($stream));
+        $this->assertNotInstanceOf(Message::class, Message::readFrom($stream));
 
         fclose($stream);
     }
@@ -204,13 +204,13 @@ final class MessageTest extends TestCase
     {
         $json = '{"jsonrpc":"2.0","id":4,"method":"initialize","params":{"rootUri":null}}';
         $stream = fopen('php://memory', 'r+');
-        self::assertIsResource($stream);
+        $this->assertIsResource($stream);
         fwrite($stream, 'Content-Length: '.\strlen($json)."\r\n\r\n".$json);
         rewind($stream);
 
         $message = Message::readFrom($stream);
 
-        self::assertInstanceOf(Message::class, $message);
+        $this->assertInstanceOf(Message::class, $message);
         $this->assertSame('initialize', $message->method);
         $this->assertSame(4, $message->id);
         $this->assertSame(['rootUri' => null], $message->params);

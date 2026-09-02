@@ -241,9 +241,9 @@ final class ParserRejectionsTest extends TestCase
     {
         $ast = $this->regexService->parse('/(?<foo>a)(?P=foo)/');
 
-        self::assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $backref = $ast->pattern->children[1];
-        self::assertInstanceOf(BackrefNode::class, $backref);
+        $this->assertInstanceOf(BackrefNode::class, $backref);
         $this->assertSame('\\k<foo>', $backref->ref);
     }
 

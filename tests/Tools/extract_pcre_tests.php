@@ -440,9 +440,7 @@ function generateFixtureFile(array $testCases, string $outputFile): void
     $grouped = [];
     foreach ($testCases as $case) {
         $category = $case['category'];
-        if (!isset($grouped[$category])) {
-            $grouped[$category] = [];
-        }
+        $grouped[$category] ??= [];
         $grouped[$category][] = $case;
     }
 

@@ -228,9 +228,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 }
 
                 if (null !== $requirementsIndent && $indent > $requirementsIndent) {
-                    if (null === $requirementsEntryIndent) {
-                        $requirementsEntryIndent = $indent;
-                    }
+                    $requirementsEntryIndent ??= $indent;
 
                     if ($indent === $requirementsEntryIndent && null !== $key) {
                         /** @var array<string, int> $requirements */
@@ -255,9 +253,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             }
 
             if (null !== $whenIndent) {
-                if (null === $whenRouteIndent) {
-                    $whenRouteIndent = $indent;
-                }
+                $whenRouteIndent ??= $indent;
 
                 if ($indent !== $whenRouteIndent) {
                     continue;
@@ -270,13 +266,9 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             $routeIndent = $indent;
             $requirementsIndent = null;
             $requirementsEntryIndent = null;
-            if (!isset($routes[$key])) {
-                $routes[$key] = [];
-            }
+            $routes[$key] ??= [];
             $routes[$key]['line'] = $index + 1;
-            if (!isset($routes[$key]['requirements'])) {
-                $routes[$key]['requirements'] = [];
-            }
+            $routes[$key]['requirements'] ??= [];
         }
 
         // Ensure proper structure for each route

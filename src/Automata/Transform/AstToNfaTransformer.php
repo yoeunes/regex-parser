@@ -1056,9 +1056,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     private function fullCharSet(): CharSet
     {
         $key = $this->cacheKey();
-        if (!isset(self::$fullCharSet[$key])) {
-            self::$fullCharSet[$key] = CharSet::full($this->alphabetMax);
-        }
+        self::$fullCharSet[$key] ??= CharSet::full($this->alphabetMax);
 
         return self::$fullCharSet[$key];
     }
@@ -1066,10 +1064,8 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     private function dotCharSet(): CharSet
     {
         $key = $this->cacheKey();
-        if (!isset(self::$dotCharSet[$key])) {
-            self::$dotCharSet[$key] = CharSet::full($this->alphabetMax)
-                ->subtract(CharSet::fromCodePoint(\ord("\n"), $this->alphabetMax));
-        }
+        self::$dotCharSet[$key] ??= CharSet::full($this->alphabetMax)
+            ->subtract(CharSet::fromCodePoint(\ord("\n"), $this->alphabetMax));
 
         return self::$dotCharSet[$key];
     }
@@ -1077,9 +1073,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     private function dotAllCharSet(): CharSet
     {
         $key = $this->cacheKey();
-        if (!isset(self::$dotAllCharSet[$key])) {
-            self::$dotAllCharSet[$key] = CharSet::full($this->alphabetMax);
-        }
+        self::$dotAllCharSet[$key] ??= CharSet::full($this->alphabetMax);
 
         return self::$dotAllCharSet[$key];
     }

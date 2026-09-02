@@ -49,18 +49,11 @@ final class Server
     private readonly CompletionHandler $completionHandler;
 
     /**
-     * @var resource|null
-     */
-    private $input;
-
-    /**
      * @param resource|null $input stream the messages are read from, or null
      *                             for stdin
      */
-    public function __construct(?Regex $regex = null, $input = null)
+    public function __construct(?Regex $regex = null, private $input = null)
     {
-        $this->input = $input;
-
         $regex ??= Regex::create();
         $finder = new RegexFinder();
         $documents = new DocumentManager($finder);

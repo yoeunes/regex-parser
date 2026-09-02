@@ -113,9 +113,7 @@ final class LintFunctionOverrides
             return self::$pcntlWaitpidResult;
         }
 
-        if (null === $status) {
-            $status = 0;
-        }
+        $status ??= 0;
 
         $rusage = \is_array($rusage) ? $rusage : [];
 

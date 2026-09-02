@@ -1451,9 +1451,7 @@ final class Parser
             }
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            if (null === $expr) {
-                $expr = $this->createEmptyLiteralNodeAt($this->previous()->position);
-            }
+            $expr ??= $this->createEmptyLiteralNodeAt($this->previous()->position);
 
             $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPosition;
 
@@ -1536,9 +1534,7 @@ final class Parser
             }
         }
 
-        if (null === $no) {
-            $no = $this->createEmptyLiteralNodeAt($this->current()->position);
-        }
+        $no ??= $this->createEmptyLiteralNodeAt($this->current()->position);
 
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
         $endPosition = $endToken->position + 1;

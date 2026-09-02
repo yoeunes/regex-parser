@@ -154,8 +154,8 @@ final class ServerTest extends TestCase
     private function errorCodeOf(int $id): int
     {
         $error = $this->answerTo($id)['error'];
-        self::assertIsArray($error);
-        self::assertIsInt($error['code']);
+        $this->assertIsArray($error);
+        $this->assertIsInt($error['code']);
 
         return $error['code'];
     }

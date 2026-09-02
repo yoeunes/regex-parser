@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
@@ -77,7 +78,7 @@ final class RoundTripFidelityTest extends TestCase
     public function test_an_ast_built_without_a_source_still_compiles(): void
     {
         $ast = Regex::create()->parse('/a b/x');
-        $rebuilt = new \RegexParser\Node\RegexNode($ast->pattern, $ast->flags, $ast->delimiter, 0, 3);
+        $rebuilt = new RegexNode($ast->pattern, $ast->flags, $ast->delimiter, 0, 3);
 
         $this->assertSame('/ab/x', $rebuilt->accept(new CompilerNodeVisitor()));
     }
