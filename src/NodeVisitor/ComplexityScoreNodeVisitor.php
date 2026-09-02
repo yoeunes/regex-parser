@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -246,12 +245,6 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitControlChar(ControlCharNode $node): int
-    {
-        return self::BASE_SCORE;
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): int
     {
         return self::BASE_SCORE;
     }

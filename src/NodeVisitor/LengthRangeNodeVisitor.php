@@ -41,7 +41,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -188,12 +187,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
     public function visitBackref(BackrefNode $node): array
     {
         return [0, null]; // Backrefs can match variable lengths
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): array
-    {
-        return [1, 1];
     }
 
     #[\Override]

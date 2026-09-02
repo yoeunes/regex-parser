@@ -44,7 +44,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -309,16 +308,6 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
             '<li><span title="%s">Backreference: <strong>\%s</strong></span></li>',
             $this->e($explanation),
             $this->e($node->ref),
-        );
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        return \sprintf(
-            '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
         );
     }
 

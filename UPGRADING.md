@@ -2,6 +2,79 @@
 
 This guide helps you upgrade RegexParser between versions. For detailed changes, see [CHANGELOG.md](CHANGELOG.md).
 
+## 1.3.0 → [Unreleased]
+
+### Breaking Changes
+
+#### `UnicodeNode` and `visitUnicode()` are gone
+
+No parser path ever produced a `UnicodeNode`: a `\u{...}` or `\x{...}` escape
+becomes a `CharLiteralNode`. The node is removed, and with it the
+`visitUnicode()` method of `NodeVisitorInterface`.
+
+A custom visitor keeps working as it is — an extra `visitUnicode()` method on
+your class is simply never called, and you can delete it. Code that names
+`RegexParser\Node\UnicodeNode` has to be updated to `CharLiteralNode`, whose
+`codePoint` holds the value the `code` string used to spell.
+
+#### `ReDoSAnalyzerInterface` is gone
+
+Nothing implemented it, `ReDoSAnalyzer` included. Type against `ReDoSAnalyzer`.
+
+#### `Lexer::__construct()` takes no argument
+
+Tokenizing never depended on the PHP version: what a version decides is which
+modifiers a pattern may carry, and the parser settles that. The constructor
+took a version id, stored it, and used it only to key the cache of compiled
+token patterns, which compiled the same two regexes once per version.
+
+`new Lexer($versionId)` becomes `new Lexer()`. `Regex` still honours an
+explicit PHP version everywhere it matters.
+
+#### The pattern extractors moved, and one is renamed
+
+The two ways of finding regex patterns in PHP source now sit together under
+`RegexParser\Lint\Extraction`, with the interface they implement:
+
+  - `RegexParser\Lint\ExtractorInterface` → `RegexParser\Lint\Extraction\ExtractorInterface`
+  - `RegexParser\Lint\TokenBasedExtractionStrategy` → `RegexParser\Lint\Extraction\TokenBasedExtractionStrategy`
+  - `RegexParser\Lint\PhpStanExtractionStrategy` → `RegexParser\Lint\Extraction\PhpParserExtractionStrategy`
+
+The last one never had anything to do with PHPStan: it reads the source with
+nikic/php-parser, which PHPStan happens to bring along. The old names are
+aliased and will be dropped in the next major version.
+
+#### Two Symfony bridge classes are renamed
+
+`RegexParser\Bridge\Symfony\Analyzer\Severity` said `pass`, `warn`, `fail`
+and `critical` — the outcome of a check, not the severity of a lint issue,
+which is what `RegexParser\Severity` means. It is now `CheckOutcome`.
+
+`RegexParser\Bridge\Symfony\Analyzer\AnalysisReport` is the sectioned
+report of the `regex:security` command and has nothing in common with
+`RegexParser\AnalysisReport`, the result of `Regex::analyze()`. It is now
+`SecurityReport`.
+
+Both are marked `@internal`; the commands that build them are the only
+callers.
+
+#### The lint CLI command moved to the CLI namespace
+
+`RegexParser\Lint\Command\LintCommand` and `LintOutputRenderer` are the only
+two classes of that namespace that needed the console, so the lint domain no
+longer depends on the CLI it is called from. They are now
+`RegexParser\Cli\Command\LintCommand` and
+`RegexParser\Cli\Command\LintOutputRenderer`.
+
+The old names still resolve — they are aliased on first use — but they will
+be dropped in the next major version.
+
+#### Cached ASTs are rebuilt
+
+`Regex::CACHE_VERSION` moved to `1.4.0`, so entries written by 1.3.0 are
+ignored and the patterns are parsed once more. Nothing to do; a warm cache
+directory rebuilds itself.
+
 ## [Unreleased] → 1.3.0
 
 ### Breaking Changes

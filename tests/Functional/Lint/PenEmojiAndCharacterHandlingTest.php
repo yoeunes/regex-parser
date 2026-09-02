@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Internal\PatternParser;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;

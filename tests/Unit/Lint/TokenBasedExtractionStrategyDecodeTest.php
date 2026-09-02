@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyDecodeTest extends TestCase
 {

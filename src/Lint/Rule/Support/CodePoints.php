@@ -16,7 +16,6 @@ namespace RegexParser\Lint\Rule\Support;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
-use RegexParser\Node\UnicodeNode;
 
 /**
  * Code-point parsing and hint-formatting helpers shared by lint rules.
@@ -35,10 +34,6 @@ final class CodePoints
 
         if ($node instanceof CharLiteralNode) {
             return $node->codePoint >= 0 ? $node->codePoint : null;
-        }
-
-        if ($node instanceof UnicodeNode) {
-            return self::parseUnicodeEscape($node->code);
         }
 
         return null;

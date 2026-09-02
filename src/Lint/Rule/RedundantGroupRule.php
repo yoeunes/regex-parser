@@ -33,7 +33,6 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
@@ -86,7 +85,6 @@ final class RedundantGroupRule extends AbstractLintRule
             || $node instanceof CharTypeNode
             || $node instanceof CharClassNode
             || $node instanceof CharLiteralNode
-            || $node instanceof UnicodeNode
             || $node instanceof DotNode
             || $node instanceof AnchorNode
             || $node instanceof AssertionNode

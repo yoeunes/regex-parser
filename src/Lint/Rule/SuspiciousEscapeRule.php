@@ -13,12 +13,10 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Rule;
 
-use RegexParser\Lint\Rule\Support\CodePoints;
 use RegexParser\LintIssue;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\NodeInterface;
-use RegexParser\Node\UnicodeNode;
 
 /**
  * Detects out-of-range Unicode and octal escapes and unknown Unicode
@@ -33,25 +31,11 @@ final class SuspiciousEscapeRule extends AbstractLintRule
 
     public function getNodeTypes(): array
     {
-        return [UnicodeNode::class, CharLiteralNode::class];
+        return [CharLiteralNode::class];
     }
 
     public function check(NodeInterface $node, LintContext $context): array
     {
-        if ($node instanceof UnicodeNode) {
-            $code = CodePoints::parseUnicodeEscape($node->code);
-
-            if (null !== $code && $code > 0x10FFFF) {
-                return [new LintIssue(
-                    'regex.lint.escape.suspicious',
-                    \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->code),
-                    $node->startPosition,
-                )];
-            }
-
-            return [];
-        }
-
         if (!$node instanceof CharLiteralNode) {
             return [];
         }

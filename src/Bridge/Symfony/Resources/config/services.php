@@ -36,7 +36,7 @@ use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
 use RegexParser\Bridge\Symfony\Security\SecurityConfigLocator;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
 use RegexParser\Bridge\Symfony\Security\SecurityPatternNormalizer;
-use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\Extraction\ExtractorInterface;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\PhpRegexPatternSource;
 use RegexParser\Lint\RegexAnalysisService;

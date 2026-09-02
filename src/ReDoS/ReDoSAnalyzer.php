@@ -114,7 +114,7 @@ final class ReDoSAnalyzer
                 $confidence,
                 $result['falsePositiveRisk'],
                 array_values($result['findings']),
-                $result['suggestedRewrite'] ?? null,
+                $result['suggestedRewrite'],
                 culpritNode: $visitor->getCulpritNode(),
                 hotspots: $visitor->getHotspots(),
                 mode: $mode,

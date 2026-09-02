@@ -32,6 +32,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\OutputFormat;
 use RegexParser\Regex;
+use RegexParser\Token;
 use RegexParser\TolerantParseResult;
 use RegexParser\ValidationResult;
 
@@ -309,7 +310,9 @@ final class RegexTest extends TestCase
     {
         $stream = Regex::tokenize('/ab/i');
         $this->assertSame('ab', $stream->getPattern());
-        $this->assertGreaterThan(0, \count($stream->getTokens()));
+
+        $types = array_map(static fn (Token $token): string => $token->type->name, $stream->getTokens());
+        $this->assertSame(['T_LITERAL', 'T_LITERAL', 'T_EOF'], $types);
     }
 
     public function test_build_visual_snippet_truncates_and_marks_caret(): void

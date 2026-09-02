@@ -92,7 +92,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         foreach ($yamlIndex as $routeName => $yamlRoute) {
             $yamlRequirements = $yamlRoute['requirements'] ?? [];
             $yamlFile = $yamlRoute['file'];
-            $routeLine = $yamlRoute['line'] ?? null;
+            $routeLine = $yamlRoute['line'];
             $lines = @file($yamlFile, \FILE_IGNORE_NEW_LINES);
             if (false !== $lines) {
                 foreach ($yamlRequirements as $parameter => $lineIndex) {
@@ -228,9 +228,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 }
 
                 if (null !== $requirementsIndent && $indent > $requirementsIndent) {
-                    if (null === $requirementsEntryIndent) {
-                        $requirementsEntryIndent = $indent;
-                    }
+                    $requirementsEntryIndent ??= $indent;
 
                     if ($indent === $requirementsEntryIndent && null !== $key) {
                         /** @var array<string, int> $requirements */
@@ -255,9 +253,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             }
 
             if (null !== $whenIndent) {
-                if (null === $whenRouteIndent) {
-                    $whenRouteIndent = $indent;
-                }
+                $whenRouteIndent ??= $indent;
 
                 if ($indent !== $whenRouteIndent) {
                     continue;
@@ -270,13 +266,9 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             $routeIndent = $indent;
             $requirementsIndent = null;
             $requirementsEntryIndent = null;
-            if (!isset($routes[$key])) {
-                $routes[$key] = [];
-            }
+            $routes[$key] ??= [];
             $routes[$key]['line'] = $index + 1;
-            if (!isset($routes[$key]['requirements'])) {
-                $routes[$key]['requirements'] = [];
-            }
+            $routes[$key]['requirements'] ??= [];
         }
 
         // Ensure proper structure for each route
@@ -307,7 +299,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             return $matches[2];
         }
 
-        return $matches[3] ?? null;
+        return $matches[3];
     }
 
     private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): string

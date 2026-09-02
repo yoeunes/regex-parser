@@ -19,10 +19,10 @@ use RegexParser\TokenStream;
 use RegexParser\TokenType;
 
 /**
- * Accessor class to expose and manipulate private methods/properties of the Parser for unit testing.
+ * Reaches the private parts of the Parser, for the tests that have to.
  *
- * NOTE: After the TokenStream refactoring, this accessor works differently.
- * The Parser now uses a TokenStream internally instead of a tokens array and position property.
+ * Navigating the tokens is no longer one of them: the cursor lives on
+ * TokenStream, which is public, and stream() hands it over.
  */
 final readonly class ParserAccessor
 {
@@ -111,21 +111,24 @@ final readonly class ParserAccessor
     }
 
     /**
-     * Wrapper for private advance() method.
+     * The stream the parser reads from, which is where the cursor lives.
      */
-    public function advance(): void
+    public function stream(): TokenStream
     {
-        $this->callPrivateMethod('advance');
+        $property = $this->reflection->getProperty('stream');
+        $stream = $property->getValue($this->parser);
+        \assert($stream instanceof TokenStream);
+
+        return $stream;
     }
 
-    /**
-     * Wrapper for private current() method.
-     */
+    public function advance(): void
+    {
+        $this->stream()->advance();
+    }
+
     public function current(): Token
     {
-        $result = $this->callPrivateMethod('current');
-        \assert($result instanceof Token);
-
-        return $result;
+        return $this->stream()->current();
     }
 }

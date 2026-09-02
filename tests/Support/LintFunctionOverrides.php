@@ -113,9 +113,7 @@ final class LintFunctionOverrides
             return self::$pcntlWaitpidResult;
         }
 
-        if (null === $status) {
-            $status = 0;
-        }
+        $status ??= 0;
 
         $rusage = \is_array($rusage) ? $rusage : [];
 
@@ -191,6 +189,40 @@ final class LintFunctionOverrides
 }
 
 namespace RegexParser\Lint;
+
+use RegexParser\Tests\Support\LintFunctionOverrides;
+
+function pcntl_fork(): int
+{
+    return LintFunctionOverrides::pcntlFork();
+}
+
+/**
+ * @param ?array<int|string, mixed> $rusage
+ *
+ * @param-out int|null $status
+ */
+function pcntl_waitpid(int $pid, ?int &$status = null, int $options = 0, ?array &$rusage = null): int
+{
+    return LintFunctionOverrides::pcntlWaitpid($pid, $status, $options, $rusage);
+}
+
+function tempnam(string $dir, string $prefix): string|false
+{
+    return LintFunctionOverrides::tempnam($dir, $prefix);
+}
+
+function mb_check_encoding(string $string, string $encoding): bool
+{
+    return LintFunctionOverrides::mbCheckEncoding($string, $encoding);
+}
+
+function mb_convert_encoding(string $string, string $toEncoding, string $fromEncoding): string|false
+{
+    return LintFunctionOverrides::mbConvertEncoding($string, $toEncoding, $fromEncoding);
+}
+
+namespace RegexParser\Lint\Extraction;
 
 use RegexParser\Tests\Support\LintFunctionOverrides;
 

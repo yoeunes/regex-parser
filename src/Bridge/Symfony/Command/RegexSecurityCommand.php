@@ -20,6 +20,7 @@ use RegexParser\Bridge\Symfony\Security\SecurityConfigExtractor;
 use RegexParser\Bridge\Symfony\Security\SecurityConfigLocator;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallAnalyzer;
 use RegexParser\Bridge\Symfony\Security\SecurityFirewallReport;
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\Formatter\RelativePathHelper;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
@@ -606,27 +607,7 @@ final class RegexSecurityCommand extends Command
             return '-';
         }
 
-        if ('' === $example) {
-            return '"" (empty string)';
-        }
-
-        $escaped = '';
-        $length = \strlen($example);
-        for ($i = 0; $i < $length; $i++) {
-            $byte = \ord($example[$i]);
-            $escaped .= match ($byte) {
-                0x0A => '\\n',
-                0x0D => '\\r',
-                0x09 => '\\t',
-                0x5C => '\\\\',
-                0x22 => '\\"',
-                default => ($byte < 0x20 || $byte > 0x7E)
-                    ? \sprintf('\\x%02X', $byte)
-                    : $example[$i],
-            };
-        }
-
-        return '<fg=cyan>"'.$escaped.'"</>';
+        return DisplayEscaper::quote($example, '<fg=cyan>', '</>');
     }
 
     private function formatPattern(string $pattern): string

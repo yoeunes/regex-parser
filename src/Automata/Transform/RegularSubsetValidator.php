@@ -43,7 +43,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -184,7 +183,6 @@ final class RegularSubsetValidator
 
         if ($node instanceof PosixClassNode
             || $node instanceof UnicodePropNode
-            || $node instanceof UnicodeNode
             || $node instanceof AssertionNode
             || $node instanceof BackrefNode
             || $node instanceof ConditionalNode

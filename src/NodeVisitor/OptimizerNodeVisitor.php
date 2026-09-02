@@ -45,7 +45,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
@@ -497,12 +496,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(UnicodeNode $node): NodeInterface
-    {
-        return $node;
-    }
-
-    #[\Override]
     public function visitClassOperation(ClassOperationNode $node): NodeInterface
     {
         return $node;
@@ -703,7 +696,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             || $node instanceof DotNode
             || $node instanceof CharClassNode
             || $node instanceof RangeNode
-            || $node instanceof UnicodeNode
             || $node instanceof UnicodePropNode
             || $node instanceof CharLiteralNode
             || $node instanceof PosixClassNode

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use RegexParser\Exception\LexerException;
+use RegexParser\Internal\InlineFlags;
 
 /**
  * Regex lexer that tokenizes PCRE pattern strings.
@@ -118,8 +119,16 @@ final class Lexer
     private const PATTERN_UNICODE_PROP_NEGATION_START = 1; // After ^
     private const ERROR_CONTEXT_LENGTH = 10;
 
-    // Precompiled regex patterns for maximum performance (version-aware)
     /**
+     * Modifier letters accepted inside "(?...)": what the parser takes, plus
+     * the PCRE2 10.43 "r". Whether "r" is allowed on the running PHP version
+     * is the parser's call; here it only decides where /x starts.
+     */
+    private const INLINE_FLAG_LETTERS = InlineFlags::LETTERS.'r';
+
+    /**
+     * Token patterns compiled once per byte mode.
+     *
      * @var array<int, string>
      */
     private static array $regexOutside = [];
@@ -128,8 +137,6 @@ final class Lexer
      * @var array<int, string>
      */
     private static array $regexInside = [];
-
-    private readonly int $phpVersionId;
 
     private string $pattern;
 
@@ -145,15 +152,19 @@ final class Lexer
 
     private bool $byteMode = false;
 
+    private bool $extendedMode = false;
+
+    /**
+     * Values of $extendedMode saved by each open group, restored when it closes.
+     *
+     * @var array<bool>
+     */
+    private array $extendedModeStack = [];
+
     /**
      * @var array<int>
      */
     private array $charClassStartPositions = [];
-
-    public function __construct(?int $phpVersionId = null)
-    {
-        $this->phpVersionId = $phpVersionId ?? \PHP_VERSION_ID;
-    }
 
     public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
@@ -167,6 +178,7 @@ final class Lexer
 
         $this->pattern = $pattern;
         $this->length = \strlen($this->pattern);
+        $this->extendedMode = str_contains($flags, 'x');
         $this->resetState();
 
         /** @var array<Token> $tokens */
@@ -190,14 +202,17 @@ final class Lexer
 
     private function getRegexOutside(): string
     {
-        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+        // The token patterns are constants and the compiled regex only varies
+        // with the byte mode, so that is the whole key: keying it on the PHP
+        // version as well compiled the same two regexes once per version.
+        $key = $this->byteMode ? 1 : 0;
 
         return self::$regexOutside[$key] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
     }
 
     private function getRegexInside(): string
     {
-        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+        $key = $this->byteMode ? 1 : 0;
 
         return self::$regexInside[$key] ??= $this->compilePattern(self::PATTERNS_INSIDE);
     }
@@ -229,6 +244,7 @@ final class Lexer
     private function resetState(): void
     {
         $this->position = 0;
+        $this->extendedModeStack = [];
         $this->inCharClass = false;
         $this->inQuoteMode = false;
         $this->inCommentMode = false;
@@ -256,7 +272,41 @@ final class Lexer
             return true;
         }
 
+        if ($this->extendedMode && !$this->inCharClass && '#' === ($this->pattern[$this->position] ?? '')) {
+            $this->consumeExtendedComment($tokens);
+
+            return true;
+        }
+
         return false;
+    }
+
+    /**
+     * Under /x a '#' starts a comment that runs to the end of the line, so its
+     * content is text: '[', '(' and friends must not be tokenized as regex
+     * syntax. The comment is emitted as literals — '#', the body and the
+     * closing newline — which is what the parser turns into a CommentNode.
+     *
+     * @param array<Token> $tokens
+     */
+    private function consumeExtendedComment(array &$tokens): void
+    {
+        $tokens[] = new Token(TokenType::T_LITERAL, '#', $this->position);
+        $this->position++;
+
+        $end = strpos($this->pattern, "\n", $this->position);
+        $bodyEnd = false === $end ? $this->length : $end;
+
+        if ($bodyEnd > $this->position) {
+            $body = substr($this->pattern, $this->position, $bodyEnd - $this->position);
+            $tokens[] = new Token(TokenType::T_LITERAL, $body, $this->position);
+            $this->position = $bodyEnd;
+        }
+
+        if (false !== $end) {
+            $tokens[] = new Token(TokenType::T_LITERAL, "\n", $this->position);
+            $this->position++;
+        }
     }
 
     /**
@@ -358,7 +408,10 @@ final class Lexer
 
             $value = $this->extractTokenValue($type, $matchedValue, $matches);
 
-            return new Token($type, $value, $startPos);
+            // The value may be a rewrite of what was matched — a stripped
+            // backslash, a normalized property name — so the token carries the
+            // length of the text it was cut from, not the length of its value.
+            return new Token($type, $value, $startPos, \strlen($matchedValue));
         }
 
         throw LexerException::withContext(
@@ -377,6 +430,10 @@ final class Lexer
         int $startPos,
         array $currentTokens
     ): ?Token {
+        if (!$this->inCharClass) {
+            $this->trackExtendedModeScope($type);
+        }
+
         return match ($type) {
             TokenType::T_CHAR_CLASS_OPEN => $this->handleCharClassOpen($startPos, $currentTokens),
             TokenType::T_CHAR_CLASS_CLOSE => $this->closeCharClass($startPos, $currentTokens),
@@ -384,6 +441,64 @@ final class Lexer
             TokenType::T_QUOTE_MODE_START => $this->openQuoteMode($startPos),
             default => $this->handleContextualLiteral($type, $matchedValue, $startPos, $currentTokens),
         };
+    }
+
+    /**
+     * Follow the /x setting through the group structure, so that "(?x)" and
+     * "(?x:...)" turn '#' comments on the way PCRE does: "(?x)" holds until
+     * the end of the enclosing group, "(?x:...)" only inside its own group.
+     */
+    private function trackExtendedModeScope(TokenType $type): void
+    {
+        if (TokenType::T_GROUP_CLOSE === $type) {
+            $this->extendedMode = array_pop($this->extendedModeStack) ?? $this->extendedMode;
+
+            return;
+        }
+
+        if (TokenType::T_GROUP_OPEN === $type) {
+            $this->extendedModeStack[] = $this->extendedMode;
+
+            return;
+        }
+
+        if (TokenType::T_GROUP_MODIFIER_OPEN !== $type) {
+            return;
+        }
+
+        $inlineFlags = $this->readInlineFlags();
+        if (null === $inlineFlags) {
+            $this->extendedModeStack[] = $this->extendedMode;
+
+            return;
+        }
+
+        [$flags, $scoped] = $inlineFlags;
+        $updated = $flags->inForce('x', $this->extendedMode);
+
+        // "(?x)" survives its own closing parenthesis: push the new value so
+        // the pop performed by ")" leaves it in place. "(?x:...)" pushes the
+        // previous value instead, which the pop restores.
+        $this->extendedModeStack[] = $scoped ? $this->extendedMode : $updated;
+        $this->extendedMode = $updated;
+    }
+
+    /**
+     * Read the modifiers that follow "(?", if the group carries any at all.
+     *
+     * @return array{0: InlineFlags, 1: bool} the modifiers, and whether the
+     *                                        group is scoped with ':'
+     */
+    private function readInlineFlags(): ?array
+    {
+        $matches = [];
+        if (!preg_match('/\G(\^?[a-zA-Z]*(?:-[a-zA-Z]+)?)([:)])/A', $this->pattern, $matches, 0, $this->position)) {
+            return null;
+        }
+
+        $flags = InlineFlags::read($matches[1], self::INLINE_FLAG_LETTERS);
+
+        return null === $flags ? null : [$flags, ':' === $matches[2]];
     }
 
     /**

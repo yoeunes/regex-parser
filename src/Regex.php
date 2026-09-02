@@ -21,6 +21,7 @@ use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RegexException;
+use RegexParser\Exception\RegexParserExceptionInterface;
 use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Internal\PatternParser;
@@ -50,7 +51,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
@@ -86,9 +86,13 @@ final readonly class Regex
 
     /**
      * Cache version for AST serialization.
-     * Bump this when AST structure changes.
+     *
+     * It tracks the shape of the serialized AST, not the version of the
+     * library: bump it whenever a node gains, loses or renames a property,
+     * so that entries written by an older release are ignored instead of
+     * being restored as objects with missing properties.
      */
-    public const CACHE_VERSION = '1.3.0';
+    public const CACHE_VERSION = '1.4.0';
 
     /**
      * Default maximum allowed regex pattern length.
@@ -217,33 +221,36 @@ final readonly class Regex
         $redos = $this->redos($regex);
 
         if ($isValid) {
+            // Only what the pattern itself can cause is reported as an error:
+            // a failure of any other kind is a bug in the library, and a
+            // report saying "invalid pattern" would bury it.
             try {
                 $ast = $this->parse($regex, false);
                 $linter = new LinterNodeVisitor();
                 $ast->accept($linter);
                 $lintIssues = $linter->getIssues();
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $optimizations = $this->optimize($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $explain = $this->explain($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $highlighted = $this->highlight($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
@@ -341,8 +348,11 @@ final readonly class Regex
         }
 
         $pretty = str_contains($ast->flags, 'x');
-        $originalCompiled = $ast->accept(new CompilerNodeVisitor($pretty));
-        $optimizedCompiled = $optimizedAst->accept(new CompilerNodeVisitor($pretty));
+        // Both sides are normalized so that a pattern only counts as optimized
+        // when its structure changed, not when it merely spells an escape
+        // differently.
+        $originalCompiled = $ast->accept(new CompilerNodeVisitor($pretty, preserveSpelling: false));
+        $optimizedCompiled = $optimizedAst->accept(new CompilerNodeVisitor($pretty, preserveSpelling: false));
 
         [$originalPattern] = PatternParser::extractPatternAndFlags($originalCompiled, $this->getParserPhpVersionId());
         [$optimizedPatternPart] = PatternParser::extractPatternAndFlags($optimizedCompiled, $this->getParserPhpVersionId());
@@ -496,7 +506,7 @@ final readonly class Regex
         $versionId = $phpVersionId ?? \PHP_VERSION_ID;
         [$pattern, $flags] = PatternParser::extractPatternAndFlags($regex, $phpVersionId);
 
-        return (new Lexer($versionId))->tokenize($pattern, $flags);
+        return (new Lexer())->tokenize($pattern, $flags);
     }
 
     /**
@@ -600,7 +610,6 @@ final readonly class Regex
             ScriptRunNode::class,
             SequenceNode::class,
             SubroutineNode::class,
-            UnicodeNode::class,
             UnicodePropNode::class,
             VersionConditionNode::class,
         ];
@@ -736,8 +745,15 @@ final readonly class Regex
             return [null, null];
         }
 
-        $cacheKey = $this->cache->generateKey($this->getCacheSeed($regex));
-        $cachedResult = $this->cache->load($cacheKey);
+        // A cache that cannot answer is a cache miss, the way a cache that
+        // cannot store is already treated: parsing the pattern again is
+        // always an option, and it is never the pattern's fault.
+        try {
+            $cacheKey = $this->cache->generateKey($this->getCacheSeed($regex));
+            $cachedResult = $this->cache->load($cacheKey);
+        } catch (\Throwable) {
+            return [null, null];
+        }
 
         return [$cachedResult instanceof RegexNode ? $cachedResult : null, $cacheKey];
     }
@@ -789,7 +805,7 @@ final readonly class Regex
         $exportedAst = var_export($serializedAst, true);
         $allowedClasses = self::getAllowedClasses();
         $exportedAllowedClasses = var_export($allowedClasses, true);
-        $version = self::CACHE_VERSION;
+        $version = var_export(self::CACHE_VERSION, true);
 
         return <<<PHP
             <?php
@@ -1119,7 +1135,7 @@ final readonly class Regex
     private function parseFromScratch(string $regex): RegexNode
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex, $this->getParserPhpVersionId());
-        $tokenStream = (new Lexer($this->phpVersionId))->tokenize($pattern, $flags);
+        $tokenStream = (new Lexer())->tokenize($pattern, $flags);
         $parser = new Parser($this->maxRecursionDepth, $this->getParserPhpVersionId());
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));

@@ -157,60 +157,6 @@ final class ParserUtilityTest extends TestCase
         $this->assertSame($longPattern, $pattern);
     }
 
-    public function test_parse_group_name_throws_on_missing_name(): void
-    {
-        // Simulate a state where we have consumed '(?<' but not the name
-        $this->accessor->setTokens(['>', 'a', ')']); // Attempt to close immediately
-        $this->accessor->setPosition(0);
-
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Expected group name at position');
-
-        // The method expects that the opening delimiter has already been consumed
-        $this->accessor->callPrivateMethod('parseGroupName');
-    }
-
-    public function test_parse_group_name_with_quotes(): void
-    {
-        // Simuler: 'name' + '>'
-        $tokens = [
-            $this->accessor->createToken(TokenType::T_LITERAL, "'", 1),
-            $this->accessor->createToken(TokenType::T_LITERAL, 'test_name', 2),
-            $this->accessor->createToken(TokenType::T_LITERAL, "'", 11),
-            $this->accessor->createToken(TokenType::T_LITERAL, '>', 12),
-        ];
-        $this->accessor->setTokens($tokens);
-        $this->accessor->setPosition(0);
-
-        // parseGroupName handles the quotes itself
-        $name = $this->accessor->callPrivateMethod('parseGroupName');
-        $this->assertSame('test_name', $name);
-
-        // Verifies that the closing brace (or >) is still there for consumption
-        $this->assertSame('>', $this->accessor->current()->value);
-    }
-
-    public function test_consume_literal_throws_on_type_mismatch(): void
-    {
-        // Token actuel est T_LITERAL with empty value, attend T_LITERAL with value 'a'
-        $this->accessor->setTokens(['']);
-        $this->accessor->setPosition(0);
-
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Expected error at position 0 (found literal with value )');
-
-        $this->accessor->callPrivateMethod('consumeLiteral', ['a', 'Expected error']);
-    }
-
-    public function test_check_literal_returns_false_at_eof(): void
-    {
-        $this->accessor->setTokens(['']);
-        $this->accessor->setPosition(0);
-
-        $result = $this->accessor->callPrivateMethod('checkLiteral', ['a']);
-        $this->assertFalse($result);
-    }
-
     public function test_throws_on_quantifier_without_target(): void
     {
         // Le parser appelle parseQuantifiedAtom. Si le premier atom est absent,

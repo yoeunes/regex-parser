@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `RegexParser\Node\UnicodeNode` and `NodeVisitorInterface::visitUnicode()`: no parser path ever produced the node — `\x{...}` and `\u{...}` escapes become a `CharLiteralNode` — so every visitor carried a method that could not be called. See [UPGRADING.md](UPGRADING.md).
+- `RegexParser\ReDoS\ReDoSAnalyzerInterface`: implemented by nothing, `ReDoSAnalyzer` included.
+- The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
+
+### Fixed
+- `\N{U+0041}` inside a character class is parsed instead of rejected; PCRE accepts it.
+- A duplicate group name was reported at the wrong offset when the pattern held an alternation or an inline flag group before it: `/(?<name>a)|(?<name>b)/` pointed at the `|`, and `/(?J)(?<name>a)(?-J)(?<name>b)/` inside the `(?-J)`. Both now point at the second group.
+- Recompiling a recursion condition produced a pattern PCRE refuses: `(?(R)yes|no)` came back as `(?((?R))yes|no)`.
+
+### Changed
+- `Regex::analyze()` only reports what the pattern itself causes: a failure that is not a RegexParser exception now surfaces instead of being written into the report as a pattern error.
+- A cache that throws while reading is treated as a cache miss, the way a cache that throws while writing already was.
+
 ### Added
 - Alphabetic assertion verbs (PCRE2 10.32+): `(*pla:...)`, `(*positive_lookahead:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*negative_lookbehind:...)`, `(*atomic:...)` parse as their classic lookaround / atomic group equivalents.
 - Script run content is now parsed into the AST: `(*sr:(a+)+b)` is analyzed like any sub-pattern (its catastrophic backtracking is detected by the ReDoS engine, its length/complexity contribute to metrics).
@@ -70,7 +84,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Dead `HelpfulExceptionTrait` (~430 lines, referenced nowhere).
 
+### Added
+- Recompiling a parsed AST gives the pattern back byte for byte, spelling included: optional escapes (`\{` or `{`, `[a-z\-]` or `[a-z-]`, `\]` outside a class), the backreference syntax that was used (`(?P=name)` is no longer rewritten to `\k<name>`), the way a code point was written (`\a` stays `\a`, `«` stays `«`), and assertion conditions (`(?(?<!x)y)` is no longer re-parenthesized). Text inside `\Q...\E` is still escaped, since the quoting is not kept. Comparing patterns — what the optimizer does to decide whether a pattern changed — still runs on the normalized form, so optimization suggestions are unaffected.
+- Recompiling an AST gives the pattern back byte for byte under `/x`: the whitespace the modifier makes ignorable is read back from the source, so `/  a  b  /x` and documented multi-line patterns keep their layout instead of collapsing to `/ab/x`. `RegexNode` carries the body it was parsed from for that purpose; an AST built by hand, a pretty-printed compile and normalized output are unaffected.
+- `/x` can be turned on from inside the pattern: `(?x)`, `(?x:...)`, `(?-x)` and `(?^x)` now drive extended mode in the lexer, the parser and the compiler, with PCRE's scoping — a bare `(?x)` holds until the end of the enclosing group and crosses `|`, while `(?x:...)` stops at its own `)`. Comments and ignorable whitespace were previously only recognised through the pattern-level `x` modifier.
+
 ### Fixed
+- PCRE conformance, found by linting the corpus: `[[:^word:]]` is accepted (PCRE negates every POSIX class it supports, and only `word` was rejected), and a `#` comment under `/x` no longer lets its `[` or `(` be tokenized as regex syntax — `/a # [ x\nb/x` compiles in PCRE but was reported as an unclosed character class.
+- `--format=json` no longer dies with "Failed to encode JSON" on byte-mode patterns: every string of the report, including the ones held by issue and optimization objects, is escaped the way the console renders them. The checkstyle and JUnit formatters used to silently drop such values, since `htmlspecialchars()` returns an empty string on invalid UTF-8.
+- Reported patterns keep their non-ASCII characters instead of being rewritten as octal escapes. `/《붉은별》/iu` used to be printed as `/\343\200\212…/iu`, which is a different pattern under `/u` (`\343` is `ã`, so the `i` flag stops being useless) and could not be copied back into PHP. Control bytes are still escaped, and invalid UTF-8 still falls back to full byte escaping.
+- Inline flag diagnostics no longer claim a flag is "already set globally" when it was set by an earlier inline flag group: `/^(?U)a(?U)b/` now reports the second `(?U)` against the first one.
 - Optimizer suggestions no longer un-escape literal `\{n\}` sequences into quantifiers: `/^(\{0\}.+)/` was rewritten to the non-compiling `/^({0}.+)/`. Found by proving all 435 corpus optimization suggestions against PCRE + automata equivalence (253 proven equivalent, 0 divergent, 2 invalid — both this bug).
 - `SolverOptions::$maxTransitionsProcessed` now defaults to a finite 1,000,000 instead of unlimited; pathological patterns could previously spin the determinization loop for tens of minutes.
 - `--generate-baseline` combined with `--baseline` now writes a baseline covering the full report; previously issues suppressed by the old baseline silently vanished from the newly generated one.

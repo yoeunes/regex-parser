@@ -28,7 +28,8 @@ final class PythonTranspilerTest extends TestCase
         $this->assertSame('python', $result->target);
         $this->assertSame('foo', $result->pattern);
         $this->assertSame('im', $result->flags);
-        $this->assertSame("r'foo'", $result->literal);
+        // Python strings carry no flags of their own, so they go inline.
+        $this->assertSame("r'(?im)foo'", $result->literal);
     }
 
     #[Test]
@@ -88,5 +89,40 @@ final class PythonTranspilerTest extends TestCase
         $this->expectException(TranspileException::class);
 
         Regex::create()->transpile('/a++b/', 'python');
+    }
+
+    #[Test]
+    public function test_a_pattern_holding_a_quote_picks_another_string_delimiter(): void
+    {
+        $regex = Regex::create();
+
+        // Backslash-escaping the quote inside a raw string would leave the
+        // backslash in the pattern.
+        $this->assertSame('r"a\'b"', $regex->transpile("/a'b/", 'python')->literal);
+        $this->assertSame('r\'a"b\'', $regex->transpile('/a"b/', 'python')->literal);
+    }
+
+    #[Test]
+    public function test_a_pattern_holding_both_quotes_falls_back_to_a_plain_string(): void
+    {
+        $regex = Regex::create();
+
+        $result = $regex->transpile('/a\'b"c/', 'python');
+
+        $this->assertSame("'a\\'b\"c'", $result->literal);
+        $this->assertSame("re.compile('a\\'b\"c', 0)", $result->constructor);
+    }
+
+    #[Test]
+    public function test_the_constructor_keeps_the_flags_out_of_the_pattern(): void
+    {
+        $regex = Regex::create();
+
+        $result = $regex->transpile('/foo/imsx', 'python');
+
+        $this->assertSame(
+            "re.compile(r'foo', re.IGNORECASE | re.MULTILINE | re.DOTALL | re.VERBOSE)",
+            $result->constructor,
+        );
     }
 }

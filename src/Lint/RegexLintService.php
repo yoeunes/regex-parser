@@ -394,7 +394,7 @@ final readonly class RegexLintService
     private function createProblemFromOptimization(array $optimization): RegexProblem
     {
         $message = \sprintf('Optimization available (saves %d chars).', $optimization['savings']);
-        $suggestion = $optimization['optimization']->optimized ?? null;
+        $suggestion = $optimization['optimization']->optimized;
 
         return new RegexProblem(
             ProblemType::Optimization,

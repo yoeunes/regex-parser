@@ -355,7 +355,7 @@ final class RegexParserRule implements Rule
         $redosIssues = [];
         $lintIssues = [];
         foreach ($issues as $issue) {
-            $issueId = $issue['issueId'] ?? null;
+            $issueId = $issue['issueId'];
             if (self::ISSUE_ID_COMPLEXITY === $issueId) {
                 continue;
             }
@@ -441,7 +441,7 @@ final class RegexParserRule implements Rule
         }
 
         foreach ($lintIssues as $issue) {
-            $issueId = $issue['issueId'] ?? null;
+            $issueId = $issue['issueId'];
             if (!\is_string($issueId) || '' === $issueId) {
                 continue;
             }

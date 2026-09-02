@@ -6,7 +6,7 @@ namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyTest extends TestCase
 {

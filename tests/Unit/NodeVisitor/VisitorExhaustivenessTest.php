@@ -49,7 +49,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
@@ -65,7 +64,7 @@ final class VisitorExhaustivenessTest extends TestCase
 {
     /**
      * Patterns chosen so that, together, they produce every node type the
-     * parser can emit (UnicodeNode is currently unreachable from the parser).
+     * parser can emit.
      *
      * @return iterable<string, array{pattern: string}>
      */
@@ -129,10 +128,9 @@ final class VisitorExhaustivenessTest extends TestCase
     }
 
     /**
-     * Constructs one instance of EVERY concrete node type (including ones the
-     * parser cannot currently emit, like UnicodeNode) and runs every visitor
-     * over it, so a new node type cannot silently fall through to the null
-     * default of AbstractNodeVisitor in any typed visitor.
+     * Constructs one instance of EVERY concrete node type and runs every
+     * visitor over it, so a new node type cannot silently fall through to the
+     * null default of AbstractNodeVisitor in any typed visitor.
      */
     #[Test]
     public function test_every_visitor_handles_synthetic_instances_of_all_node_types(): void
@@ -164,7 +162,6 @@ final class VisitorExhaustivenessTest extends TestCase
             new ScriptRunNode('Greek', 0, 12),
             new SequenceNode([$literal], 0, 1),
             new SubroutineNode('1', 'g', 0, 5),
-            new UnicodeNode('0041', 0, 6),
             new UnicodePropNode('L', false, 0, 3),
             new VersionConditionNode('>=', '10.4', 0, 16),
         ];
@@ -191,8 +188,6 @@ final class VisitorExhaustivenessTest extends TestCase
                 }
             }
         }
-
-        $this->assertGreaterThan(0, \count($nodes));
     }
 
     #[Test]
@@ -209,10 +204,6 @@ final class VisitorExhaustivenessTest extends TestCase
         foreach (glob(__DIR__.'/../../../src/Node/*Node.php') ?: [] as $file) {
             $class = 'RegexParser\Node\\'.basename($file, '.php');
             if (!is_subclass_of($class, NodeInterface::class) || (new \ReflectionClass($class))->isAbstract()) {
-                continue;
-            }
-            // The parser currently never emits UnicodeNode (\u escapes become CharLiteralNode).
-            if (UnicodeNode::class === $class) {
                 continue;
             }
             if (!isset($seen[$class])) {

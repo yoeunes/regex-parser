@@ -51,9 +51,7 @@ final readonly class PsrSimpleCacheAdapter implements RemovableCacheInterface
 
     public function load(string $key): mixed
     {
-        $value = $this->cache->get($key);
-
-        return $value ?? null;
+        return $this->cache->get($key);
     }
 
     public function getTimestamp(string $key): int

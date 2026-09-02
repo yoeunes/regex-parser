@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Functional;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 
 /**
  * Functional tests for pattern extraction to prevent false positives.

@@ -205,9 +205,7 @@ final class RegexLintCommand extends Command
 
                 $fileCount = $total;
 
-                if (null === $collectionBar) {
-                    $collectionBar = $this->createProgressBar($io, $total);
-                }
+                $collectionBar ??= $this->createProgressBar($io, $total);
 
                 $status = str_pad($current.'/'.$total, self::MESSAGE_PAD_LENGTH, ' ', \STR_PAD_LEFT);
                 $collectionBar->setMessage($status);

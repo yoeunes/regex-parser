@@ -85,6 +85,17 @@ Laravel, Composer, PHPUnit, …). The results are in `corpus/corpus.log` and
 differential test — it is a snapshot used to validate that the lint and ReDoS
 rules produce sensible output on real code.
 
+The corpus checkouts themselves are not committed. `corpus/corpus.json` lists
+every repository with its URL and branch, and `php corpus/update` clones the
+missing ones before pulling the rest:
+
+```bash
+php corpus/update                      # clone what is missing, then pull everything
+php corpus/update --clone-only         # first run on a fresh machine
+php corpus/update --add https://github.com/vendor/repo.git [--as path] [--branch main]
+php corpus/update --write-manifest     # rewrite corpus.json from what is on disk
+```
+
 ## How to report a vulnerability responsibly
 
 If you believe a pattern is exploitable:

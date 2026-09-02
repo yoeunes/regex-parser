@@ -156,7 +156,7 @@ final class CharacterClassRangeBugTest extends TestCase
         // Note: [ doesn't need escaping inside a character class (except at the start)
         yield 'mautic bug - at bracket backslash bracket with gap' => [
             '/[@\[\]]/',
-            '/[@[\]]/',
+            '/[@\[\]]/',
         ];
 
         // Extended Mautic case: [@\[\]\\] matches @, [, \, ] (ASCII 64, 91, 92, 93)

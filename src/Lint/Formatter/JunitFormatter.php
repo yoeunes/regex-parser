@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\RegexProblem;
 use RegexParser\Severity;
@@ -142,7 +143,7 @@ final class JunitFormatter extends AbstractOutputFormatter
                     'file' => $result['file'],
                     'line' => $result['line'],
                     'source' => $result['source'] ?? null,
-                    'pattern' => $result['pattern'] ?? null,
+                    'pattern' => $result['pattern'],
                     'location' => $result['location'] ?? null,
                     'problem' => $problem,
                 ];
@@ -202,6 +203,6 @@ final class JunitFormatter extends AbstractOutputFormatter
 
     private function escapeXml(string $value): string
     {
-        return htmlspecialchars($value, \ENT_XML1 | \ENT_QUOTES);
+        return htmlspecialchars(DisplayEscaper::escape($value), \ENT_XML1 | \ENT_QUOTES);
     }
 }

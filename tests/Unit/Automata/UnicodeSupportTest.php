@@ -92,6 +92,47 @@ final class UnicodeSupportTest extends TestCase
         $solver->intersection("/\xFF/u", '/./u', $options);
     }
 
+    #[Test]
+    public function test_case_folding_covers_a_whole_unicode_block(): void
+    {
+        $solver = new RegexSolver();
+        $options = $this->fullMatchOptions();
+
+        // Folding used to walk every code point of the class; a class this
+        // wide is now folded against the table of code points that actually
+        // have a case mapping.
+        $result = $solver->equivalent('/[à-öa-z]/iu', '/[à-öÀ-Öa-zA-Z]/u', $options);
+
+        $this->assertTrue($result->isEquivalent);
+    }
+
+    #[Test]
+    public function test_case_folding_reaches_outside_the_basic_plane(): void
+    {
+        $solver = new RegexSolver();
+        $options = $this->fullMatchOptions();
+
+        // U+10400 DESERET CAPITAL LONG I folds to U+10428.
+        $result = $solver->equivalent('/\u{10400}/iu', '/[\u{10400}\u{10428}]/u', $options);
+
+        $this->assertTrue($result->isEquivalent);
+    }
+
+    #[Test]
+    public function test_unicode_classes_keep_their_boundaries(): void
+    {
+        $solver = new RegexSolver();
+        $options = $this->fullMatchOptions();
+
+        // The classes are read from PCRE a block at a time; the edges of a
+        // block must not gain or lose a code point.
+        $this->assertFalse($solver->intersection('/\w/u', '/é/u', $options)->isEmpty);
+        $this->assertTrue($solver->intersection('/\w/u', '/ /u', $options)->isEmpty);
+        $this->assertFalse($solver->intersection('/\s/u', "/\u{2028}/u", $options)->isEmpty);
+        $this->assertFalse($solver->intersection('/\d/u', "/\u{0661}/u", $options)->isEmpty);
+        $this->assertTrue($solver->intersection('/\d/u', '/a/u', $options)->isEmpty);
+    }
+
     private function fullMatchOptions(): SolverOptions
     {
         return new SolverOptions(matchMode: MatchMode::FULL);

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Exception\SyntaxErrorException;
+
 /**
  * Token stream with direct indexing and caching.
  *
@@ -131,9 +133,136 @@ final class TokenStream
     /**
      * Returns true if current token is EOF
      */
+    /**
+     * Whether the token under the cursor has this type.
+     *
+     * Past the end there is only T_EOF, which is what a parser asking for it
+     * expects to find.
+     */
+    public function check(TokenType $type): bool
+    {
+        if ($this->isAtEnd()) {
+            return TokenType::T_EOF === $type;
+        }
+
+        return $this->current()->type === $type;
+    }
+
+    /**
+     * Whether the token under the cursor is a literal with this text.
+     */
+    public function checkLiteral(string $value): bool
+    {
+        if ($this->isAtEnd()) {
+            return false;
+        }
+
+        $token = $this->current();
+
+        return TokenType::T_LITERAL === $token->type && $token->value === $value;
+    }
+
+    /**
+     * Step over the token under the cursor if it has this type.
+     */
+    public function match(TokenType $type): bool
+    {
+        if (!$this->check($type)) {
+            return false;
+        }
+
+        $this->advance();
+
+        return true;
+    }
+
+    /**
+     * Step over the token under the cursor if it is this literal.
+     */
+    public function matchLiteral(string $value): bool
+    {
+        if (!$this->checkLiteral($value)) {
+            return false;
+        }
+
+        $this->advance();
+
+        return true;
+    }
+
+    /**
+     * Step over the token under the cursor, unless the stream is exhausted.
+     */
+    public function advance(): void
+    {
+        if (!$this->isAtEnd()) {
+            $this->next();
+        }
+    }
+
+    /**
+     * The token the cursor has just stepped over.
+     */
+    public function previous(): Token
+    {
+        if (0 === $this->position) {
+            return new Token(TokenType::T_EOF, '', 0);
+        }
+
+        return $this->tokens[$this->position - 1];
+    }
+
+    /**
+     * Step over a token of this type, or say what was found instead.
+     *
+     * @throws SyntaxErrorException
+     */
+    public function consume(TokenType $type, string $error): Token
+    {
+        if ($this->check($type)) {
+            $token = $this->current();
+            $this->advance();
+
+            return $token;
+        }
+
+        throw $this->unexpected($error, '(found '.$this->current()->type->value.')');
+    }
+
+    /**
+     * Step over this literal, or say what was found instead.
+     *
+     * @throws SyntaxErrorException
+     */
+    public function consumeLiteral(string $value, string $error): Token
+    {
+        if ($this->checkLiteral($value)) {
+            $token = $this->current();
+            $this->advance();
+
+            return $token;
+        }
+
+        throw $this->unexpected(
+            $error,
+            '(found '.$this->current()->type->value.' with value '.$this->current()->value.')',
+        );
+    }
+
     public function isAtEnd(): bool
     {
         return $this->position > $this->maxPosition
                || TokenType::T_EOF === $this->tokens[$this->position]->type;
+    }
+
+    private function unexpected(string $error, string $found): SyntaxErrorException
+    {
+        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
+        return SyntaxErrorException::withContext(
+            $error.' at '.$at.' '.$found,
+            $this->current()->position,
+            $this->pattern,
+        );
     }
 }

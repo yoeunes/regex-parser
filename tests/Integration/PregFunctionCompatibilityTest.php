@@ -368,8 +368,8 @@ final class PregFunctionCompatibilityTest extends TestCase
         $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_OFFSET_CAPTURE);
 
         $this->assertSame($originalResult, $compiledResult);
+
         $this->assertIsArray($compiledResult);
-        $this->assertGreaterThan(0, \count($compiledResult));
         $firstItem = $compiledResult[0];
         $this->assertIsArray($firstItem);
         $this->assertCount(2, $firstItem);

@@ -43,7 +43,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
@@ -507,12 +506,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(UnicodeNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -880,7 +873,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             || $node instanceof DotNode
             || $node instanceof CharClassNode
             || $node instanceof RangeNode
-            || $node instanceof UnicodeNode
             || $node instanceof UnicodePropNode
             || $node instanceof CharLiteralNode
             || $node instanceof PosixClassNode
@@ -957,7 +949,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             || $node instanceof DotNode
             || $node instanceof CharClassNode
             || $node instanceof RangeNode
-            || $node instanceof UnicodeNode
             || $node instanceof UnicodePropNode
             || $node instanceof CharLiteralNode
             || $node instanceof PosixClassNode

@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Functional\Lint;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternExtractor;
 use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 /**
  * Regression tests for the linter to ensure false positives are avoided

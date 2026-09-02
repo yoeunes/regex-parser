@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -42,7 +43,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -149,7 +149,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             }
 
             if ('' !== $buffer) {
-                $value = addcslashes($buffer, "\0..\37\177..\377");
+                $value = DisplayEscaper::escape($buffer);
                 $layouts[] = $this->createNodeLayout($value, 'node literal', true);
                 $buffer = '';
             }
@@ -157,7 +157,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         }
 
         if ('' !== $buffer) {
-            $value = addcslashes($buffer, "\0..\37\177..\377");
+            $value = DisplayEscaper::escape($buffer);
             $layouts[] = $this->createNodeLayout($value, 'node literal', true);
         }
 
@@ -182,7 +182,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(LiteralNode $node)
     {
-        $value = addcslashes($node->value, "\0..\37\177..\377");
+        $value = DisplayEscaper::escape($node->value);
         if ('' === $value) {
             $value = '(empty)';
         }
@@ -200,12 +200,6 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitCharType(CharTypeNode $node)
     {
         return $this->createNodeLayout('CharType (\\'.$node->value.')', 'node control');
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node)
-    {
-        return $this->createNodeLayout('Unicode (\\x'.$node->code.')', 'node control');
     }
 
     #[\Override]

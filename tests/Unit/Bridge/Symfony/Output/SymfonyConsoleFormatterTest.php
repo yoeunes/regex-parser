@@ -550,6 +550,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => null,
             'issues' => [
                 ['pattern' => '/from-issue/'],
             ],
@@ -575,6 +576,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => null,
             'issues' => [],
             'optimizations' => [
                 ['optimization' => $optimization],

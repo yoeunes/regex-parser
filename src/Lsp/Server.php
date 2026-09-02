@@ -31,6 +31,11 @@ use RegexParser\Regex;
  */
 final class Server
 {
+    /**
+     * JSON-RPC "internal error".
+     */
+    private const ERROR_INTERNAL = -32603;
+
     private bool $initialized = false;
 
     private bool $shutdown = false;
@@ -43,7 +48,11 @@ final class Server
 
     private readonly CompletionHandler $completionHandler;
 
-    public function __construct(?Regex $regex = null)
+    /**
+     * @param resource|null $input stream the messages are read from, or null
+     *                             for stdin
+     */
+    public function __construct(?Regex $regex = null, private $input = null)
     {
         $regex ??= Regex::create();
         $finder = new RegexFinder();
@@ -66,14 +75,38 @@ final class Server
         }
 
         while (!$this->shutdown) {
-            $message = Message::readFromStdin();
+            $message = Message::readFrom($this->input ?? \STDIN);
             if (null === $message) {
                 // EOF or read error
                 break;
             }
 
-            $this->handleMessage($message);
+            // A pattern that trips a limit, or any other failure inside a
+            // handler, must cost the editor one answer — not the session.
+            try {
+                $this->handleMessage($message);
+            } catch (\Throwable $failure) {
+                $this->reportFailure($message, $failure);
+            }
         }
+    }
+
+    /**
+     * Answer a request whose handler failed, and leave a trace of a failed
+     * notification on stderr, where the editor collects the server log.
+     */
+    private function reportFailure(Message $message, \Throwable $failure): void
+    {
+        if ($message->isRequest() && null !== $message->id) {
+            Response::error($message->id, self::ERROR_INTERNAL, $failure->getMessage());
+
+            return;
+        }
+
+        file_put_contents(
+            'php://stderr',
+            \sprintf("regex-lsp: %s: %s\n", $failure::class, $failure->getMessage()),
+        );
     }
 
     /**

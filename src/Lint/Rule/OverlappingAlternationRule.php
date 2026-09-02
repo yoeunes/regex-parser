@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Rule;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\LintIssue;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharLiteralNode;
@@ -100,7 +101,7 @@ final class OverlappingAlternationRule extends AbstractLintRule
                         if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
                             $issues[] = new LintIssue(
                                 'regex.lint.alternation.overlap',
-                                \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
+                                \sprintf('Alternation branches "%s" and "%s" overlap.', DisplayEscaper::escape($a), DisplayEscaper::escape($b)),
                                 $node->startPosition,
                                 'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
                             );

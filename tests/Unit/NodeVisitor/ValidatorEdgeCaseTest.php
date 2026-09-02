@@ -87,11 +87,11 @@ final class ValidatorEdgeCaseTest extends TestCase
         $this->validate('/[[:fake:]]/');
     }
 
-    public function test_invalid_posix_negation_of_word(): void
+    public function test_posix_negation_of_word_is_valid(): void
     {
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('Negation of POSIX class "word" is not supported');
         $this->validate('/[[:^word:]]/');
+
+        $this->assertNotFalse(@preg_match('/[[:^word:]]/', ''));
     }
 
     public function test_invalid_conditional_condition(): void

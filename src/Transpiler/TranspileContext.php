@@ -43,9 +43,7 @@ final class TranspileContext
 
     public function requireFlag(string $flag, string $reason): void
     {
-        if (!isset($this->requiredFlags[$flag])) {
-            $this->requiredFlags[$flag] = $reason;
-        }
+        $this->requiredFlags[$flag] ??= $reason;
     }
 
     public function requiresFlag(string $flag): bool

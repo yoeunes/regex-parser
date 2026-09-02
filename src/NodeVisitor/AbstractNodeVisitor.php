@@ -39,7 +39,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -88,11 +87,6 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
     }
 
     public function visitCharType(CharTypeNode $node)
-    {
-        return $this->defaultReturn();
-    }
-
-    public function visitUnicode(UnicodeNode $node)
     {
         return $this->defaultReturn();
     }

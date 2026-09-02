@@ -63,11 +63,11 @@ final class CompilerNodeVisitorTest extends TestCase
         $regex = '/[^a-z]/';
         $this->assertSame($regex, $this->compile($regex));
 
-        // Ensures class meta-characters are escaped
-        $regex = '/[]\^-]/'; // "]", "\", "^", "-"
-        // The parser sees "]", "\", "^", "-" as literals because of their position.
-        // The compiler should only escape the backslash.
-        $this->assertSame('/[\]\^\-]/', $this->compile($regex));
+        // "]", "\", "^" and "-" are literals where they stand, and escaping
+        // them is optional, so the pattern keeps the spelling it was written
+        // with instead of being normalized.
+        $regex = '/[]\^-]/';
+        $this->assertSame($regex, $this->compile($regex));
     }
 
     public function test_compile_posix_class_not_double_wrapped(): void

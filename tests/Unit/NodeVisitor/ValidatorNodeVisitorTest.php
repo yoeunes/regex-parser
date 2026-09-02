@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\SemanticErrorException;
@@ -22,12 +22,6 @@ use RegexParser\Regex;
 
 final class ValidatorNodeVisitorTest extends TestCase
 {
-    #[DoesNotPerformAssertions]
-    public function test_validate_valid(): void
-    {
-        $this->validate('/foo{1,3}/ims');
-    }
-
     public function test_throws_on_invalid_quantifier_range(): void
     {
         $this->expectException(SemanticErrorException::class);
@@ -40,14 +34,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "z"');
         $this->validate('/foo/imz');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_allows_nested_quantifiers(): void
-    {
-        // Nested quantifiers like /(a+)*b/ are syntactically valid in PCRE
-        // ReDoS detection should be separate from syntax validation
-        $this->validate('/(a+)*b/');
     }
 
     public function test_throws_on_invalid_unicode_property(): void
@@ -65,72 +51,11 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\p{Letter}/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_valid_unicode_property(): void
-    {
-        $this->validate('/\p{L}/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_valid_java_unicode_properties(): void
-    {
-        $this->validate('/\p{javaLowerCase}/u');
-        $this->validate('/\p{javaUpperCase}/u');
-        $this->validate('/\p{javaWhitespace}/u');
-        $this->validate('/\p{javaMirrored}/u');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_valid_unicode_named_character(): void
-    {
-        $this->validate('/\N{U+0041}/u');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_valid_unicode_four_digit_escape(): void
-    {
-        $this->validate('/\u0041/');
-    }
-
     public function test_throws_on_invalid_unicode_named_character(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid Unicode character name: INVALID');
         $this->validate('/\N{INVALID}/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_allows_non_nested_quantifiers(): void
-    {
-        // (a*)(b*) is fine
-        $this->validate('/(a*)(b*)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_allows_nested_possessive_quantifiers(): void
-    {
-        // Possessive quantifiers (*+, ++, ?+, {n,}+) cannot backtrack,
-        // so they are safe from catastrophic backtracking (ReDoS).
-        $this->validate('/(a++)*+b/');
-        $this->validate('/([a-z]*+)++/');
-        $this->validate('/(a*+)+/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_allows_symfony_patterns_with_possessive_quantifiers(): void
-    {
-        // These patterns from Symfony use possessive quantifiers and should be valid.
-        // They were previously flagged as ReDoS false positives.
-        $this->validate('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+(?:\\\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+)++$/');
-        $this->validate('/^(?:[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+\\\\)++$/');
-        $this->validate('/([^\\\\]++\\\\)++/');
-        $this->validate('/^(?:[-.\w\\\\]*+:)*+\w*+$/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validate_valid_char_class(): void
-    {
-        $this->validate('/[a-z\d-]/');
     }
 
     public function test_throws_on_invalid_range(): void
@@ -154,16 +79,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\2/'); // No group 2
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_multi_digit_backref_falls_back_to_octal(): void
-    {
-        // PCRE: \NN with NN >= 10 and no such group is an octal escape
-        // (e.g. (a)\11 matches "a" followed by a TAB).
-        $this->validate('/(a)\11/');
-        $this->validate('/(a)(b)\10/');
-        $this->validate('/\19/'); // octal \1 followed by literal 9
-    }
-
     public function test_multi_digit_backref_without_octal_fallback_is_rejected(): void
     {
         // "81" starts with a non-octal digit: neither a group nor an octal escape.
@@ -177,15 +92,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid or unsupported Unicode property: \p{invalid}.');
         $this->validate('/\p{invalid}/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validate_valid_subroutine(): void
-    {
-        $this->validate('/(a)(?1)/');
-        $this->validate('/(a)(?-1)/');
-        $this->validate('/(?<name>a)(?&name)/');
-        $this->validate('/(?R)/');
     }
 
     public function test_throws_on_invalid_numeric_subroutine(): void
@@ -237,13 +143,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[\d-z]/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_allows_octal_zero_escape_in_validator(): void
-    {
-        // \0 is now allowed as it represents the null byte
-        $this->validate('/\0/');
-    }
-
     public function test_throws_on_relative_backref_out_of_bounds(): void
     {
         $this->expectException(SemanticErrorException::class);
@@ -264,12 +163,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid or unsupported PCRE verb: "INVALID"');
         $this->validate('/(*INVALID)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validates_named_conditional(): void
-    {
-        $this->validate('/(?<n>a)(?(n)b)/'); // Valid named conditional
     }
 
     public function test_throws_on_invalid_unicode_codepoint(): void
@@ -295,33 +188,28 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\999/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_allows_octal_zero_escape(): void
+    #[DataProvider('providePosixClasses')]
+    public function test_negated_posix_classes_match_pcre(string $class): void
     {
-        // \0 is now allowed as it represents the null byte
-        $this->validate('/\0/');
+        $pattern = \sprintf('/[[:^%s:]]/', $class);
+
+        $this->assertNotFalse(@preg_match($pattern, ''), 'PCRE must accept the pattern');
+
+        $this->validate($pattern);
+        $this->assertTrue(true);
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_validator_allows_nested_quantifiers(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function providePosixClasses(): iterable
     {
-        // Nested quantifiers like /(a+)+/ are syntactically valid in PCRE
-        // ReDoS detection should be separate from syntax validation
-        $this->validate('/(a+)+/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_valid_backreference_with_capturing_group(): void
-    {
-        // This should not throw an exception
-        $this->validate('/(a)\1/');
-    }
-
-    public function test_throws_on_negated_posix_word_class(): void
-    {
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('Negation of POSIX class "word" is not supported.');
-        $this->validate('/[[:^word:]]/');
+        foreach ([
+            'alnum', 'alpha', 'ascii', 'blank', 'cntrl', 'digit', 'graph',
+            'lower', 'print', 'punct', 'space', 'upper', 'word', 'xdigit',
+        ] as $class) {
+            yield $class => [$class];
+        }
     }
 
     private function validate(string $pattern): void

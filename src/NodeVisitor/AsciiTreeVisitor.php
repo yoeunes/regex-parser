@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Node;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -41,7 +42,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -127,7 +127,7 @@ final class AsciiTreeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(LiteralNode $node): string
     {
-        $value = addcslashes($node->value, "\0..\37\177..\377");
+        $value = DisplayEscaper::escape($node->value);
         $this->addLine("Literal ('".$value."')");
 
         return '';
@@ -145,14 +145,6 @@ final class AsciiTreeVisitor extends AbstractNodeVisitor
     public function visitCharType(CharTypeNode $node): string
     {
         $this->addLine('CharType (\\'.$node->value.')');
-
-        return '';
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        $this->addLine('Unicode (\\x'.$node->code.')');
 
         return '';
     }

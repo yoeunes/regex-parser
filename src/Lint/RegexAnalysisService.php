@@ -15,6 +15,7 @@ namespace RegexParser\Lint;
 
 use RegexParser\Automata\Solver\RegexSolver;
 use RegexParser\Internal\PatternParser;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\ClassOperationNode;

@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 {

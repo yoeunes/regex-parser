@@ -18,6 +18,7 @@ use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Lint\Command\LintConfigLoader;
 use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
@@ -200,7 +201,7 @@ final class DebugCommand extends AbstractCommand
             }
 
             if (null !== $inputValue) {
-                $escaped = addcslashes($inputValue, "\0..\37\177..\377");
+                $escaped = DisplayEscaper::escape($inputValue);
                 $output->write('  Input:      "'.$escaped.'"'.$inputSource."\n");
             }
 

@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisContext;
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
 use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\CheckOutcome;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
 use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
-use RegexParser\Bridge\Symfony\Analyzer\Severity;
+use RegexParser\Bridge\Symfony\Analyzer\SecurityReport;
 use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -205,7 +205,7 @@ final class RegexAnalyzeCommand extends Command
             }
         }
 
-        $report = new AnalysisReport($sections);
+        $report = new SecurityReport($sections);
 
         if (null !== $progressBar) {
             $progressBar->finish();
@@ -325,7 +325,7 @@ final class RegexAnalyzeCommand extends Command
     /**
      * @param array<int, string> $failOn
      */
-    private function shouldFail(AnalysisReport $report, array $failOn): bool
+    private function shouldFail(SecurityReport $report, array $failOn): bool
     {
         if (\in_array('none', $failOn, true)) {
             return false;
@@ -335,7 +335,7 @@ final class RegexAnalyzeCommand extends Command
             return true;
         }
 
-        if (\in_array('critical', $failOn, true) && $report->hasSeverity(Severity::CRITICAL)) {
+        if (\in_array('critical', $failOn, true) && $report->hasSeverity(CheckOutcome::CRITICAL)) {
             return true;
         }
 

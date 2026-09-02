@@ -40,11 +40,10 @@ jobs:
         # ceiling yet (e.g. nette/schema); ignore the platform PHP requirement.
         run: composer install -d tools/phpunit --no-interaction --no-progress ${{ matrix.php == '8.6' && '--ignore-platform-req=php+' || '' }}
 
-      - name: Run Unit Tests
-        run: tools/phpunit/vendor/bin/phpunit tests/Unit/ --colors=always
-
-      - name: Run Integration Tests
-        run: tools/phpunit/vendor/bin/phpunit tests/Integration/ --colors=always
+      - name: Run Test Suite
+        # The whole tests/ tree, so that the functional, regression and
+        # documentation tests are not left to rot outside of CI.
+        run: tools/phpunit/vendor/bin/phpunit --colors=always
 
   phpstan:
     name: PHPStan (PHP ${{ matrix.php }}, ${{ matrix.dependency }})

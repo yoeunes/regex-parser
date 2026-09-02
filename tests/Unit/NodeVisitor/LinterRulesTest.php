@@ -137,6 +137,27 @@ final class LinterRulesTest extends TestCase
         $this->assertNotContains('regex.lint.flag.redundant', $issues);
     }
 
+    public function test_inline_flag_redundant_message_names_the_global_modifier(): void
+    {
+        $messages = $this->lintMessages('/(?i:foo)/i');
+
+        $this->assertContains("Inline flag 'i' is redundant; it is already set globally.", $messages);
+    }
+
+    public function test_inline_flag_redundant_message_names_the_preceding_inline_group(): void
+    {
+        $messages = $this->lintMessages('/(?U)a(?U)b/');
+
+        $this->assertContains("Inline flag 'U' is redundant; it is already set by an earlier inline flag group.", $messages);
+    }
+
+    public function test_inline_flag_redundant_ignores_case_of_global_modifier(): void
+    {
+        $issues = $this->lint('/(?U)a/u');
+
+        $this->assertNotContains('regex.lint.flag.redundant', $issues);
+    }
+
     public function test_suspicious_unicode_escape_warning(): void
     {
         $issues = $this->lint('/\\x{110000}/');
@@ -160,6 +181,18 @@ final class LinterRulesTest extends TestCase
         yield 'unsafe no separator' => ['/(a+(?:a+)*)/', true];
         yield 'unsafe overlapping separator' => ['/(\\w+(?:_\\w+)*)/', true];
         yield 'unsafe direct overlap' => ['/([0-9]+(?:[0-9]+)*)/', true];
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function lintMessages(string $pattern): array
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        return array_map(static fn ($issue) => $issue->message, $linter->getIssues());
     }
 
     /**

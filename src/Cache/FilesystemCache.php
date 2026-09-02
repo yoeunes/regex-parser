@@ -87,13 +87,24 @@ final class FilesystemCache implements RemovableCacheInterface
             return null;
         }
 
-        $this->hits++;
-
         try {
-            return include $key;
+            $cached = include $key;
         } catch (\Throwable) {
+            $cached = null;
+        }
+
+        // A file written by an incompatible version returns null, which is a
+        // miss like any other: counting it as a hit would hide the fact that
+        // nothing was reused.
+        if (null === $cached) {
+            $this->misses++;
+
             return null;
         }
+
+        $this->hits++;
+
+        return $cached;
     }
 
     #[\Override]

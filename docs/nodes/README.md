@@ -586,29 +586,6 @@ echo $prop->hasBraces;  // true
 
 ---
 
-### UnicodeNode
-
-**Purpose:** A single Unicode code point escape like `\x{1F600}`.
-
-
-**Fields:**
-
-| Field  | Type   | Description        |
-|--------|--------|--------------------|
-| `code` | string | The hex code point |
-
-**Example:**
-```php
-use RegexParser\Regex;
-
-$ast = Regex::create()->parse('/\x{1F600}/');
-$unicode = $ast->pattern;
-
-echo $unicode->code;  // '1F600'
-```
-
----
-
 ## Group and Reference Nodes
 
 ### BackrefNode

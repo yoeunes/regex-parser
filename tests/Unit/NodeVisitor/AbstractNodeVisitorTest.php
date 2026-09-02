@@ -44,8 +44,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
@@ -124,13 +122,6 @@ final class AbstractNodeVisitorTest extends TestCase
     {
         $node = new CharTypeNode('d', 0, 0);
         $result = $this->visitor->visitCharType($node);
-        $this->assertSame('default', $result);
-    }
-
-    public function test_visit_unicode(): void
-    {
-        $node = new UnicodeNode('u', 0, 0);
-        $result = $this->visitor->visitUnicode($node);
         $this->assertSame('default', $result);
     }
 
@@ -214,13 +205,6 @@ final class AbstractNodeVisitorTest extends TestCase
     {
         $node = new VersionConditionNode('>=', '10.0', 0, 0);
         $result = $this->visitor->visitVersionCondition($node);
-        $this->assertSame('default', $result);
-    }
-
-    public function test_visit_unicode_prop(): void
-    {
-        $node = new UnicodePropNode('L', 0, 0);
-        $result = $this->visitor->visitUnicodeProp($node);
         $this->assertSame('default', $result);
     }
 

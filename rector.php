@@ -42,7 +42,9 @@ return static function (RectorConfig $rectorConfig): void {
 
         // Rector\Set\ValueObject\DowngradeLevelSetList::DOWN_TO_PHP_82,
 
-        PHPUnitSetList::PHPUNIT_110,
+        // rector-phpunit dropped its per-version sets: COMPOSER_BASED reads
+        // the installed PHPUnit and applies what suits it.
+        PHPUnitSetList::COMPOSER_BASED,
         PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
         PHPUnitSetList::PHPUNIT_CODE_QUALITY,
     ]);

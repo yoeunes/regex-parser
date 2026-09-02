@@ -142,14 +142,13 @@ final class JsonFormatterTest extends TestCase
         $this->assertSame('valid.php', $decoded['results'][0]['file']);
     }
 
-    public function test_format_throws_on_invalid_utf8(): void
+    public function test_format_escapes_invalid_utf8(): void
     {
-        $invalidUtf8 = "invalid-\xB1\x31";
         $results = [
             [
-                'file' => $invalidUtf8,
+                'file' => "invalid-\xB1\x31",
                 'line' => 1,
-                'pattern' => '/test/',
+                'pattern' => "/x\xFE\x80y/is",
                 'issues' => [],
                 'optimizations' => [],
                 'problems' => [],
@@ -158,10 +157,14 @@ final class JsonFormatterTest extends TestCase
 
         $report = new RegexLintReport($results, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Failed to encode JSON');
+        $decoded = json_decode($this->formatter->format($report), true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($decoded);
+        $this->assertIsArray($decoded['results']);
+        $entry = $decoded['results'][0];
+        $this->assertIsArray($entry);
 
-        $this->formatter->format($report);
+        $this->assertSame('invalid-\2611', $entry['file']);
+        $this->assertSame('/x\376\200y/is', $entry['pattern']);
     }
 
     public function test_format_error(): void

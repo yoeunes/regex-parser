@@ -21,6 +21,32 @@ use RegexParser\Internal\PatternParser;
 
 final readonly class HelpCommand implements CommandInterface
 {
+    /**
+     * The commands help documents on its own, used when it is asked for help
+     * outside of an application — in a test, or by a bridge reusing it.
+     */
+    private const DOCUMENTED_COMMANDS = [
+        'parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram',
+        'graph', 'highlight', 'validate', 'transpile', 'lint', 'clear-cache',
+        'version', 'self-update', 'help',
+    ];
+
+    /**
+     * @param array<int, CommandInterface> $commands the commands the
+     *                                               application knows, so
+     *                                               that the summary cannot
+     *                                               drift from what it runs
+     */
+    public function __construct(private array $commands = []) {}
+
+    /**
+     * @param array<int, CommandInterface> $commands
+     */
+    public function withCommands(array $commands): self
+    {
+        return new self($commands);
+    }
+
     public function getName(): string
     {
         return 'help';
@@ -59,22 +85,7 @@ final readonly class HelpCommand implements CommandInterface
             $this->formatUsage($output, $binary),
         ]);
 
-        $commands = [
-            ['parse', 'Parse and recompile a regex pattern'],
-            ['analyze', 'Parse, validate, and analyze ReDoS risk'],
-            ['compare', 'Compare two regex patterns using automata logic'],
-            ['explain', 'Explain a regex pattern'],
-            ['debug', 'Deep ReDoS analysis with heatmap output'],
-            ['redos', 'Benchmark regex patterns for ReDoS behavior'],
-            ['diagram', 'Render a text or SVG diagram of the AST'],
-            ['highlight', 'Highlight a regex for display'],
-            ['validate', 'Validate a regex pattern'],
-            ['transpile', 'Transpile PCRE regex to other dialects (js, python)'],
-            ['lint', 'Lint regex patterns in PHP source code'],
-            ['self-update', 'Update the CLI phar to the latest release'],
-            ['help', 'Display this help message'],
-        ];
-        $this->renderTableSection($output, 'Commands', $commands, fn (string $value): string => $this->formatCommand($output, $value));
+        $this->renderTableSection($output, 'Commands', $this->commandSummary(), fn (string $value): string => $this->formatCommand($output, $value));
 
         $globalOptions = [
             ['--ansi', 'Force ANSI output'],
@@ -175,19 +186,65 @@ final readonly class HelpCommand implements CommandInterface
         return 0;
     }
 
+    /**
+     * What a command says about itself, when the application handed it over:
+     * the page and the summary then cannot describe it differently.
+     */
+    private function describe(string $name, string $fallback): string
+    {
+        foreach ($this->commands as $command) {
+            if ($command->getName() === $name) {
+                return $command->getDescription();
+            }
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Name and description of every command, taken from the commands
+     * themselves when the application handed them over.
+     *
+     * @return list<array{string, string}>
+     */
+    private function commandSummary(): array
+    {
+        if ([] === $this->commands) {
+            return array_map(
+                fn (string $name): array => [$name, (string) ($this->getCommandData($name)['description'] ?? '')],
+                self::DOCUMENTED_COMMANDS,
+            );
+        }
+
+        return array_map(
+            static fn (CommandInterface $command): array => [$command->getName(), $command->getDescription()],
+            array_values($this->commands),
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function commandNames(): array
+    {
+        if ([] === $this->commands) {
+            return self::DOCUMENTED_COMMANDS;
+        }
+
+        return array_map(static fn (CommandInterface $command): string => $command->getName(), array_values($this->commands));
+    }
+
     private function renderCommandHelp(Output $output, string $binary, string $command): int
     {
         $commandData = $this->getCommandData($command);
         if (null === $commandData) {
             $output->write($output->error("Unknown command: {$command}\n\n"));
-            $this->renderTextSection($output, 'Available Commands', [
-                'parse', 'analyze', 'compare', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'transpile', 'lint', 'self-update', 'help',
-            ]);
+            $this->renderTextSection($output, 'Available Commands', $this->commandNames());
 
             return 1;
         }
 
-        $this->renderTextSection($output, 'Description', [$commandData['description']]);
+        $this->renderTextSection($output, 'Description', [$this->describe($command, $commandData['description'])]);
         $this->renderTextSection($output, 'Usage', [$this->formatCommandUsage($output, $binary, $command, $commandData)]);
 
         if (!empty($commandData['options'])) {
@@ -389,6 +446,34 @@ final readonly class HelpCommand implements CommandInterface
                     [[$this->resolveInvocation(), 'lint', 'file.php'], 'Lint a single file'],
                 ],
             ],
+            'graph' => [
+                'description' => 'Generate a graph diagram (DOT/Mermaid) of the NFA',
+                'options' => [
+                    ['--format <format>', 'Output format (dot, mermaid)'],
+                    ['--output <file>', 'Write the diagram to a file'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'graph', "'/a+b/'"], 'Render the automaton as DOT'],
+                    [[$this->resolveInvocation(), 'graph', "'/a+b/'", '--format=mermaid'], 'Render it as Mermaid'],
+                ],
+            ],
+            'clear-cache' => [
+                'description' => 'Clear the regex parser cache',
+                'options' => [],
+                'notes' => ['Removes the cached ASTs; the patterns are parsed again on the next run.'],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'clear-cache'], 'Empty the cache directory'],
+                ],
+            ],
+            'version' => [
+                'description' => 'Display version information',
+                'options' => [],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'version'], 'Show the installed version'],
+                ],
+            ],
             'self-update' => [
                 'description' => 'Update the CLI phar to the latest release',
                 'options' => [],
@@ -398,7 +483,7 @@ final readonly class HelpCommand implements CommandInterface
                 ],
             ],
             'help' => [
-                'description' => 'Display help information',
+                'description' => 'Display this help message',
                 'options' => [
                     ['<command>', 'Show help for specific command'],
                 ],
@@ -423,7 +508,7 @@ final readonly class HelpCommand implements CommandInterface
 
         if ('lint' === $command) {
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<path>', Output::GREEN);
-        } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'redos', 'diagram', 'highlight', 'validate'], true)) {
+        } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'redos', 'diagram', 'graph', 'highlight', 'transpile', 'validate', 'explain'], true)) {
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<pattern>', Output::GREEN);
         } elseif ('compare' === $command) {
             $usage .= ' '.$output->color('[options]', Output::CYAN)

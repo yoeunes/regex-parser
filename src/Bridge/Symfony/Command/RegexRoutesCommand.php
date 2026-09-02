@@ -16,6 +16,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictAnalyzer;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictReport;
 use RegexParser\Bridge\Symfony\Routing\RouteConflictSuggestionBuilder;
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -291,27 +292,7 @@ final class RegexRoutesCommand extends Command
             return '-';
         }
 
-        if ('' === $example) {
-            return '"" (empty string)';
-        }
-
-        $escaped = '';
-        $length = \strlen($example);
-        for ($i = 0; $i < $length; $i++) {
-            $byte = \ord($example[$i]);
-            $escaped .= match ($byte) {
-                0x0A => '\\n',
-                0x0D => '\\r',
-                0x09 => '\\t',
-                0x5C => '\\\\',
-                0x22 => '\\"',
-                default => ($byte < 0x20 || $byte > 0x7E)
-                    ? \sprintf('\\x%02X', $byte)
-                    : $example[$i],
-            };
-        }
-
-        return '<fg=cyan>"'.$escaped.'"</>';
+        return DisplayEscaper::quote($example, '<fg=cyan>', '</>');
     }
 
     private function showFooter(SymfonyStyle $io): void

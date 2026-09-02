@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
@@ -235,7 +236,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
             );
 
-            $optimization = $opt['optimization'] ?? null;
+            $optimization = $opt['optimization'];
             if (!$optimization instanceof OptimizationResult) {
                 continue;
             }
@@ -489,12 +490,12 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return false;
         }
 
-        return \is_string($flags) && str_contains($flags, 'x');
+        return str_contains($flags, 'x');
     }
 
     private function escapeControlChars(string $text): string
     {
-        return addcslashes($text, "\0..\37\177..\377");
+        return DisplayEscaper::escape($text);
     }
 
     /**
@@ -653,7 +654,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function formatPatternForDisplay(string $pattern): string
     {
         // Escape control characters to prevent visual layout issues
-        $pattern = addcslashes($pattern, "\0..\37\177..\377");
+        $pattern = DisplayEscaper::escape($pattern);
 
         // No ANSI: return the escaped pattern exactly as we received it.
         if (!$this->config->ansi) {
@@ -922,7 +923,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function extractPatternForResult(array $result): ?string
     {
-        $pattern = $result['pattern'] ?? null;
+        $pattern = $result['pattern'];
         if (\is_string($pattern) && '' !== $pattern) {
             return $pattern;
         }
@@ -937,7 +938,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         if (!empty($result['optimizations'])) {
             $firstOpt = $result['optimizations'][0];
-            $optimization = $firstOpt['optimization'] ?? null;
+            $optimization = $firstOpt['optimization'];
             if ($optimization instanceof OptimizationResult) {
                 return $optimization->original;
             }

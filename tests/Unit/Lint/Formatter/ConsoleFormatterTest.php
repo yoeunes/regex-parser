@@ -223,11 +223,9 @@ final class ConsoleFormatterTest extends TestCase
         $config = new OutputConfiguration(ansi: false);
         $formatter = new ConsoleFormatter(config: $config);
 
-        $output = $this->invokePrivate($formatter, 'formatOptimizations', [[
-            [
-                'optimization' => 'invalid',
-            ],
-        ]]);
+        $output = $this->invokePrivate($formatter, 'formatOptimizations', [
+            ['optimization' => 'invalid'],
+        ]);
 
         $this->assertIsString($output);
         $this->assertStringNotContainsString('- /', (string) $output);

@@ -15,17 +15,17 @@ namespace RegexParser\Tests\Functional\Lint;
 
 use PhpParser\ParserFactory;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cli\Command\LintOutputRenderer;
 use RegexParser\Cli\Output;
 use RegexParser\Lint\Command\LintArgumentParser;
 use RegexParser\Lint\Command\LintArguments;
 use RegexParser\Lint\Command\LintConfigLoader;
 use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\Command\LintOutputRenderer;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\Formatter\OutputConfiguration;
-use RegexParser\Lint\PhpStanExtractionStrategy;
 use RegexParser\Lint\RegexPatternExtractor;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class LintCommandComponentsTest extends TestCase
 {
@@ -310,7 +310,7 @@ final class LintCommandComponentsTest extends TestCase
         $property = new \ReflectionProperty(RegexPatternExtractor::class, 'extractor');
         $strategy = $property->getValue($extractor);
 
-        $this->assertInstanceOf(PhpStanExtractionStrategy::class, $strategy);
+        $this->assertInstanceOf(PhpParserExtractionStrategy::class, $strategy);
     }
 
     public function test_token_based_extraction_strategy_extracts_from_file(): void

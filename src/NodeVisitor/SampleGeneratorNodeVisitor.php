@@ -45,7 +45,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
@@ -354,15 +353,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         // (or doesn't exist). In a real engine, this fails the match.
         // For generation, we must return empty string.
         return '';
-    }
-
-    #[\Override]
-    public function visitUnicode(UnicodeNode $node): string
-    {
-        $codePoint = (int) hexdec(ltrim($node->code, '{}'));
-        $char = mb_chr($codePoint, 'UTF-8');
-
-        return false === $char ? '?' : $char;
     }
 
     #[\Override]
