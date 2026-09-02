@@ -376,7 +376,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
                     'file' => $result['file'],
                     'line' => $result['line'],
                     'source' => $result['source'] ?? null,
-                    'pattern' => $result['pattern'] ?? null,
+                    'pattern' => $result['pattern'],
                     'location' => $result['location'] ?? null,
                     'issues' => $filteredIssues,
                     'optimizations' => $result['optimizations'],

@@ -236,7 +236,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
             );
 
-            $optimization = $opt['optimization'] ?? null;
+            $optimization = $opt['optimization'];
             if (!$optimization instanceof OptimizationResult) {
                 continue;
             }
@@ -490,7 +490,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return false;
         }
 
-        return \is_string($flags) && str_contains($flags, 'x');
+        return str_contains($flags, 'x');
     }
 
     private function escapeControlChars(string $text): string
@@ -923,7 +923,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function extractPatternForResult(array $result): ?string
     {
-        $pattern = $result['pattern'] ?? null;
+        $pattern = $result['pattern'];
         if (\is_string($pattern) && '' !== $pattern) {
             return $pattern;
         }
@@ -938,7 +938,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         if (!empty($result['optimizations'])) {
             $firstOpt = $result['optimizations'][0];
-            $optimization = $firstOpt['optimization'] ?? null;
+            $optimization = $firstOpt['optimization'];
             if ($optimization instanceof OptimizationResult) {
                 return $optimization->original;
             }

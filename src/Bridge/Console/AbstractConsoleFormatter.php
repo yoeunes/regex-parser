@@ -229,7 +229,7 @@ abstract readonly class AbstractConsoleFormatter implements OutputFormatterInter
         foreach ($optimizations as $opt) {
             $parts[] = '    <bg=cyan;fg=white;options=bold> TIP </>'.\PHP_EOL;
 
-            $optimization = $opt['optimization'] ?? null;
+            $optimization = $opt['optimization'];
             if (!$optimization instanceof OptimizationResult) {
                 continue;
             }
@@ -314,7 +314,7 @@ abstract readonly class AbstractConsoleFormatter implements OutputFormatterInter
      */
     private function extractPatternForResult(array $result): ?string
     {
-        $pattern = $result['pattern'] ?? null;
+        $pattern = $result['pattern'];
         if (\is_string($pattern) && '' !== $pattern) {
             return $pattern;
         }
@@ -329,7 +329,7 @@ abstract readonly class AbstractConsoleFormatter implements OutputFormatterInter
 
         if (!empty($result['optimizations'])) {
             $firstOpt = $result['optimizations'][0];
-            $optimization = $firstOpt['optimization'] ?? null;
+            $optimization = $firstOpt['optimization'];
             if ($optimization instanceof OptimizationResult) {
                 return $optimization->original;
             }

@@ -143,7 +143,7 @@ final class JunitFormatter extends AbstractOutputFormatter
                     'file' => $result['file'],
                     'line' => $result['line'],
                     'source' => $result['source'] ?? null,
-                    'pattern' => $result['pattern'] ?? null,
+                    'pattern' => $result['pattern'],
                     'location' => $result['location'] ?? null,
                     'problem' => $problem,
                 ];

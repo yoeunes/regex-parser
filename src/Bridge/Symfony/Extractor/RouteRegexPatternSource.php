@@ -92,7 +92,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         foreach ($yamlIndex as $routeName => $yamlRoute) {
             $yamlRequirements = $yamlRoute['requirements'] ?? [];
             $yamlFile = $yamlRoute['file'];
-            $routeLine = $yamlRoute['line'] ?? null;
+            $routeLine = $yamlRoute['line'];
             $lines = @file($yamlFile, \FILE_IGNORE_NEW_LINES);
             if (false !== $lines) {
                 foreach ($yamlRequirements as $parameter => $lineIndex) {
@@ -307,7 +307,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             return $matches[2];
         }
 
-        return $matches[3] ?? null;
+        return $matches[3];
     }
 
     private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): string
