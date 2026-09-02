@@ -296,7 +296,7 @@ final class Parser
         $startToken = $this->current(); // '#'
         $startPosition = $startToken->position;
 
-        $comment = $this->reconstructTokenValue($startToken);
+        $comment = $this->sourceTextOf($startToken);
         $this->advance();
 
         while (!$this->isAtEnd()) {
@@ -304,13 +304,13 @@ final class Parser
 
             // Comment ends at newline (included) or at end of pattern.
             if (TokenType::T_LITERAL === $token->type && "\n" === $token->value) {
-                $comment .= $this->reconstructTokenValue($token);
+                $comment .= $this->sourceTextOf($token);
                 $this->advance();
 
                 break;
             }
 
-            $comment .= $this->reconstructTokenValue($token);
+            $comment .= $this->sourceTextOf($token);
             $this->advance();
         }
 
@@ -746,7 +746,7 @@ final class Parser
             && !$this->check(TokenType::T_GROUP_CLOSE)
         ) {
             $token = $this->current();
-            $comment .= $this->reconstructTokenValue($token);
+            $comment .= $this->sourceTextOf($token);
             $this->advance();
         }
 
@@ -757,60 +757,15 @@ final class Parser
     }
 
     /**
-     * Reconstructs the original string representation of a token.
+     * The text a token was cut from, exactly as the pattern spelled it.
+     *
+     * The lexer rewrites what it reads — "\d" comes back as "d",
+     * "\P{Greek}" as "{^Greek}" — so the value cannot be turned back into
+     * source. The token knows its span instead.
      */
-    private function reconstructTokenValue(Token $token): string
+    private function sourceTextOf(Token $token): string
     {
-        $backslash = '\\';
-
-        return match ($token->type) {
-            // Simple literals
-            TokenType::T_LITERAL,
-            TokenType::T_NEGATION,
-            TokenType::T_RANGE,
-            TokenType::T_DOT,
-            TokenType::T_GROUP_OPEN,
-            TokenType::T_GROUP_CLOSE,
-            TokenType::T_CHAR_CLASS_OPEN,
-            TokenType::T_CHAR_CLASS_CLOSE,
-            TokenType::T_QUANTIFIER,
-            TokenType::T_ALTERNATION,
-            TokenType::T_ANCHOR => $token->value,
-
-            // Types that had a \ stripped
-            TokenType::T_CHAR_TYPE,
-            TokenType::T_ASSERTION,
-            TokenType::T_KEEP,
-            TokenType::T_OCTAL_LEGACY,
-            TokenType::T_LITERAL_ESCAPED => $backslash.$token->value,
-
-            // Types that kept their \
-            TokenType::T_BACKREF,
-            TokenType::T_G_REFERENCE,
-            TokenType::T_UNICODE => $token->value,
-            TokenType::T_UNICODE_NAMED => $backslash.'N{'.$token->value.'}',
-            TokenType::T_OCTAL => $token->value,
-
-            // Complex re-assembly
-            TokenType::T_CALLOUT => '(?C'.$token->value.')',
-            TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{')
-                ? $backslash.'p'.$token->value
-                : ((\strlen($token->value) > 1 || str_starts_with($token->value, '^'))
-                    ? $backslash.'p{'.$token->value.'}'
-                    : $backslash.'p'.$token->value),
-            TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
-            TokenType::T_PCRE_VERB => '(*'.$token->value.')',
-            TokenType::T_GROUP_MODIFIER_OPEN => '(?',
-            TokenType::T_COMMENT_OPEN => '(?#',
-            TokenType::T_QUOTE_MODE_START => $backslash.'Q',
-            TokenType::T_QUOTE_MODE_END => $backslash.'E',
-            TokenType::T_CONTROL_CHAR => $backslash.'c'.$token->value,
-            TokenType::T_CLASS_INTERSECTION => '&&',
-            TokenType::T_CLASS_SUBTRACTION => '--',
-
-            // Should not be encountered here
-            TokenType::T_EOF => '',
-        };
+        return substr($this->pattern, $token->position, $token->sourceLength);
     }
 
     private function createCharLiteralNodeFromToken(Token $token, TokenType $type, int $startPosition): CharLiteralNode
