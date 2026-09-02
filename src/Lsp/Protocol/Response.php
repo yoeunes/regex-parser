@@ -19,6 +19,24 @@ namespace RegexParser\Lsp\Protocol;
 final class Response
 {
     /**
+     * Stream the responses are written to, or null for stdout.
+     *
+     * @var resource|null
+     */
+    private static $stream;
+
+    /**
+     * Write the responses somewhere else than stdout, which is what an
+     * embedding process — or a test — needs to read them back.
+     *
+     * @param resource|null $stream null restores stdout
+     */
+    public static function writeTo($stream): void
+    {
+        self::$stream = $stream;
+    }
+
+    /**
      * Send a successful response.
      */
     public static function success(int|string $id, mixed $result): void
@@ -82,8 +100,9 @@ final class Response
             return;
         }
 
+        $stream = self::$stream ?? \STDOUT;
         $contentLength = \strlen($json);
-        fwrite(\STDOUT, "Content-Length: {$contentLength}\r\n\r\n{$json}");
-        fflush(\STDOUT);
+        fwrite($stream, "Content-Length: {$contentLength}\r\n\r\n{$json}");
+        fflush($stream);
     }
 }

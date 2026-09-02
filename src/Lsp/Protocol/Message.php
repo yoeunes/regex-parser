@@ -36,11 +36,21 @@ final readonly class Message
      */
     public static function readFromStdin(): ?self
     {
+        return self::readFrom(\STDIN);
+    }
+
+    /**
+     * Read a message from a stream following LSP protocol.
+     *
+     * @param resource $stream
+     */
+    public static function readFrom($stream): ?self
+    {
         $headers = [];
 
         // Read headers until empty line
         while (true) {
-            $line = fgets(\STDIN);
+            $line = fgets($stream);
             if (false === $line) {
                 return null;
             }
@@ -67,10 +77,15 @@ final readonly class Message
         $content = '';
         while (\strlen($content) < $contentLength) {
             $remaining = $contentLength - \strlen($content);
-            $chunk = fread(\STDIN, max(1, $remaining));
-            if (false === $chunk) {
+            $chunk = fread($stream, max(1, $remaining));
+
+            // A closed connection reads as an empty string, not as false:
+            // testing for false alone spins the server at full speed once
+            // the editor goes away.
+            if (false === $chunk || '' === $chunk) {
                 return null;
             }
+
             $content .= $chunk;
         }
 

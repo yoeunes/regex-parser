@@ -15,6 +15,7 @@ namespace RegexParser\Lsp\Handler;
 
 use RegexParser\Lsp\Protocol\Message;
 use RegexParser\Lsp\Protocol\Response;
+use RegexParser\Regex;
 
 /**
  * Handles the LSP initialize request.
@@ -51,7 +52,7 @@ final class InitializeHandler
 
         $serverInfo = [
             'name' => 'regex-parser-lsp',
-            'version' => '1.0.0',
+            'version' => Regex::VERSION,
         ];
 
         Response::success($message->id, [

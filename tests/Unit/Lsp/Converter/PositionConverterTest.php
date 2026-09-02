@@ -143,4 +143,42 @@ final class PositionConverterTest extends TestCase
         $position = $converter->offsetToPosition(1);
         $this->assertSame(['line' => 1, 'character' => 0], $position);
     }
+
+    #[Test]
+    public function test_offset_to_position_counts_utf16_units(): void
+    {
+        // "héllo " is 7 bytes but 6 UTF-16 code units.
+        $converter = new PositionConverter('héllo world');
+
+        $this->assertSame(['line' => 0, 'character' => 6], $converter->offsetToPosition(7));
+    }
+
+    #[Test]
+    public function test_offset_to_position_counts_a_surrogate_pair_twice(): void
+    {
+        // U+1F600 is one code point, two UTF-16 code units, four bytes.
+        $converter = new PositionConverter("\u{1F600}x");
+
+        $this->assertSame(['line' => 0, 'character' => 2], $converter->offsetToPosition(4));
+        $this->assertSame(['line' => 0, 'character' => 3], $converter->offsetToPosition(5));
+    }
+
+    #[Test]
+    public function test_position_to_offset_round_trips_through_utf16(): void
+    {
+        $converter = new PositionConverter("héllo\n\u{1F600}monde");
+
+        $this->assertSame(7, $converter->positionToOffset(0, 6));
+        $this->assertSame(11, $converter->positionToOffset(1, 2));
+        $this->assertSame(['line' => 1, 'character' => 2], $converter->offsetToPosition(11));
+    }
+
+    #[Test]
+    public function test_a_line_that_is_not_utf8_falls_back_to_bytes(): void
+    {
+        $converter = new PositionConverter("caf\xE9 bar");
+
+        $this->assertSame(['line' => 0, 'character' => 4], $converter->offsetToPosition(4));
+        $this->assertSame(4, $converter->positionToOffset(0, 4));
+    }
 }
