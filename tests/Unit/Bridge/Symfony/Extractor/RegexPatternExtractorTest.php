@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\ExtractorInterface;
-use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\Extraction\ExtractorInterface;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternExtractor;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class RegexPatternExtractorTest extends TestCase
 {
@@ -59,7 +59,7 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_works_with_phpstan_extractor(): void
     {
-        $phpstanExtractor = new PhpStanExtractionStrategy();
+        $phpstanExtractor = new PhpParserExtractionStrategy();
 
         $extractor = new RegexPatternExtractor($phpstanExtractor);
 

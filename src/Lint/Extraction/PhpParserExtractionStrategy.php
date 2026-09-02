@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint;
+namespace RegexParser\Lint\Extraction;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
@@ -23,6 +23,7 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
+use RegexParser\Lint\RegexPatternOccurrence;
 
 /**
  * PhpParser-based regex pattern extraction strategy.
@@ -35,7 +36,7 @@ use PhpParser\ParserFactory;
  *
  * @internal
  */
-final readonly class PhpStanExtractionStrategy implements ExtractorInterface
+final readonly class PhpParserExtractionStrategy implements ExtractorInterface
 {
     private ?Parser $parser;
 

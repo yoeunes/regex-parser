@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Unit;
+namespace RegexParser\Tests\Unit\Lint\Extraction;
 
 use PhpParser\ErrorHandler;
 use PhpParser\Node\Expr\BinaryOp\Concat;
@@ -21,9 +21,9 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Parser;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
 
-final class PhpStanExtractionStrategyEdgeCasesTest extends TestCase
+final class PhpParserExtractionStrategyEdgeCasesTest extends TestCase
 {
     public function test_analyze_file_returns_empty_when_parser_missing(): void
     {
@@ -49,14 +49,14 @@ final class PhpStanExtractionStrategyEdgeCasesTest extends TestCase
         $strategy = $this->newStrategyWithParser($parser);
         $method = $this->getPrivateMethod($strategy, 'analyzeFileWithPhpStan');
 
-        $file = __DIR__.'/../Fixtures/Extractor/phpstan_coverage.php';
+        $file = __DIR__.'/../../../Fixtures/Extractor/phpstan_coverage.php';
 
         $this->assertSame([], $method->invoke($strategy, $file));
     }
 
     public function test_extract_from_func_call_handles_invalid_nodes(): void
     {
-        $strategy = new PhpStanExtractionStrategy();
+        $strategy = new PhpParserExtractionStrategy();
         $method = $this->getPrivateMethod($strategy, 'extractFromFuncCall');
 
         $funcCall = new FuncCall(new Variable('preg_match'), []);
@@ -71,7 +71,7 @@ final class PhpStanExtractionStrategyEdgeCasesTest extends TestCase
 
     public function test_concat_extraction_handles_empty_and_nested_values(): void
     {
-        $strategy = new PhpStanExtractionStrategy();
+        $strategy = new PhpParserExtractionStrategy();
 
         $extractFromConcat = $this->getPrivateMethod($strategy, 'extractFromConcat');
         $emptyConcat = new Concat(new String_(''), new String_(''));
@@ -82,9 +82,9 @@ final class PhpStanExtractionStrategyEdgeCasesTest extends TestCase
         $this->assertSame('ab', $extractStringValue->invoke($strategy, $nested));
     }
 
-    private function newStrategyWithParser(?Parser $parser): PhpStanExtractionStrategy
+    private function newStrategyWithParser(?Parser $parser): PhpParserExtractionStrategy
     {
-        $ref = new \ReflectionClass(PhpStanExtractionStrategy::class);
+        $ref = new \ReflectionClass(PhpParserExtractionStrategy::class);
         $strategy = $ref->newInstanceWithoutConstructor();
         $prop = $ref->getProperty('parser');
         $prop->setValue($strategy, $parser);

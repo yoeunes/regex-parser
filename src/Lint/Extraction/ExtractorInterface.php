@@ -11,7 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint;
+namespace RegexParser\Lint\Extraction;
+
+use RegexParser\Lint\RegexPatternOccurrence;
 
 /**
  * Interface for regex pattern extraction implementations.

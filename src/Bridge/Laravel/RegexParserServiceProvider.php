@@ -27,15 +27,15 @@ use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
-use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\Extraction\ExtractorInterface;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\PhpRegexPatternSource;
-use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternExtractor;
 use RegexParser\Lint\RegexPatternSourceCollection;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Regex;
 
 /**
@@ -139,7 +139,7 @@ final class RegexParserServiceProvider extends ServiceProvider
         $this->app->singleton('regex-parser.extractor.strategy', static function (): ExtractorInterface {
             // Prefer PhpParser-based extraction when available
             if (class_exists(ParserFactory::class)) {
-                return new PhpStanExtractionStrategy();
+                return new PhpParserExtractionStrategy();
             }
 
             // Fallback to token-based extractor

@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Functional\Lint;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Internal\PatternParser;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 
 /**
  * Comprehensive tests for regex pattern extraction with flags.

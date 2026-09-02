@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\Extraction\ExtractorInterface;
 use RegexParser\Lint\RegexPatternExtractor;
 use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\Tests\Support\LintFunctionOverrides;

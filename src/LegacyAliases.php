@@ -39,6 +39,9 @@ namespace {
     use RegexParser\Automata\Transform\RegularSubsetValidator;
     use RegexParser\Cli\Command\LintCommand;
     use RegexParser\Cli\Command\LintOutputRenderer;
+    use RegexParser\Lint\Extraction\ExtractorInterface;
+    use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+    use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 
     /*
      * Classes that moved keep answering to the name they had. The old names
@@ -74,6 +77,9 @@ namespace {
         'RegexParser\\Automata\\RegularSubsetValidator' => RegularSubsetValidator::class,
         'RegexParser\\Lint\\Command\\LintCommand' => LintCommand::class,
         'RegexParser\\Lint\\Command\\LintOutputRenderer' => LintOutputRenderer::class,
+        'RegexParser\\Lint\\ExtractorInterface' => ExtractorInterface::class,
+        'RegexParser\\Lint\\TokenBasedExtractionStrategy' => TokenBasedExtractionStrategy::class,
+        'RegexParser\\Lint\\PhpStanExtractionStrategy' => PhpParserExtractionStrategy::class,
     ];
 
     \spl_autoload_register(static function (string $class) use ($aliases): void {

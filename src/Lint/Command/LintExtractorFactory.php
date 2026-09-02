@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Lint\Command;
 
 use PhpParser\ParserFactory;
-use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternExtractor;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class LintExtractorFactory
 {
@@ -25,7 +25,7 @@ final class LintExtractorFactory
         $parserFactoryClass = ParserFactory::class;
 
         if (class_exists($parserFactoryClass)) {
-            return new RegexPatternExtractor(new PhpStanExtractionStrategy());
+            return new RegexPatternExtractor(new PhpParserExtractionStrategy());
         }
 
         return new RegexPatternExtractor(new TokenBasedExtractionStrategy());

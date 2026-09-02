@@ -11,7 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint;
+namespace RegexParser\Lint\Extraction;
+
+use RegexParser\Lint\RegexPatternOccurrence;
 
 /**
  * Token-based extraction strategy mirroring PHPStan's preg_* handling.

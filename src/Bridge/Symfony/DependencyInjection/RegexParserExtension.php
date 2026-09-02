@@ -17,9 +17,9 @@ use PhpParser\ParserFactory;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
-use RegexParser\Lint\ExtractorInterface;
-use RegexParser\Lint\PhpStanExtractionStrategy;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\ExtractorInterface;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -182,7 +182,7 @@ final class RegexParserExtension extends Extension
     {
         // Prefer PhpParser-based extraction when available.
         if ($this->isPhpParserAvailable()) {
-            return new Definition(PhpStanExtractionStrategy::class);
+            return new Definition(PhpParserExtractionStrategy::class);
         }
 
         // Fallback to token-based extractor

@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Unit\Lint\Command;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Tests\Support\LintFunctionOverrides;
 
 final class LintExtractorFactoryTest extends TestCase

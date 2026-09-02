@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint;
 
+use RegexParser\Lint\Extraction\ExtractorInterface;
+
 /**
  * Extracts regex patterns from PHP source files using configured extractor.
  *

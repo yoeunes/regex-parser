@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\Extraction\ExtractorInterface;
 use RegexParser\Lint\PhpRegexPatternSource;
 use RegexParser\Lint\RegexPatternExtractor;
 use RegexParser\Lint\RegexPatternSourceContext;

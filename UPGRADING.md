@@ -31,6 +31,19 @@ token patterns, which compiled the same two regexes once per version.
 `new Lexer($versionId)` becomes `new Lexer()`. `Regex` still honours an
 explicit PHP version everywhere it matters.
 
+#### The pattern extractors moved, and one is renamed
+
+The two ways of finding regex patterns in PHP source now sit together under
+`RegexParser\Lint\Extraction`, with the interface they implement:
+
+  - `RegexParser\Lint\ExtractorInterface` → `RegexParser\Lint\Extraction\ExtractorInterface`
+  - `RegexParser\Lint\TokenBasedExtractionStrategy` → `RegexParser\Lint\Extraction\TokenBasedExtractionStrategy`
+  - `RegexParser\Lint\PhpStanExtractionStrategy` → `RegexParser\Lint\Extraction\PhpParserExtractionStrategy`
+
+The last one never had anything to do with PHPStan: it reads the source with
+nikic/php-parser, which PHPStan happens to bring along. The old names are
+aliased and will be dropped in the next major version.
+
 #### Two Symfony bridge classes are renamed
 
 `RegexParser\Bridge\Symfony\Analyzer\Severity` said `pass`, `warn`, `fail`
