@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use RegexParser\Exception\LexerException;
+use RegexParser\Internal\InlineFlags;
 
 /**
  * Regex lexer that tokenizes PCRE pattern strings.
@@ -119,10 +120,11 @@ final class Lexer
     private const ERROR_CONTEXT_LENGTH = 10;
 
     /**
-     * Modifier letters accepted inside "(?...)", mirroring Parser::INLINE_FLAG_CHARS
-     * plus the PCRE2 10.43 "r" modifier.
+     * Modifier letters accepted inside "(?...)": what the parser takes, plus
+     * the PCRE2 10.43 "r". Whether "r" is allowed on the running PHP version
+     * is the parser's call; here it only decides where /x starts.
      */
-    private const INLINE_FLAG_LETTERS = 'imsxUJnudr';
+    private const INLINE_FLAG_LETTERS = InlineFlags::LETTERS.'r';
 
     /**
      * Token patterns compiled once per byte mode.
@@ -472,7 +474,7 @@ final class Lexer
         }
 
         [$flags, $scoped] = $inlineFlags;
-        $updated = $this->applyInlineFlags($flags);
+        $updated = $flags->inForce('x', $this->extendedMode);
 
         // "(?x)" survives its own closing parenthesis: push the new value so
         // the pop performed by ")" leaves it in place. "(?x:...)" pushes the
@@ -482,46 +484,21 @@ final class Lexer
     }
 
     /**
-     * Read the modifier letters that follow "(?", if the group is an inline
-     * flag group at all.
+     * Read the modifiers that follow "(?", if the group carries any at all.
      *
-     * @return array{0: string, 1: bool}|null the flag string, and whether the
+     * @return array{0: InlineFlags, 1: bool} the modifiers, and whether the
      *                                        group is scoped with ':'
      */
     private function readInlineFlags(): ?array
     {
+        $matches = [];
         if (!preg_match('/\G(\^?[a-zA-Z]*(?:-[a-zA-Z]+)?)([:)])/A', $this->pattern, $matches, 0, $this->position)) {
             return null;
         }
 
-        $flags = $matches[1];
-        if ('' === $flags || 1 !== preg_match('/^\^?['.self::INLINE_FLAG_LETTERS.']*(?:-['.self::INLINE_FLAG_LETTERS.']+)?$/', $flags)) {
-            return null;
-        }
+        $flags = InlineFlags::read($matches[1], self::INLINE_FLAG_LETTERS);
 
-        return [$flags, ':' === $matches[2]];
-    }
-
-    private function applyInlineFlags(string $flags): bool
-    {
-        if (str_starts_with($flags, '^')) {
-            // "(?^...)" unsets every modifier that it does not list.
-            $flags = substr($flags, 1);
-
-            return str_contains(explode('-', $flags, 2)[0], 'x');
-        }
-
-        [$set, $unset] = str_contains($flags, '-') ? explode('-', $flags, 2) : [$flags, ''];
-
-        if (str_contains($set, 'x')) {
-            return true;
-        }
-
-        if (str_contains($unset, 'x')) {
-            return false;
-        }
-
-        return $this->extendedMode;
+        return null === $flags ? null : [$flags, ':' === $matches[2]];
     }
 
     /**

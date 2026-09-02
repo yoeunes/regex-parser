@@ -18,6 +18,7 @@ use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\SyntaxErrorException;
 use RegexParser\Internal\CodePointReader;
 use RegexParser\Internal\GroupNameReader;
+use RegexParser\Internal\InlineFlags;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -61,7 +62,7 @@ use RegexParser\Node\VersionConditionNode;
  */
 final class Parser
 {
-    private const INLINE_FLAG_CHARS = 'imsxUJnud-';
+    private const INLINE_FLAG_LETTERS = InlineFlags::LETTERS;
     private const MAX_RECURSION_DEPTH = 1024;
 
     // Token length constants for calculating positions
@@ -1254,53 +1255,32 @@ final class Parser
             $flags = '^';
             $this->stream->advance();
         }
-        $inlineFlagChars = self::INLINE_FLAG_CHARS;
-        $allFlags = 'imsxUJnud';
-        if ($this->supportsInlineModifierR()) {
-            $inlineFlagChars .= 'r';
-            $allFlags .= 'r';
-        }
+        $letters = self::INLINE_FLAG_LETTERS.($this->supportsInlineModifierR() ? 'r' : '');
 
         $flags .= $this->consumeWhile(
-            static fn (string $c): bool => str_contains($inlineFlagChars, $c),
+            static fn (string $c): bool => '-' === $c || str_contains($letters, $c),
         );
 
-        if ('' !== $flags) {
-            [$setFlags, $unsetFlags] = str_contains($flags, '-')
-                ? explode('-', $flags, 2)
-                : [$flags, ''];
+        $modifiers = InlineFlags::read($flags, $letters);
 
-            // Handle ^ (unset all flags)
-            if (str_starts_with($setFlags, '^')) {
-                $setFlagsAfter = substr($setFlags, 1);
-                $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
-                $setFlags = $setFlagsAfter;
-            }
-
-            // Validate no conflicting flags
-            $setChars = str_split($setFlags);
-            $unsetChars = str_split($unsetFlags);
-            $overlap = array_intersect($setChars, $unsetChars);
-            if (!empty($overlap)) {
+        if (null !== $modifiers) {
+            $conflicts = $modifiers->conflicts();
+            if ('' !== $conflicts) {
                 throw $this->parserException(
-                    \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', implode('', $overlap), $startPosition),
+                    \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', $conflicts, $startPosition),
                     $startPosition,
                 );
             }
 
-            if (str_contains($setFlags, 'J')) {
+            if ($modifiers->turnsOn('J')) {
                 $this->groupNames->allowDuplicates(true);
             }
-            if (str_contains($unsetFlags, 'J')) {
+            if ($modifiers->turnsOff('J')) {
                 $this->groupNames->allowDuplicates(false);
             }
 
             $previousExtendedMode = $this->extendedMode;
-            if (str_contains($setFlags, 'x')) {
-                $this->extendedMode = true;
-            } elseif (str_contains($unsetFlags, 'x')) {
-                $this->extendedMode = false;
-            }
+            $this->extendedMode = $modifiers->inForce('x', $this->extendedMode);
 
             $expr = null;
             if ($this->stream->matchLiteral(':')) {

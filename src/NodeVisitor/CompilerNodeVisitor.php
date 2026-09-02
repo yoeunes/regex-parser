@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Internal\InlineFlags;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -883,25 +884,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      */
     private function withInlineFlags(string $current, string $inline): string
     {
-        if (str_starts_with($inline, '^')) {
-            // "(?^...)" drops every modifier that it does not list.
-            $current = '';
-            $inline = substr($inline, 1);
-        }
+        $flags = InlineFlags::read($inline, InlineFlags::LETTERS.'r');
 
-        [$set, $unset] = str_contains($inline, '-') ? explode('-', $inline, 2) : [$inline, ''];
-
-        foreach (str_split($unset) as $flag) {
-            $current = str_replace($flag, '', $current);
-        }
-
-        foreach (str_split($set) as $flag) {
-            if ('' !== $flag && !str_contains($current, $flag)) {
-                $current .= $flag;
-            }
-        }
-
-        return $current;
+        return null === $flags ? $current : $flags->applyTo($current);
     }
 
     private function normalizeQuantifier(string $quantifier): string
