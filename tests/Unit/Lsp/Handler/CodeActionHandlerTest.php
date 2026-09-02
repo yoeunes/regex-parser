@@ -150,7 +150,7 @@ final class CodeActionHandlerTest extends TestCase
         $method = (new \ReflectionClass($this->handler))->getMethod('asPhpString');
         $literal = $method->invoke($this->handler, $pattern);
 
-        self::assertIsString($literal);
+        $this->assertIsString($literal);
 
         // The literal has to read back as the pattern it came from, and the
         // file it lands in has to stay valid PHP.
