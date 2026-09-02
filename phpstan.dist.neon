@@ -12,6 +12,12 @@ parameters:
 
     treatPhpDocTypesAsCertain: false
 
+    # The package supports 8.2 through 8.6 and CI analyses each of them, so
+    # analysing the whole range here says locally what CI would say.
+    phpVersion:
+        min: 80200
+        max: 80599
+
     paths:
         - bin
         - src

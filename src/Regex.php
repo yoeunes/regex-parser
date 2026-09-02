@@ -87,12 +87,15 @@ final readonly class Regex
     /**
      * Cache version for AST serialization.
      *
-     * It tracks the shape of the serialized AST, not the version of the
-     * library: bump it whenever a node gains, loses or renames a property,
-     * so that entries written by an older release are ignored instead of
-     * being restored as objects with missing properties.
+     * A cached tree is only worth restoring while the current code would
+     * build the same one, so this is not a number anybody raises by hand: it
+     * is a fingerprint of the code that decides what a pattern parses into —
+     * the lexer, the parser, the nodes and the readers they use.
+     *
+     * "task cache-version" writes it, "task lint" runs that, and the test
+     * suite fails while the constant and the code disagree.
      */
-    public const CACHE_VERSION = '1.4.0';
+    public const CACHE_VERSION = 'ast-6b01b13f874cd4cb509acaba4f30fb9d';
 
     /**
      * Default maximum allowed regex pattern length.

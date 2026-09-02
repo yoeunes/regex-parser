@@ -64,6 +64,23 @@ tasks:
       - .task/rector.success
     method: checksum
 
+  cache-version:
+    desc: Write Regex::CACHE_VERSION from the code that builds an AST
+    cmds:
+      - cmd: php tests/Tools/update_cache_version.php
+    sources:
+      - src/Lexer.php
+      - src/Parser.php
+      - src/Token.php
+      - src/TokenStream.php
+      - src/TokenType.php
+      - src/Node/**/*.php
+      - src/Internal/**/*.php
+      - tests/Support/AstFingerprint.php
+    generates:
+      - src/Regex.php
+    method: checksum
+
   phpunit:
     cmds:
       - cmd: php -d phar.readonly=0 tools/phpunit/vendor/bin/phpunit {{.CLI_ARGS}}
@@ -132,6 +149,7 @@ tasks:
     cmds:
       - task: rector
       - task: phpcs
+      - task: cache-version
       - task: phplint
       - task: phpunit
       - task: phpstan

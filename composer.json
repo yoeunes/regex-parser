@@ -53,10 +53,12 @@
         "phpcs": "tools/php-cs-fixer/vendor/bin/php-cs-fixer fix",
         "phplint": "tools/phplint/vendor/bin/phplint",
         "bench": "tools/phpbench/vendor/bin/phpbench run",
+        "cache-version": "php tests/Tools/update_cache_version.php",
         "infection": "tools/infection/vendor/bin/infection",
         "lint": [
             "@rector",
             "@phpcs",
+            "@cache-version",
             "@phplint",
             "@phpunit",
             "@phpstan"

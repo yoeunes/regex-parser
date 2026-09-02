@@ -616,7 +616,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): string
     {
-        return '(*'.$node->verb.')';
+        $compiled = '(*'.$node->verb.')';
+
+        // "(*:name)" is "(*MARK:name)" written short, and the tree keeps only
+        // the long form.
+        $written = $this->writtenText($node);
+        if (null !== $written && $this->namesTheSameVerb($written, $node->verb)) {
+            return $written;
+        }
+
+        return $compiled;
     }
 
     #[\Override]
@@ -660,6 +669,23 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Whether a piece of source spells this very verb.
+     */
+    private function namesTheSameVerb(string $written, string $verb): bool
+    {
+        $matches = [];
+        if (1 !== preg_match('/^\(\*(.*)\)$/s', $written, $matches)) {
+            return false;
+        }
+
+        $spelled = $matches[1];
+
+        return $spelled === $verb
+            || ('' !== $spelled && ':' === $spelled[0] && 'MARK'.$spelled === $verb)
+            || ('' !== $spelled && '=' === $spelled[0] && 'MARK'.$spelled === $verb);
     }
 
     /**

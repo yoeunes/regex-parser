@@ -47,6 +47,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\Regex;
 
 /**
@@ -635,6 +636,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         } elseif ($node->condition instanceof AssertionNode && 'DEFINE' === $node->condition->value) {
             // (?(DEFINE)...) This is valid.
             $node->condition->accept($this);
+        } elseif ($node->condition instanceof VersionConditionNode) {
+            // (?(VERSION>=10.4)...) asks about the library reading the
+            // pattern; whether the comparison is one PCRE makes is checked
+            // where the condition is visited.
+            $node->condition->accept($this);
         } else {
             // Any other atom is not a valid condition
             $this->raiseSemanticError(
@@ -732,6 +738,26 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitLimitMatch(LimitMatchNode $node): void
     {
         // No specific validation needed for this node.
+    }
+
+    /**
+     * PCRE compares the version two ways and no more.
+     *
+     * The parser reads the others so that a pattern using one still produces
+     * a tree to look at; saying they will not compile is this visitor's job.
+     */
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): void
+    {
+        if (\in_array($node->operator, ['=', '>='], true)) {
+            return;
+        }
+
+        $this->raiseSemanticError(
+            \sprintf('Version condition "%s" is not supported: PCRE compares with "=" or ">=".', $node->operator),
+            $node->startPosition,
+            'regex.condition.version_operator',
+        );
     }
 
     #[\Override]

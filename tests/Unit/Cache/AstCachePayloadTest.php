@@ -16,21 +16,12 @@ namespace RegexParser\Tests\Unit\Cache;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
-use RegexParser\Node\NodeInterface;
 use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
+use RegexParser\Tests\Support\AstFingerprint;
 
 final class AstCachePayloadTest extends TestCase
 {
-    /**
-     * Shape of the serialized AST, as of Regex::CACHE_VERSION.
-     *
-     * Bump Regex::CACHE_VERSION and record the new hash here whenever a node
-     * gains, loses or renames a property: entries written by an older release
-     * would otherwise be restored as objects with uninitialized properties.
-     */
-    private const NODE_SHAPE = '14a5f7985b2451397f1ed6ae48dddeef';
-
     private string $cacheDir;
 
     protected function setUp(): void
@@ -109,13 +100,13 @@ final class AstCachePayloadTest extends TestCase
     }
 
     #[Test]
-    public function test_cache_version_matches_the_current_node_shape(): void
+    public function test_the_cache_version_is_the_fingerprint_of_the_code_that_builds_a_tree(): void
     {
         $this->assertSame(
-            self::NODE_SHAPE,
-            $this->nodeShape(),
-            'The AST node shape changed. Bump Regex::CACHE_VERSION so that stale cache entries are '
-            .'ignored, then record the new hash in self::NODE_SHAPE.',
+            Regex::CACHE_VERSION,
+            AstFingerprint::compute(),
+            'The code that builds the AST changed, so trees cached before it are no longer the ones this '
+            .'code would build. Run "task cache-version" and commit src/Regex.php.',
         );
     }
 
@@ -140,36 +131,5 @@ final class AstCachePayloadTest extends TestCase
         }
 
         return $files;
-    }
-
-    /**
-     * A fingerprint of every serialized property of every AST node.
-     */
-    private function nodeShape(): string
-    {
-        $shape = [];
-
-        foreach ((array) glob(\dirname(__DIR__, 3).'/src/Node/*.php') as $file) {
-            $class = 'RegexParser\\Node\\'.basename((string) $file, '.php');
-            if (!class_exists($class) || !is_a($class, NodeInterface::class, true)) {
-                continue;
-            }
-
-            $properties = [];
-            foreach ((new \ReflectionClass($class))->getProperties() as $property) {
-                if ($property->isStatic()) {
-                    continue;
-                }
-
-                $properties[] = $property->getName().':'.((string) $property->getType());
-            }
-
-            sort($properties);
-            $shape[] = $class.'('.implode(',', $properties).')';
-        }
-
-        sort($shape);
-
-        return substr(hash('sha256', implode("\n", $shape)), 0, 32);
     }
 }
