@@ -31,6 +31,20 @@ token patterns, which compiled the same two regexes once per version.
 `new Lexer($versionId)` becomes `new Lexer()`. `Regex` still honours an
 explicit PHP version everywhere it matters.
 
+#### Two Symfony bridge classes are renamed
+
+`RegexParser\Bridge\Symfony\Analyzer\Severity` said `pass`, `warn`, `fail`
+and `critical` — the outcome of a check, not the severity of a lint issue,
+which is what `RegexParser\Severity` means. It is now `CheckOutcome`.
+
+`RegexParser\Bridge\Symfony\Analyzer\AnalysisReport` is the sectioned
+report of the `regex:security` command and has nothing in common with
+`RegexParser\AnalysisReport`, the result of `Regex::analyze()`. It is now
+`SecurityReport`.
+
+Both are marked `@internal`; the commands that build them are the only
+callers.
+
 #### The lint CLI command moved to the CLI namespace
 
 `RegexParser\Lint\Command\LintCommand` and `LintOutputRenderer` are the only

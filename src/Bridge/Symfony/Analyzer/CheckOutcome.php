@@ -16,7 +16,7 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-enum Severity: string
+enum CheckOutcome: string
 {
     case PASS = 'pass';
     case WARN = 'warn';

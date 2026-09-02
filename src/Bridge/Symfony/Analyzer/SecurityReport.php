@@ -16,7 +16,7 @@ namespace RegexParser\Bridge\Symfony\Analyzer;
 /**
  * @internal
  */
-final readonly class AnalysisReport
+final readonly class SecurityReport
 {
     /**
      * @param array<int, ReportSection> $sections
@@ -41,7 +41,7 @@ final readonly class AnalysisReport
         return false;
     }
 
-    public function hasSeverity(Severity $severity): bool
+    public function hasSeverity(CheckOutcome $severity): bool
     {
         foreach ($this->sections as $section) {
             foreach ($section->issues as $issue) {

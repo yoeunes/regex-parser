@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Analyzer\Formatter;
 
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisNotice;
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
+use RegexParser\Bridge\Symfony\Analyzer\CheckOutcome;
 use RegexParser\Bridge\Symfony\Analyzer\IssueDetail;
 use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
-use RegexParser\Bridge\Symfony\Analyzer\Severity;
+use RegexParser\Bridge\Symfony\Analyzer\SecurityReport;
 use RegexParser\Internal\DisplayEscaper;
 use RegexParser\Regex;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -35,7 +35,7 @@ final readonly class ConsoleReportFormatter
     private const SECTION_BADGE = '<bg=blue;fg=white;options=bold> %s </>';
     private const SUBSECTION_BADGE = '<fg=cyan;options=bold>%s</>';
 
-    public function render(AnalysisReport $report, SymfonyStyle $io, bool $showBanner = true, bool $debug = false): void
+    public function render(SecurityReport $report, SymfonyStyle $io, bool $showBanner = true, bool $debug = false): void
     {
         if ($showBanner) {
             $this->renderBanner($io);
@@ -136,13 +136,13 @@ final readonly class ConsoleReportFormatter
         $io->newLine();
     }
 
-    private function badge(Severity $severity): string
+    private function badge(CheckOutcome $severity): string
     {
         return match ($severity) {
-            Severity::CRITICAL => self::BADGE_CRIT,
-            Severity::FAIL => self::BADGE_FAIL,
-            Severity::WARN => self::BADGE_WARN,
-            Severity::PASS => self::BADGE_PASS,
+            CheckOutcome::CRITICAL => self::BADGE_CRIT,
+            CheckOutcome::FAIL => self::BADGE_FAIL,
+            CheckOutcome::WARN => self::BADGE_WARN,
+            CheckOutcome::PASS => self::BADGE_PASS,
         };
     }
 

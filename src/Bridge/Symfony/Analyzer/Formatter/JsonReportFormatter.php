@@ -13,14 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer\Formatter;
 
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisReport;
+use RegexParser\Bridge\Symfony\Analyzer\SecurityReport;
 
 /**
  * @internal
  */
 final readonly class JsonReportFormatter
 {
-    public function format(AnalysisReport $report, bool $debug = false): string
+    public function format(SecurityReport $report, bool $debug = false): string
     {
         $payload = [
             'sections' => $this->normalizeSections($report, $debug),
@@ -32,7 +32,7 @@ final readonly class JsonReportFormatter
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeSections(AnalysisReport $report, bool $debug): array
+    private function normalizeSections(SecurityReport $report, bool $debug): array
     {
         $sections = [];
 

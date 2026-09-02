@@ -24,7 +24,7 @@ final readonly class AnalysisIssue
      */
     public function __construct(
         public string $kind,
-        public Severity $severity,
+        public CheckOutcome $severity,
         public string $title,
         public array $details = [],
         public array $notes = [],

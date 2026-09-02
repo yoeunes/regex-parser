@@ -20,11 +20,11 @@ use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisNotice;
 use RegexParser\Bridge\Symfony\Analyzer\AnalyzerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\AnalyzerRegistry;
+use RegexParser\Bridge\Symfony\Analyzer\CheckOutcome;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\ConsoleReportFormatter;
 use RegexParser\Bridge\Symfony\Analyzer\Formatter\JsonReportFormatter;
 use RegexParser\Bridge\Symfony\Analyzer\IssueDetail;
 use RegexParser\Bridge\Symfony\Analyzer\ReportSection;
-use RegexParser\Bridge\Symfony\Analyzer\Severity;
 use RegexParser\Bridge\Symfony\Command\RegexAnalyzeCommand;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -57,11 +57,11 @@ final class RegexAnalyzeCommandTest extends TestCase
                             'routes',
                             'Routes',
                             meta: ['Routes' => 1],
-                            summary: [new AnalysisNotice(Severity::FAIL, '1 shadowed route detected.')],
+                            summary: [new AnalysisNotice(CheckOutcome::FAIL, '1 shadowed route detected.')],
                             issues: [
                                 new AnalysisIssue(
                                     'shadowed',
-                                    Severity::FAIL,
+                                    CheckOutcome::FAIL,
                                     'demo (#1) -> demo (#2)',
                                     [new IssueDetail('Example', '/demo', 'example')],
                                 ),
@@ -121,8 +121,8 @@ final class RegexAnalyzeCommandTest extends TestCase
                         new ReportSection(
                             'security',
                             'Security',
-                            summary: [new AnalysisNotice(Severity::FAIL, '1 finding.')],
-                            issues: [new AnalysisIssue('redos', Severity::FAIL, 'Firewall')],
+                            summary: [new AnalysisNotice(CheckOutcome::FAIL, '1 finding.')],
+                            issues: [new AnalysisIssue('redos', CheckOutcome::FAIL, 'Firewall')],
                         ),
                     ];
                 }
