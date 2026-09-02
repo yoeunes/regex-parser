@@ -111,6 +111,12 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         $this->caseInsensitive = \str_contains($regex->flags, 'i');
         $this->dotAll = \str_contains($regex->flags, 's');
 
+        if (MatchMode::FULL === $options->matchMode) {
+            // A whole-string match makes an anchor at the edge of an
+            // alternative redundant, and only there.
+            $this->analyzeAnchors($regex->pattern, 'full');
+        }
+
         $fragment = $this->buildNode($regex->pattern, $options);
         if (MatchMode::PARTIAL === $options->matchMode) {
             [$startAnchored, $endAnchored] = $this->analyzePartialAnchors($regex->pattern);
@@ -821,6 +827,42 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
      */
     private function analyzePartialAnchors(NodeInterface $node): array
     {
+        [$startAnchor, $noStartAnchor, $endAnchor, $noEndAnchor] = $this->analyzeAnchors($node, 'partial');
+
+        if ($startAnchor && $noStartAnchor) {
+            throw new ComplexityException(
+                'Mixed start anchors across alternatives are not supported in partial match mode.',
+                0,
+                $this->pattern,
+            );
+        }
+
+        if ($endAnchor && $noEndAnchor) {
+            throw new ComplexityException(
+                'Mixed end anchors across alternatives are not supported in partial match mode.',
+                0,
+                $this->pattern,
+            );
+        }
+
+        return [$startAnchor, $endAnchor];
+    }
+
+    /**
+     * Anchors compile to nothing, which only tells the truth where they carry
+     * no meaning: at the edges of an alternative. A "^" or a "$" anywhere else
+     * changes what the pattern matches — "/a^b/" matches nothing at all — and
+     * dropping it would hand back a confidently wrong answer, so the pattern
+     * is refused instead.
+     *
+     * @throws ComplexityException
+     *
+     * @return array{0: bool, 1: bool, 2: bool, 3: bool} start anchor seen, one
+     *                                                   missing, end anchor
+     *                                                   seen, one missing
+     */
+    private function analyzeAnchors(NodeInterface $node, string $mode): array
+    {
         $alternatives = $node instanceof AlternationNode ? $node->alternatives : [$node];
         $seenStartAnchor = false;
         $seenNoStartAnchor = false;
@@ -851,7 +893,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
                     $isEnd = $lastIndex === $index && '$' === $child->value;
                     if (!$isStart && !$isEnd) {
                         throw new ComplexityException(
-                            'Anchors in partial match mode must appear at the start or end of each alternative.',
+                            \sprintf('Anchors in %s match mode must appear at the start or end of each alternative.', $mode),
                             $child->getStartPosition(),
                             $this->pattern,
                         );
@@ -862,7 +904,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
 
                 if ($this->containsAnchor($child)) {
                     throw new ComplexityException(
-                        'Nested anchors are not supported in partial match mode.',
+                        \sprintf('Nested anchors are not supported in %s match mode.', $mode),
                         $child->getStartPosition(),
                         $this->pattern,
                     );
@@ -870,23 +912,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             }
         }
 
-        if ($seenStartAnchor && $seenNoStartAnchor) {
-            throw new ComplexityException(
-                'Mixed start anchors across alternatives are not supported in partial match mode.',
-                0,
-                $this->pattern,
-            );
-        }
-
-        if ($seenEndAnchor && $seenNoEndAnchor) {
-            throw new ComplexityException(
-                'Mixed end anchors across alternatives are not supported in partial match mode.',
-                0,
-                $this->pattern,
-            );
-        }
-
-        return [$seenStartAnchor, $seenEndAnchor];
+        return [$seenStartAnchor, $seenNoStartAnchor, $seenEndAnchor, $seenNoEndAnchor];
     }
 
     private function containsAnchor(NodeInterface $node): bool

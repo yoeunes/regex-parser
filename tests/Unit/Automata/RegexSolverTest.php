@@ -172,6 +172,51 @@ final class RegexSolverTest extends TestCase
         yield 'alnum is not subset of letters' => ['/[a-z0-9]+/', '/[a-z]+/', false, true];
     }
 
+    #[Test]
+    #[DataProvider('provideMisplacedAnchorPatterns')]
+    public function test_full_match_refuses_an_anchor_it_would_have_to_ignore(string $pattern, string $expected): void
+    {
+        $solver = new RegexSolver();
+
+        $this->expectException(ComplexityException::class);
+        $this->expectExceptionMessage($expected);
+
+        $solver->equivalent($pattern, '/ab/', $this->fullMatchOptions());
+    }
+
+    /**
+     * @return iterable<string, array{pattern: string, expected: string}>
+     */
+    public static function provideMisplacedAnchorPatterns(): iterable
+    {
+        // "/a^b/" and "/a$b/" match nothing at all; compiling their anchor to
+        // an epsilon transition would answer that they are the same as "/ab/".
+        yield 'start anchor in the middle' => [
+            'pattern' => '/a^b/',
+            'expected' => 'Anchors in full match mode must appear at the start or end of each alternative.',
+        ];
+
+        yield 'end anchor in the middle' => [
+            'pattern' => '/a$b/',
+            'expected' => 'Anchors in full match mode must appear at the start or end of each alternative.',
+        ];
+
+        yield 'anchor nested in a group' => [
+            'pattern' => '/a(^b)/',
+            'expected' => 'Nested anchors are not supported in full match mode.',
+        ];
+    }
+
+    #[Test]
+    public function test_full_match_keeps_accepting_anchors_at_the_edges(): void
+    {
+        $solver = new RegexSolver();
+
+        // A whole-string match starts at the start and ends at the end, so
+        // these anchors really do say nothing.
+        $this->assertTrue($solver->equivalent('/^ab$/', '/ab/', $this->fullMatchOptions())->isEquivalent);
+    }
+
     private function fullMatchOptions(): SolverOptions
     {
         return new SolverOptions(matchMode: MatchMode::FULL);
