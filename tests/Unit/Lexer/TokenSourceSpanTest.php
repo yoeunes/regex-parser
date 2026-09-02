@@ -89,7 +89,7 @@ final class TokenSourceSpanTest extends TestCase
     {
         $path = \dirname(__DIR__, 2).'/Fixtures/Corpus/lint-expectations.json';
         $contents = file_get_contents($path);
-        self::assertIsString($contents);
+        $this->assertIsString($contents);
 
         /** @var array<int, array{pattern: string, issues: array<int, string>}> $cases */
         $cases = json_decode($contents, true, 512, \JSON_THROW_ON_ERROR);
