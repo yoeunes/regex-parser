@@ -28,7 +28,10 @@ use PhpParser\ParserFactory;
  * PhpParser-based regex pattern extraction strategy.
  *
  * This strategy uses nikic/php-parser to build an AST and extract regex
- * patterns with better accuracy than the token-based approach.
+ * patterns with better accuracy than the token-based approach. That package
+ * is an optional dependency — it is listed under "suggest", and installing
+ * phpstan/phpstan usually brings it along — so the extractor factory falls
+ * back to the tokenizer when it is absent.
  *
  * @internal
  */

@@ -15,12 +15,12 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cli\Command\HelpCommand;
+use RegexParser\Cli\Command\LintCommand;
+use RegexParser\Cli\Command\LintOutputRenderer;
 use RegexParser\Lint\Command\LintArgumentParser;
-use RegexParser\Lint\Command\LintCommand;
 use RegexParser\Lint\Command\LintConfigLoader;
 use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\Command\LintOutputRenderer;
 
 final class LintCommandClassCoverageTest extends TestCase
 {

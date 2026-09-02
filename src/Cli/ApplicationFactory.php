@@ -22,6 +22,8 @@ use RegexParser\Cli\Command\ExplainCommand;
 use RegexParser\Cli\Command\GraphCommand;
 use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Cli\Command\HighlightCommand;
+use RegexParser\Cli\Command\LintCommand;
+use RegexParser\Cli\Command\LintOutputRenderer;
 use RegexParser\Cli\Command\ParseCommand;
 use RegexParser\Cli\Command\RedosCommand;
 use RegexParser\Cli\Command\SelfUpdateCommand;
@@ -30,11 +32,9 @@ use RegexParser\Cli\Command\ValidateCommand;
 use RegexParser\Cli\Command\VersionCommand;
 use RegexParser\Cli\SelfUpdate\SelfUpdater;
 use RegexParser\Lint\Command\LintArgumentParser;
-use RegexParser\Lint\Command\LintCommand;
 use RegexParser\Lint\Command\LintConfigLoader;
 use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\Command\LintOutputRenderer;
 
 /**
  * Builds the CLI with every command it ships.

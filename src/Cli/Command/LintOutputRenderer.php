@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint\Command;
+namespace RegexParser\Cli\Command;
 
 use RegexParser\Cli\Output;
 use RegexParser\Regex;

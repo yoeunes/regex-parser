@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace {
     /*
-     * The automata classes used to live directly under RegexParser\Automata
-     * before they were grouped by role. The old names still resolve, but only
-     * for whoever asks for one: aliasing them up front loaded twenty-five
-     * classes into every process that autoloads this package, including the
-     * ones that only ever parse a pattern.
+     * Classes that moved keep answering to the name they had. The old names
+     * resolve only for whoever asks for one: aliasing them up front loaded
+     * twenty-five classes into every process that autoloads this package,
+     * including the ones that only ever parse a pattern.
      */
     $aliases = [
         'RegexParser\\Automata\\CharSet' => 'RegexParser\\Automata\\Alphabet\\CharSet',
@@ -45,6 +44,8 @@ namespace {
         'RegexParser\\Automata\\AstToNfaTransformer' => 'RegexParser\\Automata\\Transform\\AstToNfaTransformer',
         'RegexParser\\Automata\\AstToNfaTransformerInterface' => 'RegexParser\\Automata\\Transform\\AstToNfaTransformerInterface',
         'RegexParser\\Automata\\RegularSubsetValidator' => 'RegexParser\\Automata\\Transform\\RegularSubsetValidator',
+        'RegexParser\\Lint\\Command\\LintCommand' => 'RegexParser\\Cli\\Command\\LintCommand',
+        'RegexParser\\Lint\\Command\\LintOutputRenderer' => 'RegexParser\\Cli\\Command\\LintOutputRenderer',
     ];
 
     \spl_autoload_register(static function (string $class) use ($aliases): void {

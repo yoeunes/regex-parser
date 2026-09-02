@@ -15,15 +15,15 @@ namespace RegexParser\Tests\Integration\Lint\Command;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cli\Command\HelpCommand;
+use RegexParser\Cli\Command\LintCommand;
+use RegexParser\Cli\Command\LintOutputRenderer;
 use RegexParser\Cli\GlobalOptions;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Lint\Command\LintArgumentParser;
-use RegexParser\Lint\Command\LintCommand;
 use RegexParser\Lint\Command\LintConfigLoader;
 use RegexParser\Lint\Command\LintDefaultsBuilder;
 use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\Command\LintOutputRenderer;
 
 final class LintCommandBaselineTest extends TestCase
 {

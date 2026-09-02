@@ -11,13 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint\Command;
+namespace RegexParser\Cli\Command;
 
-use RegexParser\Cli\Command\AbstractCommand;
-use RegexParser\Cli\Command\CommandInterface;
-use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
+use RegexParser\Lint\Command\LintArgumentParser;
+use RegexParser\Lint\Command\LintConfigLoader;
+use RegexParser\Lint\Command\LintDefaultsBuilder;
+use RegexParser\Lint\Command\LintExtractorFactory;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\Formatter\LinkFormatter;

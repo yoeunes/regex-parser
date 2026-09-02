@@ -31,6 +31,17 @@ token patterns, which compiled the same two regexes once per version.
 `new Lexer($versionId)` becomes `new Lexer()`. `Regex` still honours an
 explicit PHP version everywhere it matters.
 
+#### The lint CLI command moved to the CLI namespace
+
+`RegexParser\Lint\Command\LintCommand` and `LintOutputRenderer` are the only
+two classes of that namespace that needed the console, so the lint domain no
+longer depends on the CLI it is called from. They are now
+`RegexParser\Cli\Command\LintCommand` and
+`RegexParser\Cli\Command\LintOutputRenderer`.
+
+The old names still resolve — they are aliased on first use — but they will
+be dropped in the next major version.
+
 #### Cached ASTs are rebuilt
 
 `Regex::CACHE_VERSION` moved to `1.4.0`, so entries written by 1.3.0 are

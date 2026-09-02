@@ -34,7 +34,7 @@
             "RegexParser\\": "src/"
         },
         "files": [
-            "src/Automata/LegacyAliases.php"
+            "src/LegacyAliases.php"
         ]
     },
     "autoload-dev": {
@@ -92,6 +92,7 @@
         "psr/cache": "To share AST cache via PSR-6 pools.",
         "psr/simple-cache": "To share AST cache via PSR-16 caches.",
         "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
+        "nikic/php-parser": "To extract regex patterns from PHP sources with a real parser instead of the tokenizer.",
         "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
         "illuminate/support": "Required for Laravel integration.",
         "illuminate/console": "Required for Laravel Artisan commands.",

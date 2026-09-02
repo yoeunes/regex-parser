@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lint\Command\LintOutputRenderer;
+use RegexParser\Cli\Command\LintOutputRenderer;
 use RegexParser\Tests\Support\LintFunctionOverrides;
 
 final class LintOutputRendererCoverageTest extends TestCase
