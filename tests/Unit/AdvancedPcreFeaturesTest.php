@@ -186,7 +186,8 @@ final class AdvancedPcreFeaturesTest extends TestCase
     public function test_it_throws_exception_for_duplicate_group_names_without_j_flag(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Duplicate group name "name" at position 10.');
+        // The position of the second group's "(", not of the "|" before it.
+        $this->expectExceptionMessage('Duplicate group name "name" at position 11.');
 
         $pattern = '/(?<name>a)|(?<name>b)/';
         $regexService = Regex::create();
@@ -212,7 +213,8 @@ final class AdvancedPcreFeaturesTest extends TestCase
     public function test_it_respects_j_flag_scope_in_inline_modifiers(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Duplicate group name "name" at position 16.');
+        // The position of the second group's "(", not a point inside "(?-J)".
+        $this->expectExceptionMessage('Duplicate group name "name" at position 19.');
 
         // J is enabled globally, then disabled for the second group
         $pattern = '/(?J)(?<name>a)(?-J)(?<name>b)/';

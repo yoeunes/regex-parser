@@ -63,7 +63,6 @@ final class Parser
     private const MAX_RECURSION_DEPTH = 1024;
 
     // Token length constants for calculating positions
-    private const BACKSLASH_LENGTH = 1;
     private const PCRE_VERB_WRAPPER_LENGTH = 3; // (*...)
     private const CALLOUT_WRAPPER_LENGTH = 4; // (?C...)
     private const POSIX_CLASS_WRAPPER_LENGTH = 4; // [[:...:]]
@@ -106,10 +105,6 @@ final class Parser
 
     private int $lastPosition = -1;
 
-    private bool $lastTokenWasAlternation = false;
-
-    private int $lastInlineFlagsLength = 0;
-
     private int $recursionDepth = 0;
 
     /**
@@ -139,8 +134,6 @@ final class Parser
         $this->extendedMode = str_contains($flags, 'x');
         $this->inQuoteMode = false;
         $this->groupNames = [];
-        $this->lastTokenWasAlternation = false;
-        $this->lastInlineFlagsLength = 0;
         $this->recursionDepth = 0;
         $this->currentToken = null;
         $this->currentTokenValid = false;
@@ -178,7 +171,6 @@ final class Parser
             $nodes = [$this->parseSequence()];
 
             while ($this->match(TokenType::T_ALTERNATION)) {
-                $this->lastTokenWasAlternation = true;
                 $nodes[] = $this->parseSequence();
             }
 
@@ -520,25 +512,16 @@ final class Parser
 
     private function parseSimpleAtom(int $startPosition): ?NodeInterface
     {
-        if ($this->match(TokenType::T_LITERAL)) {
+        if ($this->match(TokenType::T_LITERAL) || $this->match(TokenType::T_LITERAL_ESCAPED)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value);
 
-            return new LiteralNode($token->value, $startPosition, $endPosition);
-        }
-
-        if ($this->match(TokenType::T_LITERAL_ESCAPED)) {
-            $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + self::BACKSLASH_LENGTH;
-
-            return new LiteralNode($token->value, $startPosition, $endPosition);
+            return new LiteralNode($token->value, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + self::BACKSLASH_LENGTH;
 
-            return new CharTypeNode($token->value, $startPosition, $endPosition);
+            return new CharTypeNode($token->value, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_DOT)) {
@@ -547,23 +530,20 @@ final class Parser
 
         if ($this->match(TokenType::T_ANCHOR)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value);
 
-            return new AnchorNode($token->value, $startPosition, $endPosition);
+            return new AnchorNode($token->value, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_ASSERTION)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + self::BACKSLASH_LENGTH;
 
-            return new AssertionNode($token->value, $startPosition, $endPosition);
+            return new AssertionNode($token->value, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_BACKREF)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value);
 
-            return new BackrefNode($token->value, $startPosition, $endPosition);
+            return new BackrefNode($token->value, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_G_REFERENCE)) {
@@ -584,10 +564,9 @@ final class Parser
 
         if ($this->match(TokenType::T_CONTROL_CHAR)) {
             $token = $this->previous();
-            $endPosition = $startPosition + self::BACKSLASH_LENGTH + 1 + \strlen($token->value); // \cX (single codepoint)
             $codePoint = $this->parseControlCharCodePoint($token->value);
 
-            return new ControlCharNode($token->value, $codePoint, $startPosition, $endPosition);
+            return new ControlCharNode($token->value, $codePoint, $startPosition, $token->end());
         }
 
         if ($this->match(TokenType::T_OCTAL)) {
@@ -604,21 +583,18 @@ final class Parser
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
-            // The token value carries braces and a normalized "^" negation
-            // marker; recover the original source length from the \p / \P
-            // syntax at the token position.
-            $negatedSyntax = 'P' === ($this->pattern[$startPosition + 1] ?? 'p');
-            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value);
-            if ($negatedSyntax) {
-                $len += str_contains($token->value, '^') ? -1 : 1;
-            }
-            $endPosition = $startPosition + $len;
 
-            return new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition, $negatedSyntax);
+            return new UnicodePropNode(
+                $token->value,
+                str_starts_with($token->value, '{'),
+                $startPosition,
+                $token->end(),
+                $this->isNegatedPropertySyntax($startPosition),
+            );
         }
 
         if ($this->match(TokenType::T_KEEP)) {
-            return new KeepNode($startPosition, $startPosition + self::BACKSLASH_LENGTH + 1); // \K
+            return new KeepNode($startPosition, $this->previous()->end());
         }
 
         return null;
@@ -763,6 +739,18 @@ final class Parser
      * "\P{Greek}" as "{^Greek}" — so the value cannot be turned back into
      * source. The token knows its span instead.
      */
+    /**
+     * Whether a unicode property was written "\P{...}" rather than "\p{...}".
+     *
+     * The lexer folds the negation into the value — "\P{Greek}" and
+     * "\p{^Greek}" arrive as the same token — so which of the two was written
+     * can only be read from the pattern.
+     */
+    private function isNegatedPropertySyntax(int $startPosition): bool
+    {
+        return 'P' === ($this->pattern[$startPosition + 1] ?? 'p');
+    }
+
     private function sourceTextOf(Token $token): string
     {
         return substr($this->pattern, $token->position, $token->sourceLength);
@@ -1408,8 +1396,6 @@ final class Parser
 
             $expr ??= $this->createEmptyLiteralNodeAt($this->previous()->position);
 
-            $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPosition;
-
             return $this->createGroupNode(
                 $expr,
                 GroupType::T_GROUP_INLINE_FLAGS,
@@ -1835,16 +1821,6 @@ final class Parser
         $quote = null;
         $nameStartPosition = $errorPosition ?? $this->current()->position;
 
-        $adjustment = 0;
-        if ($this->lastInlineFlagsLength > 0) {
-            $adjustment = max(0, $this->lastInlineFlagsLength - 2);
-        } elseif ($this->lastTokenWasAlternation) {
-            $adjustment = 1;
-        }
-        $nameStartPosition = max(0, $nameStartPosition - $adjustment);
-        $this->lastTokenWasAlternation = false;
-        $this->lastInlineFlagsLength = 0;
-
         // Check for quoted group name (Python-style: 'name' or "name")
         if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
             $quote = $this->current()->value;
@@ -2031,17 +2007,14 @@ final class Parser
     {
         if ($this->match(TokenType::T_LITERAL) || $this->match(TokenType::T_LITERAL_ESCAPED)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value)
-                + (TokenType::T_LITERAL_ESCAPED === $token->type ? self::BACKSLASH_LENGTH : 0);
 
-            return [new LiteralNode($token->value, $startPosition, $endPosition), $endPosition];
+            return [new LiteralNode($token->value, $startPosition, $token->end()), $token->end()];
         }
 
         if ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + self::BACKSLASH_LENGTH;
 
-            return [new CharTypeNode($token->value, $startPosition, $endPosition), $endPosition];
+            return [new CharTypeNode($token->value, $startPosition, $token->end()), $token->end()];
         }
 
         if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
@@ -2052,16 +2025,16 @@ final class Parser
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
-            $negatedSyntax = 'P' === ($this->pattern[$startPosition + 1] ?? 'p');
-            $len = self::BACKSLASH_LENGTH + 1 + \strlen($token->value);
-            if ($negatedSyntax) {
-                $len += str_contains($token->value, '^') ? -1 : 1;
-            }
-            $endPosition = $startPosition + $len;
 
             return [
-                new UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition, $negatedSyntax),
-                $endPosition,
+                new UnicodePropNode(
+                    $token->value,
+                    str_starts_with($token->value, '{'),
+                    $startPosition,
+                    $token->end(),
+                    $this->isNegatedPropertySyntax($startPosition),
+                ),
+                $token->end(),
             ];
         }
 
@@ -2077,16 +2050,15 @@ final class Parser
 
         if ($this->match(TokenType::T_CONTROL_CHAR)) {
             $token = $this->previous();
-            $endPosition = $startPosition + self::BACKSLASH_LENGTH + 1 + \strlen($token->value);
 
             return [
                 new ControlCharNode(
                     $token->value,
                     $this->parseControlCharCodePoint($token->value),
                     $startPosition,
-                    $endPosition,
+                    $token->end(),
                 ),
-                $endPosition,
+                $token->end(),
             ];
         }
 
