@@ -217,15 +217,7 @@ final class Parser
             if ($this->stream->match(TokenType::T_QUOTE_MODE_END)) {
                 $this->inQuoteMode = false;
 
-                // A quantifier directly after \Q...\E applies to the last
-                // quoted character, as in PCRE (/\Q+\E*/ repeats "+").
-                if ([] !== $nodes && $this->stream->match(TokenType::T_QUANTIFIER)) {
-                    $token = $this->stream->previous();
-                    $last = array_pop($nodes);
-                    $this->assertQuantifierCanApply($last, $token);
-                    [$quantifier, $type] = $this->parseQuantifierValue($token->value);
-                    $nodes[] = new QuantifierNode($last, $quantifier, $type, $last->getStartPosition(), $token->position + \strlen($token->value));
-                }
+                $this->quantifyLastQuotedCharacter($nodes);
 
                 continue;
             }
@@ -372,6 +364,27 @@ final class Parser
         }
 
         return $skipped;
+    }
+
+    /**
+     * A quantifier written right after the end of a quoted run repeats the
+     * last quoted character, the way PCRE repeats the "+" of a pattern that
+     * quotes one and then stars it.
+     *
+     * @param array<NodeInterface> $nodes
+     */
+    private function quantifyLastQuotedCharacter(array &$nodes): void
+    {
+        if ([] === $nodes || !$this->stream->match(TokenType::T_QUANTIFIER)) {
+            return;
+        }
+
+        $token = $this->stream->previous();
+        $last = array_pop($nodes);
+        $this->assertQuantifierCanApply($last, $token);
+        [$quantifier, $type] = $this->parseQuantifierValue($token->value);
+
+        $nodes[] = new QuantifierNode($last, $quantifier, $type, $last->getStartPosition(), $token->end());
     }
 
     private function parseQuantifiedAtom(): NodeInterface
@@ -1113,63 +1126,74 @@ final class Parser
      */
     private function parseInlineFlags(int $startPosition): NodeInterface
     {
-        // Support PHP/PCRE2 inline flags (imsxUJnud) plus ^ (unset) and - toggles.
-        // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
-        $flags = '';
-        if ($this->stream->check(TokenType::T_ANCHOR) && '^' === $this->stream->current()->value) {
-            $flags = '^';
-            $this->stream->advance();
-        }
+        $flags = $this->readModifierLetters();
         $letters = self::INLINE_FLAG_LETTERS.($this->supportsInlineModifierR() ? 'r' : '');
-
-        $flags .= $this->consumeWhile(
-            static fn (string $c): bool => '-' === $c || str_contains($letters, $c),
-        );
-
         $modifiers = InlineFlags::read($flags, $letters);
 
-        if (null !== $modifiers) {
-            $conflicts = $modifiers->conflicts();
-            if ('' !== $conflicts) {
-                throw $this->parserException(
-                    \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', $conflicts, $startPosition),
-                    $startPosition,
-                );
-            }
-
-            if ($modifiers->turnsOn('J')) {
-                $this->groupNames->allowDuplicates(true);
-            }
-            if ($modifiers->turnsOff('J')) {
-                $this->groupNames->allowDuplicates(false);
-            }
-
-            $previousExtendedMode = $this->extendedMode;
-            $this->extendedMode = $modifiers->inForce('x', $this->extendedMode);
-
-            $expr = null;
-            if ($this->stream->matchLiteral(':')) {
-                $expr = $this->parseScopedAlternation();
-                // "(?x:...)" only covers its own group; "(?x)" keeps going.
-                $this->extendedMode = $previousExtendedMode;
-            }
-            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            $expr ??= $this->createEmptyLiteralNodeAt($this->stream->previous()->position);
-
-            return $this->createGroupNode(
-                $expr,
-                GroupType::T_GROUP_INLINE_FLAGS,
+        if (null === $modifiers) {
+            throw $this->parserException(
+                \sprintf('Invalid group modifier syntax at position %d', $startPosition),
                 $startPosition,
-                $endToken,
-                null,
-                $flags,
             );
         }
 
-        throw $this->parserException(
-            \sprintf('Invalid group modifier syntax at position %d', $startPosition),
+        $conflicts = $modifiers->conflicts();
+        if ('' !== $conflicts) {
+            throw $this->parserException(
+                \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', $conflicts, $startPosition),
+                $startPosition,
+            );
+        }
+
+        if ($modifiers->turnsOn('J')) {
+            $this->groupNames->allowDuplicates(true);
+        }
+        if ($modifiers->turnsOff('J')) {
+            $this->groupNames->allowDuplicates(false);
+        }
+
+        $wasExtended = $this->extendedMode;
+        $this->extendedMode = $modifiers->inForce('x', $this->extendedMode);
+
+        $expr = null;
+        if ($this->stream->matchLiteral(':')) {
+            $expr = $this->parseScopedAlternation();
+            // "(?x:...)" only covers its own group; "(?x)" keeps going.
+            $this->extendedMode = $wasExtended;
+        }
+
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        $expr ??= $this->createEmptyLiteralNodeAt($this->stream->previous()->position);
+
+        return $this->createGroupNode(
+            $expr,
+            GroupType::T_GROUP_INLINE_FLAGS,
             $startPosition,
+            $endToken,
+            null,
+            $flags,
+        );
+    }
+
+    /**
+     * The letters of a "(?...)" modifier group, as the pattern spelled them.
+     *
+     * The leading "^" of "(?^im)" arrives as an anchor token, since the lexer
+     * has no way to know it is not one.
+     */
+    private function readModifierLetters(): string
+    {
+        $letters = '';
+
+        if ($this->stream->check(TokenType::T_ANCHOR) && '^' === $this->stream->current()->value) {
+            $letters = '^';
+            $this->stream->advance();
+        }
+
+        $accepted = self::INLINE_FLAG_LETTERS.($this->supportsInlineModifierR() ? 'r' : '');
+
+        return $letters.$this->consumeWhile(
+            static fn (string $c): bool => '-' === $c || str_contains($accepted, $c),
         );
     }
 
@@ -1542,6 +1566,26 @@ final class Parser
      * In PCRE, CharTypeNode, UnicodePropNode, PosixClassNode, and CharClassNode
      * cannot serve as range endpoints - a hyphen following them is treated as a literal.
      */
+    /**
+     * PCRE takes a range between two characters; "[\d-z]" names no range.
+     *
+     * @throws ParserException
+     */
+    private function guardRangeEndpoint(NodeInterface $node, int $position): void
+    {
+        if (!$this->isNonRangeEndpointType($node)) {
+            return;
+        }
+
+        throw $this->parserException(
+            \sprintf(
+                'Invalid range in character class: a character type, POSIX class, or Unicode property cannot be a range endpoint at position %d.',
+                $position,
+            ),
+            $position,
+        );
+    }
+
     private function isNonRangeEndpointType(NodeInterface $node): bool
     {
         return $node instanceof CharTypeNode
@@ -1635,16 +1679,7 @@ final class Parser
             return $startNode;
         }
 
-        // Certain node types cannot be range endpoints in PCRE
-        if ($this->isNonRangeEndpointType($startNode)) {
-            throw $this->parserException(
-                \sprintf(
-                    'Invalid range in character class: a character type, POSIX class, or Unicode property cannot be a range endpoint at position %d.',
-                    $startPosition,
-                ),
-                $startPosition,
-            );
-        }
+        $this->guardRangeEndpoint($startNode, $startPosition);
 
         if ($this->stream->check(TokenType::T_CHAR_CLASS_OPEN)) {
             $this->stream->rewind(1);
@@ -1668,15 +1703,7 @@ final class Parser
             );
         }
 
-        if ($this->isNonRangeEndpointType($endNode)) {
-            throw $this->parserException(
-                \sprintf(
-                    'Invalid range in character class: a character type, POSIX class, or Unicode property cannot be a range endpoint at position %d.',
-                    $endPosition,
-                ),
-                $endPosition,
-            );
-        }
+        $this->guardRangeEndpoint($endNode, $endPosition);
 
         return new RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());
     }
