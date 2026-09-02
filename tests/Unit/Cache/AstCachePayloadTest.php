@@ -18,41 +18,10 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
+use RegexParser\Tests\Support\AstFingerprint;
 
 final class AstCachePayloadTest extends TestCase
 {
-    /**
-     * Fingerprint of the code that builds an AST, as of Regex::CACHE_VERSION.
-     *
-     * A cached tree is only worth restoring while the current code would build
-     * the same one. That stops being true when a node gains or loses a
-     * property, and equally when the lexer or the parser reads something
-     * differently — a cache written before such a change hands back the old
-     * answer for as long as it lives.
-     *
-     * So: bump Regex::CACHE_VERSION and record the new fingerprint here. The
-     * hash covers the code alone, comments and formatting stripped, so
-     * rewording a docblock does not cost anyone their cache.
-     */
-    private const AST_FINGERPRINT = 'f905efd4bba3fc903d02c3f8e4570def';
-
-    /**
-     * Everything whose behaviour decides what a pattern parses into.
-     */
-    private const AST_SOURCES = [
-        'src/Lexer.php',
-        'src/Parser.php',
-        'src/Token.php',
-        'src/TokenStream.php',
-        'src/Node/*.php',
-        'src/Internal/CodePointReader.php',
-        'src/Internal/GroupNameReader.php',
-        'src/Internal/InlineFlags.php',
-        'src/Internal/PatternParser.php',
-        'src/Internal/PcreVerb.php',
-        'src/Internal/VersionCondition.php',
-    ];
-
     private string $cacheDir;
 
     protected function setUp(): void
@@ -131,13 +100,13 @@ final class AstCachePayloadTest extends TestCase
     }
 
     #[Test]
-    public function test_the_cache_version_covers_what_the_parser_currently_builds(): void
+    public function test_the_cache_version_is_the_fingerprint_of_the_code_that_builds_a_tree(): void
     {
         $this->assertSame(
-            self::AST_FINGERPRINT,
-            $this->astFingerprint(),
-            'The code that builds the AST changed. Bump Regex::CACHE_VERSION so that entries written by the '
-            .'previous behaviour are ignored, then record the new fingerprint in self::AST_FINGERPRINT.',
+            Regex::CACHE_VERSION,
+            AstFingerprint::compute(),
+            'The code that builds the AST changed, so trees cached before it are no longer the ones this '
+            .'code would build. Run "task cache-version" and commit src/Regex.php.',
         );
     }
 
@@ -162,52 +131,5 @@ final class AstCachePayloadTest extends TestCase
         }
 
         return $files;
-    }
-
-    /**
-     * A fingerprint of the code that decides what a pattern parses into.
-     *
-     * Comments and whitespace are dropped: only what runs can change the tree.
-     */
-    private function astFingerprint(): string
-    {
-        $root = \dirname(__DIR__, 3);
-        $files = [];
-
-        foreach (self::AST_SOURCES as $source) {
-            foreach ((array) glob($root.'/'.$source) as $file) {
-                $files[] = (string) $file;
-            }
-        }
-
-        sort($files);
-        $parts = [];
-
-        foreach ($files as $file) {
-            $parts[] = substr($file, \strlen($root) + 1)."\0".$this->meaningfulCode((string) file_get_contents($file));
-        }
-
-        return substr(hash('sha256', implode("\n", $parts)), 0, 32);
-    }
-
-    private function meaningfulCode(string $php): string
-    {
-        $code = '';
-
-        foreach (token_get_all($php) as $token) {
-            if (!\is_array($token)) {
-                $code .= $token;
-
-                continue;
-            }
-
-            if (\in_array($token[0], [\T_COMMENT, \T_DOC_COMMENT, \T_WHITESPACE], true)) {
-                continue;
-            }
-
-            $code .= $token[1];
-        }
-
-        return $code;
     }
 }

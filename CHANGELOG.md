@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recompiling a recursion condition produced a pattern PCRE refuses: `(?(R)yes|no)` came back as `(?((?R))yes|no)`.
 
 ### Changed
-- `Regex::CACHE_VERSION` now tracks what the parser builds rather than the shape of the nodes alone, and a test fingerprints the code that builds a tree so that it cannot change without the version being bumped. Cached ASTs written by an earlier state of `main` are ignored.
+- `Regex::CACHE_VERSION` is a fingerprint of the code that builds an AST rather than a number raised by hand: `task cache-version` writes it, `task lint` runs that, and the test suite fails while the constant and the code disagree. Cached ASTs written by an earlier state of `main` are ignored.
 - `Regex::analyze()` only reports what the pattern itself causes: a failure that is not a RegexParser exception now surfaces instead of being written into the report as a pattern error.
 - A cache that throws while reading is treated as a cache miss, the way a cache that throws while writing already was.
 

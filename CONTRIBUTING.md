@@ -85,14 +85,20 @@ change to the lexer, the parser, a node or the readers they use makes the
 entries written before it wrong, and they keep answering for as long as the
 cache lives.
 
-When you change that code:
+So the version is not a number to remember to raise: it is a fingerprint of
+that code, and a command writes it.
 
-1. Bump `Regex::CACHE_VERSION`.
-2. Run `vendor/bin/phpunit tests/Unit/Cache/AstCachePayloadTest.php` and record
-   the fingerprint it reports in `AST_FINGERPRINT`.
+```bash
+task cache-version          # or: composer cache-version
+```
 
-The test fingerprints that code — comments and formatting stripped, so
-rewording a docblock costs nobody their cache — and fails until both are done.
+`task lint` runs it for you, so a normal round of work updates it and the
+change shows up in `git diff` like any other. The test suite fails while the
+constant and the code disagree, and `php tests/Tools/update_cache_version.php
+--check` reports it without writing anything.
+
+The fingerprint covers the code alone, comments and formatting stripped, so
+rewording a docblock costs nobody their cache.
 
 Mutation testing is deliberately not part of CI: it belongs on your machine,
 pointed at what you are working on. Run it with `composer infection`.
