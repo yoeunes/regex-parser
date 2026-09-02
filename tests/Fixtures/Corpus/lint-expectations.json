@@ -1547,7 +1547,7 @@
         ]
     },
     {
-        "pattern": "/\\<figure\\s+[^\\>]+\\>[^<]*\\<\\/figure\\>/i",
+        "pattern": "/\\<(figure|span)\\s+[^\\>]+\\>[^<]*\\<\\/\\1\\>/i",
         "issues": [
             "regex.lint.quantifier.concatenation"
         ]
@@ -1613,6 +1613,12 @@
         "pattern": "/^[#]?([0-9a-fA-F]{3}){1,2}$/",
         "issues": [
             "regex.lint.group.quantifiedCapture"
+        ]
+    },
+    {
+        "pattern": "~(?<!\\\\)['\"]\\s*\\+\\s*['\"]~s",
+        "issues": [
+            "regex.lint.flag.useless.s"
         ]
     },
     {
@@ -3742,6 +3748,12 @@
         ]
     },
     {
+        "pattern": "/^(?!-)([a-zA-Z0-9-]{1,63}\\.)+[a-zA-Z]{2,63}$/",
+        "issues": [
+            "regex.lint.group.quantifiedCapture"
+        ]
+    },
+    {
         "pattern": "/(\\s|\\x{3164}|\\x{1160})+/u",
         "issues": [
             "regex.lint.group.quantifiedCapture"
@@ -3763,6 +3775,12 @@
         "pattern": "/style=\"--color:\\s*([^;]+);\\s*--dark-color:\\s*[^\"]*\"/",
         "issues": [
             "regex.lint.quantifier.concatenation"
+        ]
+    },
+    {
+        "pattern": "/^\\s*(?:\".*?\"|[^\",]*)\\s*(?:,\\s*(?:\".*?\"|[^\",]*)\\s*)*$/",
+        "issues": [
+            "regex.lint.dotstar.nested"
         ]
     },
     {
@@ -7124,6 +7142,12 @@
         ]
     },
     {
+        "pattern": "/^(?:rgb|hsl)a?\\(\\s*[-\\d.%\\s,\\/]+\\)$/i",
+        "issues": [
+            "regex.lint.quantifier.concatenation"
+        ]
+    },
+    {
         "pattern": "/(['])/i",
         "issues": [
             "regex.lint.flag.useless.i"
@@ -7722,14 +7746,6 @@
         ]
     },
     {
-        "pattern": "/\\;[\\r]*\\n/ism",
-        "issues": [
-            "regex.lint.flag.useless.i",
-            "regex.lint.flag.useless.m",
-            "regex.lint.flag.useless.s"
-        ]
-    },
-    {
         "pattern": "/{%.?block content.?%}((.*?\\n)+){%.?endblock.?%}/m",
         "issues": [
             "regex.lint.dotstar.nested",
@@ -7750,6 +7766,14 @@
         "issues": [
             "regex.lint.flag.useless.s",
             "regex.lint.quantifier.concatenation"
+        ]
+    },
+    {
+        "pattern": "/\\;[\\r]*\\n/ism",
+        "issues": [
+            "regex.lint.flag.useless.i",
+            "regex.lint.flag.useless.m",
+            "regex.lint.flag.useless.s"
         ]
     },
     {
@@ -7867,12 +7891,6 @@
         "pattern": "#^release-[0-9]{1,}[.-][0-9]{1}$#",
         "issues": [
             "regex.lint.quantifier.useless"
-        ]
-    },
-    {
-        "pattern": "/([.!#>+-=|{}~])/",
-        "issues": [
-            "regex.lint.charclass.redundant"
         ]
     },
     {
