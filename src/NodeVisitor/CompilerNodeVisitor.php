@@ -101,10 +101,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function __construct(
         private readonly bool $pretty = false,
         /**
-     * When true, comments in extended (/x) mode are collapsed to a generic
-     * "(?#...)" placeholder. This is useful for generating a normalized
-     * representation of verbose regexes without leaking full comment text.
-     */
+         * When true, comments in extended (/x) mode are collapsed to a generic
+         * "(?#...)" placeholder. This is useful for generating a normalized
+         * representation of verbose regexes without leaking full comment text.
+         */
         private readonly bool $collapseExtendedComments = false,
         /**
          * When false, escapes and comment syntax are normalized instead of
