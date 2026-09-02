@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Fixed
+- Validation refused every version condition, `(?(VERSION>=10.4)...)` included, though PCRE compiles it. It now accepts the two comparisons PCRE makes — `=` and `>=` — and reports the others as `regex.condition.version_operator` rather than as an unrecognised condition.
+- `(*:label)` came back as `(*MARK:label)`.
 - Recompiling rewrote two spellings the author had picked: `(?'name'x)` came back as `(?<name>x)`, and `(*sr:...)` as `(*script_run:...)`.
 - A verb wrapping more than one level of brackets was not read: `(*atomic:((a)))` and `(*pla:((a)b(c)))` are valid PCRE and were refused.
 - The `J` modifier reached further than PCRE lets it: `(?J:(?<n>a))(?<n>b)` and `(?:(?J)(?<n>a))(?<n>b)` were accepted, though the second name is written outside the group the modifier covers.
