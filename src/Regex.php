@@ -86,9 +86,13 @@ final readonly class Regex
 
     /**
      * Cache version for AST serialization.
-     * Bump this when AST structure changes.
+     *
+     * It tracks the shape of the serialized AST, not the version of the
+     * library: bump it whenever a node gains, loses or renames a property,
+     * so that entries written by an older release are ignored instead of
+     * being restored as objects with missing properties.
      */
-    public const CACHE_VERSION = '1.3.0';
+    public const CACHE_VERSION = '1.4.0';
 
     /**
      * Default maximum allowed regex pattern length.
@@ -792,7 +796,7 @@ final readonly class Regex
         $exportedAst = var_export($serializedAst, true);
         $allowedClasses = self::getAllowedClasses();
         $exportedAllowedClasses = var_export($allowedClasses, true);
-        $version = self::CACHE_VERSION;
+        $version = var_export(self::CACHE_VERSION, true);
 
         return <<<PHP
             <?php

@@ -139,7 +139,9 @@ final class RegexApiTest extends TestCase
             $firstAst = $regex->parse($pattern);
             $secondAst = $regex->parse($pattern);
 
-            $this->assertSame(2, $cache->writeCount);
+            // The second call finds the AST on disk: it reads the cache
+            // again, but it does not parse and store the pattern twice.
+            $this->assertSame(1, $cache->writeCount);
             $this->assertSame(2, $cache->loadCount);
             $this->assertEquals($firstAst, $secondAst);
         } finally {
