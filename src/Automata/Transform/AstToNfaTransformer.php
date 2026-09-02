@@ -1187,8 +1187,27 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             return ['', []];
         }
 
-        $text = mb_convert_encoding(pack('N*', ...$codePoints), 'UTF-8', 'UTF-32BE');
+        // One conversion for the whole block where mbstring is there, and the
+        // same encoding done by hand where it is not: the rest of the package
+        // works without the extension, and so does this.
+        $text = \function_exists('mb_convert_encoding')
+            ? (string) mb_convert_encoding(pack('N*', ...$codePoints), 'UTF-8', 'UTF-32BE')
+            : self::encodeCodePoints($codePoints);
 
         return [$text, $codePointAt];
+    }
+
+    /**
+     * @param array<int> $codePoints
+     */
+    private static function encodeCodePoints(array $codePoints): string
+    {
+        $text = '';
+
+        foreach ($codePoints as $codePoint) {
+            $text .= CodePointHelper::toString($codePoint) ?? '';
+        }
+
+        return $text;
     }
 }
