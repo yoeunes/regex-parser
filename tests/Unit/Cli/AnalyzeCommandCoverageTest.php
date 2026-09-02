@@ -13,66 +13,79 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Cli;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Cache\CacheInterface;
 use RegexParser\Cli\Command\AnalyzeCommand;
-use RegexParser\Cli\GlobalOptions;
-use RegexParser\Cli\Input;
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Output;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSConfidence;
+use RegexParser\ReDoS\ReDoSMode;
+use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\ValidationResult;
 
 final class AnalyzeCommandCoverageTest extends TestCase
 {
-    public function test_analyze_command_reports_redos_error_when_analysis_fails(): void
+    #[Test]
+    public function test_analyze_command_reports_a_redos_analysis_that_could_not_finish(): void
     {
-        $cache = new class implements CacheInterface {
-            private int $loadCalls = 0;
-
-            public function generateKey(string $regex): string
-            {
-                return 'key';
-            }
-
-            public function write(string $key, string $content): void {}
-
-            public function load(string $key): mixed
-            {
-                $this->loadCalls++;
-                if (3 === $this->loadCalls) {
-                    throw new \RuntimeException('cache load failed');
-                }
-
-                return null;
-            }
-
-            public function getTimestamp(string $key): int
-            {
-                return 0;
-            }
-        };
-
-        $command = new AnalyzeCommand();
-        $input = new Input(
-            'analyze',
-            ['/foo/'],
-            new GlobalOptions(false, null, false, false, null, null),
-            ['cache' => $cache],
+        $analysis = new ReDoSAnalysis(
+            ReDoSSeverity::UNKNOWN,
+            0,
+            null,
+            ['Analysis incomplete: out of steam'],
+            'RuntimeException: out of steam',
+            null,
+            null,
+            ReDoSConfidence::LOW,
+            null,
+            [],
+            null,
+            null,
+            [],
+            ReDoSMode::THEORETICAL,
+            null,
         );
-        $output = new Output(false, false);
 
-        $buffer = $this->captureOutput(static function () use ($command, $input, $output): void {
-            $command->run($input, $output);
-        });
+        $buffer = $this->render($analysis);
 
-        $this->assertStringContainsString('ReDoS error:', $buffer);
+        $this->assertStringContainsString('ReDoS error: RuntimeException: out of steam', $buffer);
     }
 
-    /**
-     * @param callable(): void $callback
-     */
-    private function captureOutput(callable $callback): string
+    #[Test]
+    public function test_a_finished_analysis_reports_no_error(): void
     {
+        $analysis = new ReDoSAnalysis(
+            ReDoSSeverity::SAFE,
+            0,
+            null,
+            [],
+            null,
+            null,
+            null,
+            ReDoSConfidence::LOW,
+            null,
+            [],
+            null,
+            null,
+            [],
+            ReDoSMode::THEORETICAL,
+            null,
+        );
+
+        $this->assertStringNotContainsString('ReDoS error:', $this->render($analysis));
+    }
+
+    private function render(ReDoSAnalysis $analysis): string
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+        $style = new ConsoleStyle($output, false);
+
+        $method = (new \ReflectionClass($command))->getMethod('renderConsoleOutput');
+
         ob_start();
-        $callback();
+        $method->invoke($command, $output, $style, '/foo/', new ValidationResult(true, null, 0), $analysis, '');
 
         return (string) ob_get_clean();
     }

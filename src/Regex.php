@@ -21,6 +21,7 @@ use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RegexException;
+use RegexParser\Exception\RegexParserExceptionInterface;
 use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Internal\PatternParser;
@@ -220,33 +221,36 @@ final readonly class Regex
         $redos = $this->redos($regex);
 
         if ($isValid) {
+            // Only what the pattern itself can cause is reported as an error:
+            // a failure of any other kind is a bug in the library, and a
+            // report saying "invalid pattern" would bury it.
             try {
                 $ast = $this->parse($regex, false);
                 $linter = new LinterNodeVisitor();
                 $ast->accept($linter);
                 $lintIssues = $linter->getIssues();
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $optimizations = $this->optimize($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $explain = $this->explain($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
 
             try {
                 $highlighted = $this->highlight($regex);
-            } catch (\Throwable $e) {
+            } catch (RegexParserExceptionInterface $e) {
                 $errors[] = $e->getMessage();
                 $isValid = false;
             }
@@ -741,8 +745,15 @@ final readonly class Regex
             return [null, null];
         }
 
-        $cacheKey = $this->cache->generateKey($this->getCacheSeed($regex));
-        $cachedResult = $this->cache->load($cacheKey);
+        // A cache that cannot answer is a cache miss, the way a cache that
+        // cannot store is already treated: parsing the pattern again is
+        // always an option, and it is never the pattern's fault.
+        try {
+            $cacheKey = $this->cache->generateKey($this->getCacheSeed($regex));
+            $cachedResult = $this->cache->load($cacheKey);
+        } catch (\Throwable) {
+            return [null, null];
+        }
 
         return [$cachedResult instanceof RegexNode ? $cachedResult : null, $cacheKey];
     }

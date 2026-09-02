@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RegexParser\ReDoS\ReDoSAnalyzerInterface`: implemented by nothing, `ReDoSAnalyzer` included.
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
+### Changed
+- `Regex::analyze()` only reports what the pattern itself causes: a failure that is not a RegexParser exception now surfaces instead of being written into the report as a pattern error.
+- A cache that throws while reading is treated as a cache miss, the way a cache that throws while writing already was.
+
 ### Added
 - Alphabetic assertion verbs (PCRE2 10.32+): `(*pla:...)`, `(*positive_lookahead:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*negative_lookbehind:...)`, `(*atomic:...)` parse as their classic lookaround / atomic group equivalents.
 - Script run content is now parsed into the AST: `(*sr:(a+)+b)` is analyzed like any sub-pattern (its catastrophic backtracking is detected by the ReDoS engine, its length/complexity contribute to metrics).

@@ -22,7 +22,7 @@ use RegexParser\Regex;
 
 final class RegexCoverageTest extends TestCase
 {
-    public function test_analyze_collects_errors_from_subsystems(): void
+    public function test_a_failing_cache_does_not_fail_the_analysis(): void
     {
         $cache = new class implements CacheInterface {
             private int $loadCalls = 0;
@@ -54,8 +54,9 @@ final class RegexCoverageTest extends TestCase
 
         $report = $regex->analyze('/abc/');
 
-        $this->assertFalse($report->isValid);
-        $this->assertCount(4, $report->errors);
+        // A cache that throws is a broken cache, not a broken pattern.
+        $this->assertTrue($report->isValid);
+        $this->assertSame([], $report->errors);
     }
 
     public function test_cache_seed_includes_php_version_when_explicit(): void
