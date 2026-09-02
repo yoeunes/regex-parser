@@ -46,4 +46,21 @@ final class DisplayEscaperTest extends TestCase
         yield 'utf8 is preserved' => ['/«»“”/u', '/«»“”/u'];
         yield 'invalid utf8 is escaped' => ["/x\x80\xFEy/", '/x\200\376y/'];
     }
+
+    #[Test]
+    public function test_quote_wraps_a_sample_and_escapes_what_would_break_the_layout(): void
+    {
+        $this->assertSame('"" (empty string)', DisplayEscaper::quote(''));
+        $this->assertSame('"a\\nb"', DisplayEscaper::quote("a\nb"));
+        $this->assertSame('"\\x00\\x1F"', DisplayEscaper::quote("\x00\x1F"));
+        $this->assertSame('"\\\\ \\""', DisplayEscaper::quote('\\ "'));
+    }
+
+    #[Test]
+    public function test_quote_puts_the_markup_around_the_quotes(): void
+    {
+        $this->assertSame('<fg=cyan>"ok"</>', DisplayEscaper::quote('ok', '<fg=cyan>', '</>'));
+        // An empty sample says so in words, with no markup to colour.
+        $this->assertSame('"" (empty string)', DisplayEscaper::quote('', '<fg=cyan>', '</>'));
+    }
 }

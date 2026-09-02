@@ -22,6 +22,7 @@ use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\ComplexityException;
+use RegexParser\Internal\DisplayEscaper;
 
 final class CompareCommand extends AbstractCommand
 {
@@ -169,27 +170,7 @@ final class CompareCommand extends AbstractCommand
 
     private function formatExample(string $example): string
     {
-        if ('' === $example) {
-            return '"" (empty string)';
-        }
-
-        $escaped = '';
-        $length = \strlen($example);
-        for ($i = 0; $i < $length; $i++) {
-            $byte = \ord($example[$i]);
-            $escaped .= match ($byte) {
-                0x0A => '\\n',
-                0x0D => '\\r',
-                0x09 => '\\t',
-                0x5C => '\\\\',
-                0x22 => '\\"',
-                default => ($byte < 0x20 || $byte > 0x7E)
-                    ? \sprintf('\\x%02X', $byte)
-                    : $example[$i],
-            };
-        }
-
-        return '"'.$escaped.'"';
+        return DisplayEscaper::quote($example);
     }
 
     private function writeDetail(Output $output, string $label, string $value): void
