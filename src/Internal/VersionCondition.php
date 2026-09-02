@@ -25,10 +25,13 @@ namespace RegexParser\Internal;
 final readonly class VersionCondition
 {
     /**
-     * The comparisons PCRE accepts, longest first so that ">=" is not read
-     * as ">".
+     * The comparisons that may follow "VERSION", longest first so that ">="
+     * is not read as ">".
+     *
+     * PCRE itself only takes ">=" and "="; the others are read anyway, and
+     * left to the validator to judge.
      */
-    private const OPERATORS = ['>=', '<=', '==', '!=', '>', '<'];
+    private const OPERATORS = ['>=', '<=', '==', '!=', '>', '<', '='];
 
     private function __construct(public string $operator, public string $version) {}
 

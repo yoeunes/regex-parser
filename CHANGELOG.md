@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Fixed
+- Recompiling a version condition produced a pattern PCRE refuses: `(?(VERSION>=10.4)y|n)` came back as `(?((?(VERSION>=10.4))y|n)`.
+- `(?(VERSION=10.4)...)` is parsed; PCRE accepts that spelling alongside `VERSION>=`.
 - A pattern that is not valid UTF-8 lost everything after a `\Q...\E` run or a `(?#...)` comment: the lexer read those two with a UTF-8 regex, and took PCRE's refusal for the end of the pattern. `/\Q\xFFabc\E]/` came back as `//`.
 - `\N{U+0041}` inside a character class is parsed instead of rejected; PCRE accepts it.
 - A duplicate group name was reported at the wrong offset when the pattern held an alternation or an inline flag group before it: `/(?<name>a)|(?<name>b)/` pointed at the `|`, and `/(?J)(?<name>a)(?-J)(?<name>b)/` inside the `(?-J)`. Both now point at the second group.

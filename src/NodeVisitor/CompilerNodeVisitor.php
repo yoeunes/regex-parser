@@ -455,7 +455,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitVersionCondition(VersionConditionNode $node): string
     {
-        return '(?(VERSION'.$node->operator.$node->version.')';
+        // The condition alone: the conditional that holds it writes the
+        // parentheses, as it does for every other kind of condition.
+        return 'VERSION'.$node->operator.$node->version;
     }
 
     #[\Override]
