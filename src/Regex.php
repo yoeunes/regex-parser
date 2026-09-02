@@ -87,12 +87,17 @@ final readonly class Regex
     /**
      * Cache version for AST serialization.
      *
-     * It tracks the shape of the serialized AST, not the version of the
-     * library: bump it whenever a node gains, loses or renames a property,
-     * so that entries written by an older release are ignored instead of
-     * being restored as objects with missing properties.
+     * It tracks what the parser builds, not the version of the library: bump
+     * it whenever a change alters the tree a pattern parses into — a node
+     * gaining or losing a property, but equally the lexer or the parser
+     * reading something differently. An entry written before such a change
+     * holds a tree the current code would no longer produce, and restoring it
+     * hands back the old answer for as long as the cache lives.
+     *
+     * AstCachePayloadTest fingerprints the code that builds the tree and
+     * fails when it changes without a bump.
      */
-    public const CACHE_VERSION = '1.4.0';
+    public const CACHE_VERSION = '1.5.0';
 
     /**
      * Default maximum allowed regex pattern length.

@@ -77,6 +77,26 @@ class YourClassTest extends TestCase
 }
 ```
 
+## Changing what the parser builds
+
+The parsed AST is cached, keyed on `Regex::CACHE_VERSION`. A cached tree is
+only worth restoring while the current code would build the same one — so any
+change to the lexer, the parser, a node or the readers they use makes the
+entries written before it wrong, and they keep answering for as long as the
+cache lives.
+
+When you change that code:
+
+1. Bump `Regex::CACHE_VERSION`.
+2. Run `vendor/bin/phpunit tests/Unit/Cache/AstCachePayloadTest.php` and record
+   the fingerprint it reports in `AST_FINGERPRINT`.
+
+The test fingerprints that code — comments and formatting stripped, so
+rewording a docblock costs nobody their cache — and fails until both are done.
+
+Mutation testing is deliberately not part of CI: it belongs on your machine,
+pointed at what you are working on. Run it with `composer infection`.
+
 ## Submitting Changes
 
 ### Commit Messages

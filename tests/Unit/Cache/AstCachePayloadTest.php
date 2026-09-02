@@ -16,20 +16,42 @@ namespace RegexParser\Tests\Unit\Cache;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
-use RegexParser\Node\NodeInterface;
 use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
 
 final class AstCachePayloadTest extends TestCase
 {
     /**
-     * Shape of the serialized AST, as of Regex::CACHE_VERSION.
+     * Fingerprint of the code that builds an AST, as of Regex::CACHE_VERSION.
      *
-     * Bump Regex::CACHE_VERSION and record the new hash here whenever a node
-     * gains, loses or renames a property: entries written by an older release
-     * would otherwise be restored as objects with uninitialized properties.
+     * A cached tree is only worth restoring while the current code would build
+     * the same one. That stops being true when a node gains or loses a
+     * property, and equally when the lexer or the parser reads something
+     * differently — a cache written before such a change hands back the old
+     * answer for as long as it lives.
+     *
+     * So: bump Regex::CACHE_VERSION and record the new fingerprint here. The
+     * hash covers the code alone, comments and formatting stripped, so
+     * rewording a docblock does not cost anyone their cache.
      */
-    private const NODE_SHAPE = '14a5f7985b2451397f1ed6ae48dddeef';
+    private const AST_FINGERPRINT = 'f905efd4bba3fc903d02c3f8e4570def';
+
+    /**
+     * Everything whose behaviour decides what a pattern parses into.
+     */
+    private const AST_SOURCES = [
+        'src/Lexer.php',
+        'src/Parser.php',
+        'src/Token.php',
+        'src/TokenStream.php',
+        'src/Node/*.php',
+        'src/Internal/CodePointReader.php',
+        'src/Internal/GroupNameReader.php',
+        'src/Internal/InlineFlags.php',
+        'src/Internal/PatternParser.php',
+        'src/Internal/PcreVerb.php',
+        'src/Internal/VersionCondition.php',
+    ];
 
     private string $cacheDir;
 
@@ -109,13 +131,13 @@ final class AstCachePayloadTest extends TestCase
     }
 
     #[Test]
-    public function test_cache_version_matches_the_current_node_shape(): void
+    public function test_the_cache_version_covers_what_the_parser_currently_builds(): void
     {
         $this->assertSame(
-            self::NODE_SHAPE,
-            $this->nodeShape(),
-            'The AST node shape changed. Bump Regex::CACHE_VERSION so that stale cache entries are '
-            .'ignored, then record the new hash in self::NODE_SHAPE.',
+            self::AST_FINGERPRINT,
+            $this->astFingerprint(),
+            'The code that builds the AST changed. Bump Regex::CACHE_VERSION so that entries written by the '
+            .'previous behaviour are ignored, then record the new fingerprint in self::AST_FINGERPRINT.',
         );
     }
 
@@ -143,33 +165,49 @@ final class AstCachePayloadTest extends TestCase
     }
 
     /**
-     * A fingerprint of every serialized property of every AST node.
+     * A fingerprint of the code that decides what a pattern parses into.
+     *
+     * Comments and whitespace are dropped: only what runs can change the tree.
      */
-    private function nodeShape(): string
+    private function astFingerprint(): string
     {
-        $shape = [];
+        $root = \dirname(__DIR__, 3);
+        $files = [];
 
-        foreach ((array) glob(\dirname(__DIR__, 3).'/src/Node/*.php') as $file) {
-            $class = 'RegexParser\\Node\\'.basename((string) $file, '.php');
-            if (!class_exists($class) || !is_a($class, NodeInterface::class, true)) {
+        foreach (self::AST_SOURCES as $source) {
+            foreach ((array) glob($root.'/'.$source) as $file) {
+                $files[] = (string) $file;
+            }
+        }
+
+        sort($files);
+        $parts = [];
+
+        foreach ($files as $file) {
+            $parts[] = substr($file, \strlen($root) + 1)."\0".$this->meaningfulCode((string) file_get_contents($file));
+        }
+
+        return substr(hash('sha256', implode("\n", $parts)), 0, 32);
+    }
+
+    private function meaningfulCode(string $php): string
+    {
+        $code = '';
+
+        foreach (token_get_all($php) as $token) {
+            if (!\is_array($token)) {
+                $code .= $token;
+
                 continue;
             }
 
-            $properties = [];
-            foreach ((new \ReflectionClass($class))->getProperties() as $property) {
-                if ($property->isStatic()) {
-                    continue;
-                }
-
-                $properties[] = $property->getName().':'.((string) $property->getType());
+            if (\in_array($token[0], [\T_COMMENT, \T_DOC_COMMENT, \T_WHITESPACE], true)) {
+                continue;
             }
 
-            sort($properties);
-            $shape[] = $class.'('.implode(',', $properties).')';
+            $code .= $token[1];
         }
 
-        sort($shape);
-
-        return substr(hash('sha256', implode("\n", $shape)), 0, 32);
+        return $code;
     }
 }
