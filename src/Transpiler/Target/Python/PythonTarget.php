@@ -68,11 +68,8 @@ final readonly class PythonTarget implements TranspileTargetInterface
             }
 
             if ('U' === $flag) {
-                // Ungreedy in PCRE. Python doesn't have a global flag, only modifiers on quantifiers.
-                // The parser should have handled this by changing quantifiers or we need to handle it in visitor?
-                // Current parser likely keeps it global.
-                // We will warn and drop it, but it might change semantics if not handled.
-                // For now, let's treat it as unsupported or dropped with warning.
+                // PCRE inverts every quantifier with /U; Python only marks
+                // them one by one, so there is nothing to map it to.
                 $context->addWarning('Dropped /U (ungreedy) flag; Python requires per-quantifier ungreedy (?).');
 
                 continue;
@@ -90,9 +87,10 @@ final readonly class PythonTarget implements TranspileTargetInterface
 
     public function formatLiteral(string $pattern, string $flags, TranspileContext $context): string
     {
-        // Python doesn't really have "regex literals" like JS.
-        // We'll return a raw string representation: r'pattern'
-        return "r'".$pattern."'";
+        // Python has no regex literal, so the pattern is a string — and a
+        // string carries no flags. They are spelled inline instead, which
+        // Python only accepts at the very start of the pattern.
+        return $this->quote(('' === $flags ? '' : '(?'.$flags.')').$pattern);
     }
 
     public function formatConstructor(string $pattern, string $flags, TranspileContext $context): string
@@ -114,10 +112,32 @@ final readonly class PythonTarget implements TranspileTargetInterface
 
         $flagsStr = [] === $flagConstants ? '0' : implode(' | ', $flagConstants);
 
-        // Escape single quotes if necessary for the raw string
-        $escaped = str_replace("'", "\\'", $pattern);
+        return 're.compile('.$this->quote($pattern).', '.$flagsStr.')';
+    }
 
-        return "re.compile(r'".$escaped."', ".$flagsStr.')';
+    /**
+     * Spell a pattern as a Python string literal.
+     *
+     * A raw string is what a regex wants, since it leaves the backslashes
+     * alone — but it cannot hold the quote that delimits it, and it cannot
+     * end with a backslash. Backslash-escaping the quote inside a raw string
+     * keeps the backslash in the pattern, so the quote character decides
+     * instead, and a pattern that rules out both falls back to an ordinary
+     * string with its backslashes doubled.
+     */
+    private function quote(string $pattern): string
+    {
+        $endsWithBackslash = 1 === preg_match('/(?<!\\\\)(?:\\\\\\\\)*\\\\$/', $pattern);
+
+        if (!$endsWithBackslash && !str_contains($pattern, "'")) {
+            return "r'".$pattern."'";
+        }
+
+        if (!$endsWithBackslash && !str_contains($pattern, '"')) {
+            return 'r"'.$pattern.'"';
+        }
+
+        return "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $pattern)."'";
     }
 
     private function normalizeFlagOrder(string $flags): string
