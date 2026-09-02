@@ -19,6 +19,7 @@ use RegexParser\Exception\SyntaxErrorException;
 use RegexParser\Internal\CodePointReader;
 use RegexParser\Internal\GroupNameReader;
 use RegexParser\Internal\InlineFlags;
+use RegexParser\Internal\PcreVerb;
 use RegexParser\Internal\VersionCondition;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -69,21 +70,6 @@ final class Parser
     // Token length constants for calculating positions
     private const PCRE_VERB_WRAPPER_LENGTH = 3; // (*...)
     private const CALLOUT_WRAPPER_LENGTH = 4; // (?C...)
-
-    /**
-     * PCRE2 10.32+ alphabetic assertion verbs and their group equivalents.
-     */
-    private const ALPHABETIC_ASSERTION_VERBS = [
-        'positive_lookahead' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-        'pla' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-        'negative_lookahead' => GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-        'nla' => GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-        'positive_lookbehind' => GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-        'plb' => GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-        'negative_lookbehind' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-        'nlb' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-        'atomic' => GroupType::T_GROUP_ATOMIC,
-    ];
 
     /**
      * Token types that describe a character the same way wherever they appear.
@@ -948,49 +934,37 @@ final class Parser
 
     private function createPcreVerbNode(string $verb, int $startPosition, int $endPosition): NodeInterface
     {
-        if ('' !== $verb && (str_starts_with($verb, ':') || str_starts_with($verb, '='))) {
-            $verb = 'MARK'.$verb;
+        $read = PcreVerb::read($verb);
+
+        if (null !== $read->assertion) {
+            // "(*pla:...)" and its friends are the alphabetic spelling of a
+            // lookaround, so they parse into the group they stand for.
+            return new GroupNode(
+                $this->parseSubPattern((string) $read->payload, $startPosition + 2 + $read->payloadOffset),
+                $read->assertion,
+                null,
+                null,
+                $startPosition,
+                $endPosition,
+            );
         }
 
-        // Alphabetic assertion verbs: (*pla:...), (*atomic:...), etc. are
-        // synonyms for the classic lookaround / atomic group syntax.
-        $colon = strpos($verb, ':');
-        if (false !== $colon) {
-            $verbName = strtolower(substr($verb, 0, $colon));
-            if (isset(self::ALPHABETIC_ASSERTION_VERBS[$verbName])) {
-                $payload = substr($verb, $colon + 1);
-                $child = $this->parseSubPattern($payload, $startPosition + 2 + $colon + 1);
-
-                return new GroupNode(
-                    $child,
-                    self::ALPHABETIC_ASSERTION_VERBS[$verbName],
-                    null,
-                    null,
-                    $startPosition,
-                    $endPosition,
-                );
-            }
+        if (null !== $read->matchLimit) {
+            return new LimitMatchNode($read->matchLimit, $startPosition, $endPosition);
         }
 
-        if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
-            return new LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
+        if ($read->isScriptRun()) {
+            $payload = (string) $read->payload;
+
+            return new ScriptRunNode(
+                $payload,
+                $startPosition,
+                $endPosition,
+                $this->parseSubPattern($payload, $startPosition),
+            );
         }
 
-        $lowerVerb = strtolower($verb);
-        if (str_starts_with($lowerVerb, 'script_run:')) {
-            $payload = substr($verb, \strlen('script_run:'));
-            if ('' !== $payload) {
-                return new ScriptRunNode($payload, $startPosition, $endPosition, $this->parseSubPattern($payload, $startPosition));
-            }
-        }
-        if (str_starts_with($lowerVerb, 'sr:')) {
-            $payload = substr($verb, \strlen('sr:'));
-            if ('' !== $payload) {
-                return new ScriptRunNode($payload, $startPosition, $endPosition, $this->parseSubPattern($payload, $startPosition));
-            }
-        }
-
-        return new PcreVerbNode($verb, $startPosition, $endPosition);
+        return new PcreVerbNode($read->name, $startPosition, $endPosition);
     }
 
     /**

@@ -1,0 +1,131 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit\Internal;
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use RegexParser\Internal\PcreVerb;
+use RegexParser\Node\GroupType;
+
+/**
+ * Telling apart the four things "(*...)" can hold.
+ */
+final class PcreVerbTest extends TestCase
+{
+    #[Test]
+    #[DataProvider('provideBacktrackingVerbs')]
+    public function test_a_backtracking_verb_is_kept_as_it_is(string $text, string $name): void
+    {
+        $verb = PcreVerb::read($text);
+
+        $this->assertSame($name, $verb->name);
+        $this->assertNull($verb->assertion);
+        $this->assertNull($verb->matchLimit);
+        $this->assertFalse($verb->isScriptRun());
+    }
+
+    /**
+     * @return iterable<string, array{text: string, name: string}>
+     */
+    public static function provideBacktrackingVerbs(): iterable
+    {
+        yield 'fail' => ['text' => 'FAIL', 'name' => 'FAIL'];
+        yield 'skip' => ['text' => 'SKIP', 'name' => 'SKIP'];
+        yield 'a named mark' => ['text' => 'MARK:here', 'name' => 'MARK:here'];
+
+        // "(*:name)" and "(*=name)" are shorthands for a mark.
+        yield 'a mark written short' => ['text' => ':here', 'name' => 'MARK:here'];
+        yield 'a mark written with an equals sign' => ['text' => '=here', 'name' => 'MARK=here'];
+    }
+
+    #[Test]
+    #[DataProvider('provideAssertions')]
+    public function test_an_alphabetic_assertion_stands_for_a_group(string $text, GroupType $group, string $payload): void
+    {
+        $verb = PcreVerb::read($text);
+
+        $this->assertSame($group, $verb->assertion);
+        $this->assertSame($payload, $verb->payload);
+    }
+
+    /**
+     * @return iterable<string, array{text: string, group: GroupType, payload: string}>
+     */
+    public static function provideAssertions(): iterable
+    {
+        yield 'a lookahead, short' => [
+            'text' => 'pla:foo',
+            'group' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            'payload' => 'foo',
+        ];
+        yield 'a lookahead, spelled out' => [
+            'text' => 'positive_lookahead:foo',
+            'group' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            'payload' => 'foo',
+        ];
+        yield 'a negative lookbehind' => [
+            'text' => 'nlb:foo',
+            'group' => GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            'payload' => 'foo',
+        ];
+        yield 'an atomic group' => [
+            'text' => 'atomic:a+',
+            'group' => GroupType::T_GROUP_ATOMIC,
+            'payload' => 'a+',
+        ];
+        yield 'the case does not matter' => [
+            'text' => 'PLA:foo',
+            'group' => GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            'payload' => 'foo',
+        ];
+    }
+
+    #[Test]
+    public function test_a_match_limit_carries_a_number(): void
+    {
+        $verb = PcreVerb::read('LIMIT_MATCH=4096');
+
+        $this->assertSame(4096, $verb->matchLimit);
+        $this->assertNull($verb->assertion);
+    }
+
+    #[Test]
+    #[DataProvider('provideScriptRuns')]
+    public function test_a_script_run_carries_a_sub_pattern(string $text, string $payload): void
+    {
+        $verb = PcreVerb::read($text);
+
+        $this->assertTrue($verb->isScriptRun());
+        $this->assertSame($payload, $verb->payload);
+    }
+
+    /**
+     * @return iterable<string, array{text: string, payload: string}>
+     */
+    public static function provideScriptRuns(): iterable
+    {
+        yield 'spelled out' => ['text' => 'script_run:\d+', 'payload' => '\d+'];
+        yield 'short' => ['text' => 'sr:\d+', 'payload' => '\d+'];
+    }
+
+    #[Test]
+    public function test_a_script_run_with_nothing_in_it_is_a_plain_verb(): void
+    {
+        $verb = PcreVerb::read('sr:');
+
+        $this->assertFalse($verb->isScriptRun());
+        $this->assertSame('sr:', $verb->name);
+    }
+}
