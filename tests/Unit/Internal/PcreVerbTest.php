@@ -31,7 +31,7 @@ final class PcreVerbTest extends TestCase
         $verb = PcreVerb::read($text);
 
         $this->assertSame($name, $verb->name);
-        $this->assertNull($verb->assertion);
+        $this->assertNotInstanceOf(GroupType::class, $verb->assertion);
         $this->assertNull($verb->matchLimit);
         $this->assertFalse($verb->isScriptRun());
     }
@@ -98,7 +98,7 @@ final class PcreVerbTest extends TestCase
         $verb = PcreVerb::read('LIMIT_MATCH=4096');
 
         $this->assertSame(4096, $verb->matchLimit);
-        $this->assertNull($verb->assertion);
+        $this->assertNotInstanceOf(GroupType::class, $verb->assertion);
     }
 
     #[Test]

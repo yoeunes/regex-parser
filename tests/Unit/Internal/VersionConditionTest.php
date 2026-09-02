@@ -29,7 +29,7 @@ final class VersionConditionTest extends TestCase
     {
         $condition = VersionCondition::read($text);
 
-        self::assertInstanceOf(VersionCondition::class, $condition);
+        $this->assertInstanceOf(VersionCondition::class, $condition);
         $this->assertSame($operator, $condition->operator);
         $this->assertSame($version, $condition->version);
     }
@@ -54,7 +54,7 @@ final class VersionConditionTest extends TestCase
     #[DataProvider('provideNonConditions')]
     public function test_what_is_not_a_version_condition_is_refused(string $text): void
     {
-        $this->assertNull(VersionCondition::read($text));
+        $this->assertNotInstanceOf(VersionCondition::class, VersionCondition::read($text));
     }
 
     /**

@@ -29,7 +29,7 @@ final class InlineFlagsTest extends TestCase
     {
         $flags = InlineFlags::read($text);
 
-        self::assertInstanceOf(InlineFlags::class, $flags);
+        $this->assertInstanceOf(InlineFlags::class, $flags);
         $this->assertSame($set, $flags->set);
         $this->assertSame($unset, $flags->unset);
     }
@@ -52,7 +52,7 @@ final class InlineFlagsTest extends TestCase
     #[DataProvider('provideNonModifierStrings')]
     public function test_what_is_not_a_modifier_string_is_refused(string $text): void
     {
-        $this->assertNull(InlineFlags::read($text));
+        $this->assertNotInstanceOf(InlineFlags::class, InlineFlags::read($text));
     }
 
     /**
@@ -69,10 +69,10 @@ final class InlineFlagsTest extends TestCase
     #[Test]
     public function test_a_letter_the_php_version_allows_is_read(): void
     {
-        $this->assertNull(InlineFlags::read('r'));
+        $this->assertNotInstanceOf(InlineFlags::class, InlineFlags::read('r'));
 
         $flags = InlineFlags::read('r', InlineFlags::LETTERS.'r');
-        self::assertInstanceOf(InlineFlags::class, $flags);
+        $this->assertInstanceOf(InlineFlags::class, $flags);
         $this->assertSame('r', $flags->set);
     }
 
@@ -81,11 +81,11 @@ final class InlineFlagsTest extends TestCase
     {
         $flags = InlineFlags::read('is-si');
 
-        self::assertInstanceOf(InlineFlags::class, $flags);
+        $this->assertInstanceOf(InlineFlags::class, $flags);
         $this->assertSame('is', $flags->conflicts());
 
         $harmless = InlineFlags::read('im-sx');
-        self::assertInstanceOf(InlineFlags::class, $harmless);
+        $this->assertInstanceOf(InlineFlags::class, $harmless);
         $this->assertSame('', $harmless->conflicts());
     }
 
@@ -94,7 +94,7 @@ final class InlineFlagsTest extends TestCase
     {
         $flags = InlineFlags::read('x-i');
 
-        self::assertInstanceOf(InlineFlags::class, $flags);
+        $this->assertInstanceOf(InlineFlags::class, $flags);
         $this->assertTrue($flags->inForce('x', false), 'The group turns it on.');
         $this->assertFalse($flags->inForce('i', true), 'The group turns it off.');
         $this->assertTrue($flags->inForce('s', true), 'The group says nothing about it.');
