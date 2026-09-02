@@ -44,6 +44,23 @@ use RegexParser\Node\SequenceNode;
 final class AstToNfaTransformer implements AstToNfaTransformerInterface
 {
     /**
+     * How many code points are matched at once when scanning Unicode.
+     */
+    private const SCAN_BLOCK_SIZE = 8192;
+
+    /**
+     * How many code points are tested at once for a case mapping.
+     */
+    private const CASE_BLOCK_SIZE = 256;
+
+    /**
+     * Case mappings of every code point that has one, or null until built.
+     *
+     * @var array<int, array<int>>|null
+     */
+    private static ?array $caseFoldingTable = null;
+
+    /**
      * @var array<string, CharSet>
      */
     private static array $fullCharSet = [];
@@ -573,7 +590,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         if ($this->unicode) {
-            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\w$/u', $char));
+            $ranges = $this->buildUnicodeRanges('\\w');
             $set = CharSet::fromRanges($ranges, $this->alphabetMax);
         } else {
             $letters = CharSet::fromRange(\ord('A'), \ord('Z'), $this->alphabetMax)
@@ -596,7 +613,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         if ($this->unicode) {
-            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\s$/u', $char));
+            $ranges = $this->buildUnicodeRanges('\\s');
             $set = CharSet::fromRanges($ranges, $this->alphabetMax);
         } else {
             $space = CharSet::fromCodePoint(\ord(' '), $this->alphabetMax);
@@ -621,7 +638,7 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         if ($this->unicode) {
-            $ranges = $this->buildUnicodeRanges(static fn (string $char): bool => 1 === \preg_match('/^\\d$/u', $char));
+            $ranges = $this->buildUnicodeRanges('\\d');
             $set = CharSet::fromRanges($ranges, $this->alphabetMax);
         } else {
             $set = CharSet::fromRange(\ord('0'), \ord('9'), $this->alphabetMax);
@@ -761,30 +778,114 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
             throw new ComplexityException('Unicode case folding requires the mbstring extension.', 0, $this->pattern);
         }
 
-        $expanded = $charSet;
-        foreach ($charSet->ranges() as [$start, $end]) {
-            for ($codePoint = $start; $codePoint <= $end; $codePoint++) {
+        // Only a few thousand code points have a case mapping at all, so the
+        // set is walked against that table rather than code point by code
+        // point: folding "[\x{0}-\x{10FFFF}]" costs the same as folding "[a]".
+        $additions = [];
+        foreach (self::caseFoldingTable() as $codePoint => $folded) {
+            if ($codePoint > $this->alphabetMax || !$charSet->contains($codePoint)) {
+                continue;
+            }
+
+            foreach ($folded as $other) {
+                if ($other <= $this->alphabetMax) {
+                    $additions[$other] = true;
+                }
+            }
+        }
+
+        if ([] === $additions) {
+            return $charSet;
+        }
+
+        $codePoints = array_keys($additions);
+        sort($codePoints);
+
+        return $charSet->union(CharSet::fromRanges($this->toRanges($codePoints), $this->alphabetMax));
+    }
+
+    /**
+     * Case mappings of every code point that has one, built once per process.
+     *
+     * @return array<int, array<int>>
+     */
+    private static function caseFoldingTable(): array
+    {
+        if (null !== self::$caseFoldingTable) {
+            return self::$caseFoldingTable;
+        }
+
+        $table = [];
+
+        for ($blockStart = CharSet::MIN_CODEPOINT; $blockStart <= CharSet::UNICODE_MAX_CODEPOINT; $blockStart += self::CASE_BLOCK_SIZE) {
+            $blockEnd = min($blockStart + self::CASE_BLOCK_SIZE - 1, CharSet::UNICODE_MAX_CODEPOINT);
+            [$text, $codePointAt] = self::encodeBlock($blockStart, $blockEnd);
+
+            // Most of Unicode has no case at all: a block that comes back
+            // unchanged holds nothing worth looking at character by character.
+            if ('' === $text
+                || ($text === \mb_strtolower($text, 'UTF-8') && $text === \mb_strtoupper($text, 'UTF-8'))) {
+                continue;
+            }
+
+            foreach ($codePointAt as $codePoint) {
                 $char = CodePointHelper::toString($codePoint);
                 if (null === $char) {
                     continue;
                 }
 
-                $lower = \mb_strtolower($char, 'UTF-8');
-                $upper = \mb_strtoupper($char, 'UTF-8');
-
-                $lowerCodePoint = CodePointHelper::singleCodePoint($lower);
-                if (null !== $lowerCodePoint) {
-                    $expanded = $expanded->union(CharSet::fromCodePoint($lowerCodePoint, $this->alphabetMax));
+                $folded = [];
+                foreach ([\mb_strtolower($char, 'UTF-8'), \mb_strtoupper($char, 'UTF-8')] as $variant) {
+                    $variantCodePoint = $variant === $char ? null : CodePointHelper::singleCodePoint($variant);
+                    if (null !== $variantCodePoint) {
+                        $folded[] = $variantCodePoint;
+                    }
                 }
 
-                $upperCodePoint = CodePointHelper::singleCodePoint($upper);
-                if (null !== $upperCodePoint) {
-                    $expanded = $expanded->union(CharSet::fromCodePoint($upperCodePoint, $this->alphabetMax));
+                if ([] !== $folded) {
+                    $table[$codePoint] = $folded;
                 }
             }
         }
 
-        return $expanded;
+        return self::$caseFoldingTable = $table;
+    }
+
+    /**
+     * Collapse a sorted list of code points into ranges.
+     *
+     * @param array<int> $codePoints
+     *
+     * @return array<int, array{0:int, 1:int}>
+     */
+    private function toRanges(array $codePoints): array
+    {
+        $ranges = [];
+        $start = null;
+        $previous = null;
+
+        foreach ($codePoints as $codePoint) {
+            if (null === $start) {
+                $start = $previous = $codePoint;
+
+                continue;
+            }
+
+            if ($codePoint === $previous + 1) {
+                $previous = $codePoint;
+
+                continue;
+            }
+
+            $ranges[] = [$start, (int) $previous];
+            $start = $previous = $codePoint;
+        }
+
+        if (null !== $start) {
+            $ranges[] = [$start, (int) $previous];
+        }
+
+        return $ranges;
     }
 
     private function isCaseInvariantCharSet(CharSet $charSet): bool
@@ -989,30 +1090,37 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
     }
 
     /**
-     * @param callable(string): bool $predicate
+     * The code points an escape such as "\\w" stands for under /u.
+     *
+     * The whole Unicode range is walked, so it is matched a block at a time:
+     * one preg_match_all over a few thousand characters instead of one call
+     * per code point turns seconds into milliseconds.
+     *
+     * @param string $atom a regex matching a single character
      *
      * @return array<int, array{0:int, 1:int}>
      */
-    private function buildUnicodeRanges(callable $predicate): array
+    private function buildUnicodeRanges(string $atom): array
     {
+        $pattern = '/'.$atom.'/u';
         $ranges = [];
         $rangeStart = null;
 
-        for ($codePoint = CharSet::MIN_CODEPOINT; $codePoint <= $this->alphabetMax; $codePoint++) {
-            $char = CodePointHelper::toString($codePoint);
-            $matches = null !== $char && $predicate($char);
+        for ($blockStart = CharSet::MIN_CODEPOINT; $blockStart <= $this->alphabetMax; $blockStart += self::SCAN_BLOCK_SIZE) {
+            $blockEnd = min($blockStart + self::SCAN_BLOCK_SIZE - 1, $this->alphabetMax);
+            $matched = $this->matchingCodePoints($pattern, $blockStart, $blockEnd);
 
-            if ($matches) {
-                if (null === $rangeStart) {
-                    $rangeStart = $codePoint;
+            for ($codePoint = $blockStart; $codePoint <= $blockEnd; $codePoint++) {
+                if (isset($matched[$codePoint])) {
+                    $rangeStart ??= $codePoint;
+
+                    continue;
                 }
 
-                continue;
-            }
-
-            if (null !== $rangeStart) {
-                $ranges[] = [$rangeStart, $codePoint - 1];
-                $rangeStart = null;
+                if (null !== $rangeStart) {
+                    $ranges[] = [$rangeStart, $codePoint - 1];
+                    $rangeStart = null;
+                }
             }
         }
 
@@ -1021,5 +1129,72 @@ final class AstToNfaTransformer implements AstToNfaTransformerInterface
         }
 
         return $ranges;
+    }
+
+    /**
+     * The code points of a block that the pattern matches.
+     *
+     * @return array<int, true>
+     */
+    private function matchingCodePoints(string $pattern, int $blockStart, int $blockEnd): array
+    {
+        [$text, $codePointAt] = self::encodeBlock($blockStart, $blockEnd);
+
+        $matches = [];
+        if ('' === $text || !preg_match_all($pattern, $text, $found, \PREG_OFFSET_CAPTURE)) {
+            return $matches;
+        }
+
+        /** @var array<array{0: string, 1: int}> $occurrences */
+        $occurrences = $found[0];
+        foreach ($occurrences as [, $offset]) {
+            if (isset($codePointAt[$offset])) {
+                $matches[$codePointAt[$offset]] = true;
+            }
+        }
+
+        return $matches;
+    }
+
+    /**
+     * Encode a block of code points as one UTF-8 string, skipping the
+     * surrogates, which are not characters.
+     *
+     * Converting the whole block at once is what makes scanning the Unicode
+     * range affordable: encoding it one code point at a time costs more than
+     * the matching that follows.
+     *
+     * @return array{0: string, 1: array<int, int>} the text, and the code
+     *                                              point each byte offset
+     *                                              starts
+     */
+    private static function encodeBlock(int $blockStart, int $blockEnd): array
+    {
+        $codePoints = [];
+        $codePointAt = [];
+        $offset = 0;
+
+        for ($codePoint = $blockStart; $codePoint <= $blockEnd; $codePoint++) {
+            if (($codePoint >= 0xD800 && $codePoint <= 0xDFFF) || $codePoint > CharSet::UNICODE_MAX_CODEPOINT) {
+                continue;
+            }
+
+            $codePoints[] = $codePoint;
+            $codePointAt[$offset] = $codePoint;
+            $offset += match (true) {
+                $codePoint < 0x80 => 1,
+                $codePoint < 0x800 => 2,
+                $codePoint < 0x10000 => 3,
+                default => 4,
+            };
+        }
+
+        if ([] === $codePoints) {
+            return ['', []];
+        }
+
+        $text = mb_convert_encoding(pack('N*', ...$codePoints), 'UTF-8', 'UTF-32BE');
+
+        return [$text, $codePointAt];
     }
 }
