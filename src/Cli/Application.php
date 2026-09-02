@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Cli;
 
 use RegexParser\Cli\Command\CommandInterface;
+use RegexParser\Cli\Command\HelpCommand;
 
 final class Application
 {
@@ -21,6 +22,13 @@ final class Application
      * @var array<string, CommandInterface>
      */
     private array $commands = [];
+
+    /**
+     * The commands as they were registered, without their aliases.
+     *
+     * @var array<int, CommandInterface>
+     */
+    private array $registered = [];
 
     public function __construct(
         private readonly GlobalOptionsParser $globalOptionsParser,
@@ -30,6 +38,7 @@ final class Application
 
     public function register(CommandInterface $command): void
     {
+        $this->registered[] = $command;
         $this->commands[$command->getName()] = $command;
 
         foreach ($command->getAliases() as $alias) {
@@ -77,6 +86,14 @@ final class Application
     }
 
     /**
+     * @return array<int, CommandInterface>
+     */
+    public function registeredCommands(): array
+    {
+        return $this->registered;
+    }
+
+    /**
      * @param array<int, string> $argv
      */
     private function parseArguments(array $argv): ParsedGlobalOptions
@@ -112,7 +129,7 @@ final class Application
     {
         $targetCommand = $args[0] ?? null;
 
-        return $this->helpCommand->run(
+        return $this->help()->run(
             new Input('help', null !== $targetCommand ? [$targetCommand] : [], $options, []),
             $this->output,
         );
@@ -128,7 +145,7 @@ final class Application
 
     private function showHelpAndExit(GlobalOptions $options): int
     {
-        $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
+        $this->help()->run(new Input('help', [], $options, []), $this->output);
 
         return 1;
     }
@@ -160,6 +177,17 @@ final class Application
     }
 
     /**
+     * Hand the help command what the application actually knows, so that the
+     * list it prints cannot drift from the list it can run.
+     */
+    private function help(): CommandInterface
+    {
+        return $this->helpCommand instanceof HelpCommand
+            ? $this->helpCommand->withCommands($this->registered)
+            : $this->helpCommand;
+    }
+
+    /**
      * @param array<int, string> $args
      *
      * @return array<int, string>
@@ -172,7 +200,7 @@ final class Application
     private function handleUnknownCommand(string $commandName, GlobalOptions $options): int
     {
         $this->output->write($this->output->error("Unknown command: {$commandName}\n\n"));
-        $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
+        $this->help()->run(new Input('help', [], $options, []), $this->output);
 
         return 1;
     }

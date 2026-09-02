@@ -41,61 +41,10 @@ if (null === $autoloadPath) {
 
 require_once $autoloadPath;
 
-use RegexParser\Cli\Application;
-use RegexParser\Cli\Command\AnalyzeCommand;
-use RegexParser\Cli\Command\ClearCacheCommand;
-use RegexParser\Cli\Command\CompareCommand;
-use RegexParser\Cli\Command\DebugCommand;
-use RegexParser\Cli\Command\DiagramCommand;
-use RegexParser\Cli\Command\ExplainCommand;
-use RegexParser\Cli\Command\GraphCommand;
-use RegexParser\Cli\Command\HelpCommand;
-use RegexParser\Cli\Command\HighlightCommand;
-use RegexParser\Cli\Command\ParseCommand;
-use RegexParser\Cli\Command\RedosCommand;
-use RegexParser\Cli\Command\SelfUpdateCommand;
-use RegexParser\Cli\Command\TranspileCommand;
-use RegexParser\Cli\Command\ValidateCommand;
-use RegexParser\Cli\Command\VersionCommand;
-use RegexParser\Cli\GlobalOptionsParser;
+use RegexParser\Cli\ApplicationFactory;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\SelfUpdate\SelfUpdater;
-use RegexParser\Lint\Command\LintArgumentParser;
-use RegexParser\Lint\Command\LintCommand;
-use RegexParser\Lint\Command\LintConfigLoader;
-use RegexParser\Lint\Command\LintDefaultsBuilder;
-use RegexParser\Lint\Command\LintExtractorFactory;
-use RegexParser\Lint\Command\LintOutputRenderer;
 
-$globalOptionsParser = new GlobalOptionsParser();
 $progressBarFull = "\xE2\x96\x93";
 $progressBarEmpty = "\xE2\x96\x91";
-$output = new Output(false, false, $progressBarFull, $progressBarEmpty);
-$helpCommand = new HelpCommand();
 
-$app = new Application($globalOptionsParser, $output, $helpCommand);
-$app->register($helpCommand);
-$app->register(new VersionCommand());
-$app->register(new SelfUpdateCommand(new SelfUpdater()));
-$app->register(new ParseCommand());
-$app->register(new ExplainCommand());
-$app->register(new AnalyzeCommand());
-$app->register(new DebugCommand(new LintConfigLoader(), new LintDefaultsBuilder()));
-$app->register(new CompareCommand());
-$app->register(new RedosCommand());
-$app->register(new DiagramCommand());
-$app->register(new GraphCommand());
-$app->register(new HighlightCommand());
-$app->register(new TranspileCommand());
-$app->register(new ValidateCommand());
-$app->register(new ClearCacheCommand());
-$app->register(new LintCommand(
-    $helpCommand,
-    new LintConfigLoader(),
-    new LintDefaultsBuilder(),
-    new LintArgumentParser(),
-    new LintExtractorFactory(),
-    new LintOutputRenderer(),
-));
-
-exit($app->run($argv));
+exit(ApplicationFactory::create(new Output(false, false, $progressBarFull, $progressBarEmpty))->run($argv));

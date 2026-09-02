@@ -241,7 +241,7 @@ final class HelpCommandTest extends TestCase
         $text = (string) ob_get_clean();
 
         $this->assertSame(0, $result);
-        $this->assertStringContainsString('Display help information', $text);
+        $this->assertStringContainsString('Display this help message', $text);
         $this->assertStringContainsString('<command>', $text);
         $this->assertStringContainsString('Show help for specific command', $text);
         $this->assertStringContainsString('Show lint command help', $text);
