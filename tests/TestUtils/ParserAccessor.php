@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\TestUtils;
 
+use RegexParser\Internal\GroupNameReader;
 use RegexParser\Parser;
 use RegexParser\Token;
 use RegexParser\TokenStream;
@@ -72,6 +73,11 @@ final readonly class ParserAccessor
 
         $property = $this->reflection->getProperty('stream');
         $property->setValue($this->parser, $stream);
+
+        // parse() builds this alongside the stream; a test that installs a
+        // stream by hand has to install it too, or the parser is half set up.
+        $groupNames = $this->reflection->getProperty('groupNames');
+        $groupNames->setValue($this->parser, new GroupNameReader($stream));
     }
 
     /**

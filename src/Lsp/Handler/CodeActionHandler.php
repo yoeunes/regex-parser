@@ -187,7 +187,7 @@ final readonly class CodeActionHandler
                                         'start' => $occurrence->start,
                                         'end' => $occurrence->end,
                                     ],
-                                    'newText' => "'{$newPattern}'",
+                                    'newText' => $this->asPhpString($newPattern),
                                 ],
                             ],
                         ],
@@ -223,7 +223,7 @@ final readonly class CodeActionHandler
                                         'start' => $occurrence->start,
                                         'end' => $occurrence->end,
                                     ],
-                                    'newText' => "'{$result->optimized}'",
+                                    'newText' => $this->asPhpString($result->optimized),
                                 ],
                             ],
                         ],
@@ -240,6 +240,19 @@ final readonly class CodeActionHandler
     /**
      * Add /u flag to a regex pattern.
      */
+    /**
+     * The pattern as a PHP string literal, ready to replace the one in the
+     * source.
+     *
+     * A pattern is free to hold a quote — "/it's/" is a fine regex — and
+     * wrapping it in quotes without escaping produced source the editor
+     * could not parse.
+     */
+    private function asPhpString(string $pattern): string
+    {
+        return var_export($pattern, true);
+    }
+
     private function addUnicodeFlag(string $pattern): ?string
     {
         if (\strlen($pattern) < 2) {

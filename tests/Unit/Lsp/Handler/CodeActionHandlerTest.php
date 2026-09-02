@@ -142,4 +142,32 @@ final class CodeActionHandlerTest extends TestCase
         );
         $this->assertTrue($result);
     }
+
+    #[Test]
+    #[DataProvider('providePatternsToQuote')]
+    public function test_a_replacement_is_php_the_editor_can_parse(string $pattern): void
+    {
+        $method = (new \ReflectionClass($this->handler))->getMethod('asPhpString');
+        $literal = $method->invoke($this->handler, $pattern);
+
+        $this->assertIsString($literal);
+
+        // The literal has to read back as the pattern it came from, and the
+        // file it lands in has to stay valid PHP.
+        $evaluated = eval('return '.$literal.';');
+        $this->assertSame($pattern, $evaluated);
+    }
+
+    /**
+     * @return iterable<string, array{pattern: string}>
+     */
+    public static function providePatternsToQuote(): iterable
+    {
+        yield 'a plain pattern' => ['pattern' => '/\\d+/u'];
+
+        // A regex is free to hold the quote that would delimit it.
+        yield 'a pattern holding a quote' => ['pattern' => "/it's/u"];
+        yield 'a pattern holding a backslash and a quote' => ['pattern' => "/\\d'\\w/u"];
+        yield 'a pattern ending on a backslash' => ['pattern' => '/a\\\\/u'];
+    }
 }

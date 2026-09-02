@@ -33,6 +33,7 @@ if (!$autoloaded) {
 }
 
 use RegexParser\Lsp\Server;
+use RegexParser\Regex;
 
 // Handle --help and --version
 if (in_array('--help', $argv, true) || in_array('-h', $argv, true)) {
@@ -56,7 +57,7 @@ HELP;
 }
 
 if (in_array('--version', $argv, true) || in_array('-v', $argv, true)) {
-    echo "regex-parser-lsp 1.0.0\n";
+    echo 'regex-parser-lsp '.Regex::VERSION."\n";
     exit(0);
 }
 

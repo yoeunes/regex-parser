@@ -136,6 +136,15 @@ final class RoundTripFidelityTest extends TestCase
         yield 'escaped multi byte character' => ['/[\\¡\\¿]/'];
         yield 'assertion condition' => ['/(?(?<!^--) +\\n|  +\\n)/m'];
         yield 'group condition' => ['/(a)(?(1)yes|no)/'];
+
+        // The four ways of naming a group, and the two of writing a script
+        // run, all mean the same thing and none of them is the compiler's to
+        // pick.
+        yield 'named group with angle brackets' => ['/(?<name>x)/'];
+        yield 'named group with quotes' => ["/(?'name'x)/"];
+        yield 'python named group' => ['/(?P<name>x)/'];
+        yield 'script run written short' => ['/(*sr:\\d+)/'];
+        yield 'script run spelled out' => ['/(*script_run:\\d+)/'];
     }
 
     /**

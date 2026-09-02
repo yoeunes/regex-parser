@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Internal\GroupNameReader;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -178,6 +179,8 @@ final class ParserRejectionsTest extends TestCase
         $streamProp->setValue($parser, $stream);
         $patternProp = $ref->getProperty('pattern');
         $patternProp->setValue($parser, '?=a)');
+        // parse() builds the name reader alongside the stream.
+        $ref->getProperty('groupNames')->setValue($parser, new GroupNameReader($stream));
 
         $method = $ref->getMethod('parseConditionalCondition');
         $node = $method->invoke($parser);

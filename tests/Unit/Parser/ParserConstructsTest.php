@@ -68,12 +68,12 @@ final class ParserConstructsTest extends TestCase
     {
         yield 'python named group single quotes: /(?P\'name\'test)/' => [
             'pattern' => '/(?P\'name\'test)/',
-            'recompiled' => '/(?P<name>test)/',
+            'recompiled' => '/(?P\'name\'test)/',
         ];
 
         yield 'python named group double quotes: /(?P"name"test)/' => [
             'pattern' => '/(?P"name"test)/',
-            'recompiled' => '/(?P<name>test)/',
+            'recompiled' => '/(?P"name"test)/',
         ];
 
         yield 'python named group angle brackets: /(?P<name>test)/' => [
@@ -643,12 +643,12 @@ final class ParserConstructsTest extends TestCase
 
         yield 'python style named groups with quotes: /(?P\'name\'a)/' => [
             'pattern' => '/(?P\'name\'a)/',
-            'recompiled' => '/(?P<name>a)/',
+            'recompiled' => '/(?P\'name\'a)/',
         ];
 
         yield 'python style named groups with quotes: /(?P"name"a)/' => [
             'pattern' => '/(?P"name"a)/',
-            'recompiled' => '/(?P<name>a)/',
+            'recompiled' => '/(?P"name"a)/',
         ];
 
         yield 'char class negation: /[^abc]/' => [
@@ -1641,6 +1641,15 @@ final class ParserConstructsTest extends TestCase
             'recompiled' => '/\\t\\n\\r/',
         ];
 
+        yield 'an atomic verb wrapping nested groups: /(*atomic:((a)))/' => [
+            'pattern' => '/(*atomic:((a)))/',
+            'recompiled' => '/(?>((a)))/',
+        ];
+
+        yield 'a lookahead verb wrapping several groups: /(*pla:((a)b(c)))/' => [
+            'pattern' => '/(*pla:((a)b(c)))/',
+            'recompiled' => '/(?=((a)b(c)))/',
+        ];
     }
 
     /**
@@ -1652,8 +1661,6 @@ final class ParserConstructsTest extends TestCase
      */
     public static function provideConstructsPcreAccepts(): iterable
     {
-        yield 'python named group single quotes: /(?P\'name\'test)/' => ['pattern' => '/(?P\'name\'test)/'];
-        yield 'python named group double quotes: /(?P"name"test)/' => ['pattern' => '/(?P"name"test)/'];
         yield 'python named group angle brackets: /(?P<name>test)/' => ['pattern' => '/(?P<name>test)/'];
         yield 'python subroutine call: /(?P<name>test)(?P>name)/' => ['pattern' => '/(?P<name>test)(?P>name)/'];
         yield 'positive lookbehind: /(?<=test)abc/' => ['pattern' => '/(?<=test)abc/'];
@@ -1763,8 +1770,6 @@ final class ParserConstructsTest extends TestCase
         yield 'g reference variations: /(a)\\g{1}/' => ['pattern' => '/(a)\\g{1}/'];
         yield 'g reference variations: /(a)\\g{-1}/' => ['pattern' => '/(a)\\g{-1}/'];
         yield 'subroutine call p syntax: /(?<foo>a)(?P>foo)/' => ['pattern' => '/(?<foo>a)(?P>foo)/'];
-        yield 'python style named groups with quotes: /(?P\'name\'a)/' => ['pattern' => '/(?P\'name\'a)/'];
-        yield 'python style named groups with quotes: /(?P"name"a)/' => ['pattern' => '/(?P"name"a)/'];
         yield 'char class negation: /[^abc]/' => ['pattern' => '/[^abc]/'];
         yield 'char class with dash positions: /[-abc]/' => ['pattern' => '/[-abc]/'];
         yield 'char class with dash positions: /[abc-]/' => ['pattern' => '/[abc-]/'];
@@ -1949,6 +1954,8 @@ final class ParserConstructsTest extends TestCase
         yield 'accepts negated posix word class: /[[:^word:]]/' => ['pattern' => '/[[:^word:]]/'];
         yield 'parser with quote mode: /\\Qtest.*\\E/' => ['pattern' => '/\\Qtest.*\\E/'];
         yield 'parser with special escapes: /\\t\\n\\r/' => ['pattern' => '/\\t\\n\\r/'];
+        yield 'an atomic verb wrapping nested groups: /(*atomic:((a)))/' => ['pattern' => '/(*atomic:((a)))/'];
+        yield 'a lookahead verb wrapping several groups: /(*pla:((a)b(c)))/' => ['pattern' => '/(*pla:((a)b(c)))/'];
     }
 
     private function compiles(string $pattern): bool

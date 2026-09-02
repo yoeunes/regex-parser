@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Fixed
+- Recompiling rewrote two spellings the author had picked: `(?'name'x)` came back as `(?<name>x)`, and `(*sr:...)` as `(*script_run:...)`.
+- A verb wrapping more than one level of brackets was not read: `(*atomic:((a)))` and `(*pla:((a)b(c)))` are valid PCRE and were refused.
+- The `J` modifier reached further than PCRE lets it: `(?J:(?<n>a))(?<n>b)` and `(?:(?J)(?<n>a))(?<n>b)` were accepted, though the second name is written outside the group the modifier covers.
+- The language server's quick fixes wrapped the new pattern in quotes without escaping, so applying one to a pattern holding a `'` left the file unparseable.
+- `bin/regex-lsp --version` reported a version of its own instead of the library's.
+- Recompiling a version condition produced a pattern PCRE refuses: `(?(VERSION>=10.4)y|n)` came back as `(?((?(VERSION>=10.4))y|n)`.
+- `(?(VERSION=10.4)...)` is parsed; PCRE accepts that spelling alongside `VERSION>=`.
+- A pattern that is not valid UTF-8 lost everything after a `\Q...\E` run or a `(?#...)` comment: the lexer read those two with a UTF-8 regex, and took PCRE's refusal for the end of the pattern. `/\Q\xFFabc\E]/` came back as `//`.
 - `\N{U+0041}` inside a character class is parsed instead of rejected; PCRE accepts it.
 - A duplicate group name was reported at the wrong offset when the pattern held an alternation or an inline flag group before it: `/(?<name>a)|(?<name>b)/` pointed at the `|`, and `/(?J)(?<name>a)(?-J)(?<name>b)/` inside the `(?-J)`. Both now point at the second group.
 - Recompiling a recursion condition produced a pattern PCRE refuses: `(?(R)yes|no)` came back as `(?((?R))yes|no)`.
