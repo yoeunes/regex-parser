@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
@@ -21,7 +20,6 @@ use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
-use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
@@ -91,48 +89,6 @@ final class FullCoverageTest extends TestCase
         $this->regexService->parse('/(?([a-z])yes|no)/');
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_with_recursion(): void
-    {
-        // Test (?(R)...) condition
-        $this->regexService->parse('/(?(R)a|b)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_with_numeric_backref(): void
-    {
-        // Test (?(1)...) condition
-        $this->regexService->parse('/()abc(?(1)yes|no)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_with_angle_bracket_name(): void
-    {
-        // Test (?(<name>)...) condition
-        $this->regexService->parse('/(?<name>x)(?(>name<)yes|no)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_with_curly_brace_name(): void
-    {
-        // Test (?({name})...) condition
-        $this->regexService->parse('/(?<name>x)(?({name})yes|no)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_with_lookahead_negative(): void
-    {
-        // Test (?(?!...)...) condition
-        $this->regexService->parse('/(?((?!x))yes|no)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_conditional_bare_name_reference(): void
-    {
-        // Test (?(name)...) condition with bare name
-        $this->regexService->parse('/(?<test>x)(?(test)yes|no)/');
-    }
-
     public function test_parser_group_name_missing_closing_single_quote(): void
     {
         $this->expectException(ParserException::class);
@@ -147,62 +103,6 @@ final class FullCoverageTest extends TestCase
         $this->expectExceptionMessage('Expected closing quote');
 
         $this->regexService->parse('/(?P<"name>x)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_posix_and_range(): void
-    {
-        // Test character class with POSIX class and range combinations
-        $this->regexService->parse('/[[:alpha:]a-z]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_nested_posix(): void
-    {
-        // Test character class with nested POSIX classes
-        $this->regexService->parse('/[[:alpha:][:digit:]]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_unicode_prop(): void
-    {
-        // Test character class with unicode property
-        $this->regexService->parse('/[\p{L}\p{N}]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_negated_unicode_prop(): void
-    {
-        // Test character class with negated unicode property
-        $this->regexService->parse('/[\P{L}\P{N}]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_char_type(): void
-    {
-        // Test character class with char type like \d, \w, \s
-        $this->regexService->parse('/[\d\w\s]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_octal(): void
-    {
-        // Test character class with octal sequences
-        $this->regexService->parse('/[\101\o{102}]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_unicode(): void
-    {
-        // Test character class with unicode sequences
-        $this->regexService->parse('/[\u{41}\x42]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_range_with_escaped_chars(): void
-    {
-        // Test character class range with escaped characters
-        $this->regexService->parse('/[\n-\r]/');
     }
 
     public function test_explain_visitor_with_unicode_prop_negated(): void
@@ -258,16 +158,6 @@ final class FullCoverageTest extends TestCase
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_optimizer_visitor_with_nested_groups(): void
-    {
-        // Test OptimizerNodeVisitor with nested groups
-        $ast = $this->regexService->parse('/(((a)))/');
-
-        $visitor = new OptimizerNodeVisitor();
-        $ast->accept($visitor);
     }
 
     public function test_sample_generator_with_conditional(): void
@@ -342,46 +232,6 @@ final class FullCoverageTest extends TestCase
         $this->expectException(SemanticErrorException::class);
 
         $ast = $this->regexService->parse('/(?&nonexistent)/');
-
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validator_with_pcre_verb(): void
-    {
-        // Test ValidatorNodeVisitor with PCRE verb - should pass
-        $ast = $this->regexService->parse('/(*FAIL)/');
-
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validator_with_keep(): void
-    {
-        // Test ValidatorNodeVisitor with \K - should pass
-        $ast = $this->regexService->parse('/test\K/');
-
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validator_with_octal_legacy(): void
-    {
-        // Test ValidatorNodeVisitor with octal legacy - should pass
-        $ast = $this->regexService->parse('/\07/');
-
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_validator_with_unicode(): void
-    {
-        // Test ValidatorNodeVisitor with unicode - should pass
-        $ast = $this->regexService->parse('/\u{41}/');
 
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);

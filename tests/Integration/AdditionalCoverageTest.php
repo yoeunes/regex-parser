@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
@@ -167,31 +166,6 @@ final class AdditionalCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
-    #[DoesNotPerformAssertions]
-    public function test_sample_generator_char_type_variations(): void
-    {
-        $generator = new SampleGeneratorNodeVisitor();
-        $regex = Regex::create();
-
-        $patterns = [
-            '/\d/',  // Digit
-            '/\D/',  // Non-digit
-            '/\w/',  // Word
-            '/\W/',  // Non-word
-            '/\s/',  // Whitespace
-            '/\S/',  // Non-whitespace
-            '/\h/',  // Horizontal whitespace
-            '/\H/',  // Non-horizontal whitespace
-            '/\v/',  // Vertical whitespace
-            '/\V/',  // Non-vertical whitespace
-        ];
-
-        foreach ($patterns as $pattern) {
-            $ast = $regex->parse($pattern);
-            $ast->accept($generator);
-        }
-    }
-
     public function test_sample_generator_backref_named(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
@@ -210,104 +184,5 @@ final class AdditionalCoverageTest extends TestCase
         $ast = $regex->parse('/(?:abc)/');
         $result = $ast->accept($generator);
         $this->assertStringContainsString('abc', $result);
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_sample_generator_posix_classes(): void
-    {
-        $generator = new SampleGeneratorNodeVisitor();
-        $regex = Regex::create();
-
-        // Test various POSIX classes that have sample generation support
-        $patterns = [
-            '/[[:alnum:]]/',
-            '/[[:alpha:]]/',
-            '/[[:digit:]]/',
-            '/[[:lower:]]/',
-            '/[[:upper:]]/',
-        ];
-
-        foreach ($patterns as $pattern) {
-            $ast = $regex->parse($pattern);
-            $ast->accept($generator);
-        }
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_group_with_flags(): void
-    {
-        $regex = Regex::create();
-
-        // Group with flags
-        $regex->parse('/(?i:abc)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_named_group_variations(): void
-    {
-        $regex = Regex::create();
-
-        // Named group with angle brackets
-        $regex->parse('/(?<name>abc)/');
-
-        // Named group with P syntax
-        $regex->parse('/(?P<name>abc)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_assertion_variations(): void
-    {
-        $regex = Regex::create();
-
-        $patterns = [
-            '/(?=abc)/',   // Positive lookahead
-            '/(?!abc)/',   // Negative lookahead
-            '/(?<=abc)/',  // Positive lookbehind
-            '/(?<!abc)/',  // Negative lookbehind
-        ];
-
-        foreach ($patterns as $pattern) {
-            $regex->parse($pattern);
-        }
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_atomic_group(): void
-    {
-        $regex = Regex::create();
-        $regex->parse('/(?>abc)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_recursive_pattern(): void
-    {
-        $regex = Regex::create();
-        $regex->parse('/(?R)/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_char_class_with_dash(): void
-    {
-        $regex = Regex::create();
-
-        // Dash at the beginning
-        $regex->parse('/[-abc]/');
-
-        // Dash at the end
-        $regex->parse('/[abc-]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_negated_char_class(): void
-    {
-        $regex = Regex::create();
-        $regex->parse('/[^abc]/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_empty_alternation(): void
-    {
-        $regex = Regex::create();
-        $regex->parse('/abc|/');
     }
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Parser;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
@@ -184,9 +185,68 @@ final class ParserRejectionsTest extends TestCase
         $this->assertSame(GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $node->type);
     }
 
-    /**
-     * @param class-string $class
-     */
+    #[Test]
+    public function test_a_conditional_condition_must_be_a_condition(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid conditional condition');
+
+        $this->regexService->parse('/(?(?x)yes|no)/');
+    }
+
+    #[Test]
+    public function test_a_bare_g_reference_is_refused(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid \\g reference syntax');
+
+        $this->regexService->parse('/\\g/');
+    }
+
+    #[Test]
+    public function test_a_python_group_name_must_not_be_empty(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse("/(?P''test)/");
+    }
+
+    #[Test]
+    public function test_a_python_group_name_must_be_closed(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse("/(?P'name test)/");
+    }
+
+    #[Test]
+    public function test_a_subroutine_name_must_not_be_empty(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse('/(?P>)/');
+    }
+
+    #[Test]
+    public function test_a_quantifier_cannot_apply_to_an_assertion(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Quantifier "+" cannot be applied to assertion');
+
+        $this->regexService->parse('/\\b+/');
+    }
+
+    #[Test]
+    public function test_a_python_backreference_reads_as_a_named_backreference(): void
+    {
+        $ast = $this->regexService->parse('/(?<foo>a)(?P=foo)/');
+
+        self::assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $backref = $ast->pattern->children[1];
+        self::assertInstanceOf(BackrefNode::class, $backref);
+        $this->assertSame('\\k<foo>', $backref->ref);
+    }
+
     private function containsNode(mixed $node, string $class): bool
     {
         if ($node instanceof $class) {

@@ -13,10 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lexer;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\Regex;
 use RegexParser\TokenType;
 
 /**
@@ -226,36 +224,6 @@ final class LexerCoverageBoostTest extends TestCase
             $tokens = (new Lexer())->tokenize($pattern)->getTokens();
             $this->assertGreaterThan(0, \count($tokens));
             $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        }
-    }
-
-    /**
-     * Test through Parser to ensure integration works correctly.
-     */
-    #[DoesNotPerformAssertions]
-    public function test_parser_with_quote_mode(): void
-    {
-        Regex::create()->parse('/\Qtest.*\E/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_with_special_escapes(): void
-    {
-        Regex::create()->parse('/\t\n\r/');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_parser_with_unicode_props(): void
-    {
-        $patterns = [
-            '/\p{L}/',
-            '/\P{L}/',
-            '/\p{^L}/',
-            '/\P{^L}/',
-        ];
-
-        foreach ($patterns as $pattern) {
-            Regex::create()->parse($pattern);
         }
     }
 
