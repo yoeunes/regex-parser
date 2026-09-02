@@ -48,15 +48,13 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
-use RegexParser\NodeVisitor\AbstractNodeVisitor;
+use RegexParser\Transpiler\Target\AbstractCompilerVisitor;
 use RegexParser\Transpiler\TranspileContext;
 
 /**
  * Compiles PCRE AST nodes into JavaScript-compatible regex source.
- *
- * @extends AbstractNodeVisitor<string>
  */
-final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
+final class JavaScriptCompilerVisitor extends AbstractCompilerVisitor
 {
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
@@ -77,10 +75,12 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
     private string $flags;
 
     public function __construct(
-        private readonly TranspileContext $context,
+        TranspileContext $context,
         private readonly bool $allowLookbehind,
         private readonly string $delimiter,
     ) {
+        parent::__construct($context);
+
         $this->flags = $context->sourceFlags;
     }
 
@@ -419,11 +419,6 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
         return $prefix.$child.')';
     }
 
-    private function normalizeQuantifier(string $quantifier): string
-    {
-        return preg_replace('/\\s+/', '', $quantifier) ?? $quantifier;
-    }
-
     private function escapeString(string $value): string
     {
         if (!$this->inCharClass && preg_match('/^\\{\\d+(?:,\\d*)?\\}$/', $value)) {
@@ -565,14 +560,5 @@ final class JavaScriptCompilerVisitor extends AbstractNodeVisitor
     private function noteUnicodeWordBoundary(): void
     {
         $this->context->addNote('JavaScript \\w and \\b are ASCII-based; Unicode word boundaries may differ.');
-    }
-
-    private function unsupported(string $message, NodeInterface $node): string
-    {
-        throw new TranspileException(
-            $message,
-            $node->getStartPosition(),
-            $this->context->sourcePattern,
-        );
     }
 }

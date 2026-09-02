@@ -47,15 +47,12 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
-use RegexParser\NodeVisitor\AbstractNodeVisitor;
-use RegexParser\Transpiler\TranspileContext;
+use RegexParser\Transpiler\Target\AbstractCompilerVisitor;
 
 /**
  * Compiles PCRE AST nodes into Python 're' compatible regex source.
- *
- * @extends AbstractNodeVisitor<string>
  */
-final class PythonCompilerVisitor extends AbstractNodeVisitor
+final class PythonCompilerVisitor extends AbstractCompilerVisitor
 {
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
@@ -70,8 +67,6 @@ final class PythonCompilerVisitor extends AbstractNodeVisitor
     private const SUPPORTED_CHAR_TYPES = ['d', 's', 'w', 'D', 'S', 'W'];
 
     private bool $inCharClass = false;
-
-    public function __construct(private readonly TranspileContext $context) {}
 
     #[\Override]
     public function visitRegex(RegexNode $node): string
@@ -360,11 +355,6 @@ final class PythonCompilerVisitor extends AbstractNodeVisitor
         return $this->unsupported('Callouts are not supported in Python re.', $node);
     }
 
-    private function normalizeQuantifier(string $quantifier): string
-    {
-        return preg_replace('/\\s+/', '', $quantifier) ?? $quantifier;
-    }
-
     private function escapeString(string $value): string
     {
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
@@ -441,15 +431,6 @@ final class PythonCompilerVisitor extends AbstractNodeVisitor
         throw new TranspileException(
             'Unsupported backreference syntax for Python: '.$ref.'.',
             $position,
-            $this->context->sourcePattern,
-        );
-    }
-
-    private function unsupported(string $message, NodeInterface $node): string
-    {
-        throw new TranspileException(
-            $message,
-            $node->getStartPosition(),
             $this->context->sourcePattern,
         );
     }
