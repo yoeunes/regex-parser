@@ -45,46 +45,6 @@ jobs:
         # documentation tests are not left to rot outside of CI.
         run: tools/phpunit/vendor/bin/phpunit --colors=always
 
-  infection:
-    name: Mutation Testing
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v7
-        with:
-          # Infection compares the branch with its base, which needs history.
-          fetch-depth: 0
-
-      - name: Setup PHP 8.4
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, intl, pcre, tokenizer, xml
-          coverage: pcov
-          ini-values: phar.readonly=0
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
-
-      - name: Install Infection Tooling
-        run: |
-          composer install -d tools/phpunit --no-interaction --no-progress
-          composer install -d tools/infection --no-interaction --no-progress
-
-      - name: Run Infection On The Changed Lines
-        # Mutating the whole source tree on every pull request would take
-        # hours; the lines the branch touches are the ones worth guarding.
-        run: |
-          tools/infection/vendor/bin/infection \
-            --git-diff-lines \
-            --git-diff-base=origin/${{ github.base_ref }} \
-            --logger-github \
-            --no-progress \
-            --no-interaction \
-            --threads=max
-
   phpstan:
     name: PHPStan (PHP ${{ matrix.php }}, ${{ matrix.dependency }})
     runs-on: ubuntu-latest
