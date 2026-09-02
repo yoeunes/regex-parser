@@ -125,12 +125,6 @@ final class Parser
      */
     private array $groupNames = [];
 
-    private ?Token $currentToken = null;
-
-    private bool $currentTokenValid = false;
-
-    private int $lastPosition = -1;
-
     private int $recursionDepth = 0;
 
     /**
@@ -161,12 +155,9 @@ final class Parser
         $this->inQuoteMode = false;
         $this->groupNames = [];
         $this->recursionDepth = 0;
-        $this->currentToken = null;
-        $this->currentTokenValid = false;
-        $this->lastPosition = -1;
 
         $patternNode = $this->parseAlternation();
-        $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
+        $this->stream->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
         return new RegexNode($patternNode, $flags, $delimiter, 0, $patternLength, $this->pattern);
     }
@@ -189,14 +180,14 @@ final class Parser
 
     private function parseAlternation(): NodeInterface
     {
-        $this->guardRecursionDepth($this->current()->position);
+        $this->guardRecursionDepth($this->stream->current()->position);
         $this->recursionDepth++;
 
         try {
-            $startPosition = $this->current()->position;
+            $startPosition = $this->stream->current()->position;
             $nodes = [$this->parseSequence()];
 
-            while ($this->match(TokenType::T_ALTERNATION)) {
+            while ($this->stream->match(TokenType::T_ALTERNATION)) {
                 $nodes[] = $this->parseSequence();
             }
 
@@ -215,21 +206,21 @@ final class Parser
     private function parseSequence(): NodeInterface
     {
         $nodes = [];
-        $startPosition = $this->current()->position;
+        $startPosition = $this->stream->current()->position;
 
-        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
-            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+        while (!$this->stream->isAtEnd() && !$this->stream->check(TokenType::T_GROUP_CLOSE) && !$this->stream->check(TokenType::T_ALTERNATION)) {
+            if ($this->stream->match(TokenType::T_QUOTE_MODE_START)) {
                 $this->inQuoteMode = true;
 
                 continue;
             }
-            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+            if ($this->stream->match(TokenType::T_QUOTE_MODE_END)) {
                 $this->inQuoteMode = false;
 
                 // A quantifier directly after \Q...\E applies to the last
                 // quoted character, as in PCRE (/\Q+\E*/ repeats "+").
-                if ([] !== $nodes && $this->match(TokenType::T_QUANTIFIER)) {
-                    $token = $this->previous();
+                if ([] !== $nodes && $this->stream->match(TokenType::T_QUANTIFIER)) {
+                    $token = $this->stream->previous();
                     $last = array_pop($nodes);
                     $this->assertQuantifierCanApply($last, $token);
                     [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -277,15 +268,15 @@ final class Parser
         }
 
         $skipped = false;
-        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
-            $token = $this->current();
+        while (!$this->stream->isAtEnd() && !$this->stream->check(TokenType::T_GROUP_CLOSE) && !$this->stream->check(TokenType::T_ALTERNATION)) {
+            $token = $this->stream->current();
             if (TokenType::T_LITERAL !== $token->type) {
                 break;
             }
 
             // Skip pure whitespace silently; comments will be explicit nodes.
             if (ctype_space($token->value)) {
-                $this->advance();
+                $this->stream->advance();
                 $skipped = true;
 
                 continue;
@@ -311,25 +302,25 @@ final class Parser
      */
     private function parseExtendedComment(): CommentNode
     {
-        $startToken = $this->current(); // '#'
+        $startToken = $this->stream->current(); // '#'
         $startPosition = $startToken->position;
 
         $comment = $this->sourceTextOf($startToken);
-        $this->advance();
+        $this->stream->advance();
 
-        while (!$this->isAtEnd()) {
-            $token = $this->current();
+        while (!$this->stream->isAtEnd()) {
+            $token = $this->stream->current();
 
             // Comment ends at newline (included) or at end of pattern.
             if (TokenType::T_LITERAL === $token->type && "\n" === $token->value) {
                 $comment .= $this->sourceTextOf($token);
-                $this->advance();
+                $this->stream->advance();
 
                 break;
             }
 
             $comment .= $this->sourceTextOf($token);
-            $this->advance();
+            $this->stream->advance();
         }
 
         $endPosition = $startPosition + \strlen($comment);
@@ -349,28 +340,28 @@ final class Parser
         }
 
         $skipped = 0;
-        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
-            $token = $this->current();
+        while (!$this->stream->isAtEnd() && !$this->stream->check(TokenType::T_GROUP_CLOSE) && !$this->stream->check(TokenType::T_ALTERNATION)) {
+            $token = $this->stream->current();
             if (TokenType::T_LITERAL !== $token->type) {
                 break;
             }
 
             if (ctype_space($token->value)) {
-                $this->advance();
+                $this->stream->advance();
                 $skipped++;
 
                 continue;
             }
 
             if ('#' === $token->value) {
-                $this->advance();
+                $this->stream->advance();
                 $skipped++;
-                while (!$this->isAtEnd() && "\n" !== $this->current()->value) {
-                    $this->advance();
+                while (!$this->stream->isAtEnd() && "\n" !== $this->stream->current()->value) {
+                    $this->stream->advance();
                     $skipped++;
                 }
-                if (!$this->isAtEnd() && "\n" === $this->current()->value) {
-                    $this->advance();
+                if (!$this->stream->isAtEnd() && "\n" === $this->stream->current()->value) {
+                    $this->stream->advance();
                     $skipped++;
                 }
 
@@ -389,8 +380,8 @@ final class Parser
 
         $skipped = $this->skipExtendedModeContent();
 
-        if ($this->match(TokenType::T_QUANTIFIER)) {
-            $token = $this->previous();
+        if ($this->stream->match(TokenType::T_QUANTIFIER)) {
+            $token = $this->stream->previous();
 
             $this->assertQuantifierCanApply($node, $token);
 
@@ -403,14 +394,13 @@ final class Parser
             // its lazy/possessive modifier: "a* +" means "a*+" to PCRE.
             if (QuantifierType::T_GREEDY === $type && $this->extendedMode && !$this->inQuoteMode) {
                 $skippedModifier = $this->skipExtendedModeContent();
-                if ($this->check(TokenType::T_QUANTIFIER) && \in_array($this->current()->value, ['+', '?'], true)) {
-                    $modifier = $this->current()->value;
+                if ($this->stream->check(TokenType::T_QUANTIFIER) && \in_array($this->stream->current()->value, ['+', '?'], true)) {
+                    $modifier = $this->stream->current()->value;
                     $type = '+' === $modifier ? QuantifierType::T_POSSESSIVE : QuantifierType::T_LAZY;
-                    $endPosition = $this->current()->position + 1;
-                    $this->advance();
+                    $endPosition = $this->stream->current()->position + 1;
+                    $this->stream->advance();
                 } elseif ($skippedModifier > 0) {
                     $this->stream->rewind($skippedModifier);
-                    $this->currentTokenValid = false;
                 }
             }
 
@@ -419,7 +409,6 @@ final class Parser
 
         if ($skipped > 0) {
             $this->stream->rewind($skipped);
-            $this->currentTokenValid = false;
         }
 
         return $node;
@@ -486,23 +475,23 @@ final class Parser
 
     private function parseAtom(): NodeInterface
     {
-        $token = $this->current();
+        $token = $this->stream->current();
         $startPosition = $token->position;
 
-        if ($this->match(TokenType::T_COMMENT_OPEN)) {
+        if ($this->stream->match(TokenType::T_COMMENT_OPEN)) {
             return $this->parseComment();
         }
 
-        if ($this->match(TokenType::T_CALLOUT)) {
+        if ($this->stream->match(TokenType::T_CALLOUT)) {
             return $this->parseCallout();
         }
 
-        if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+        if ($this->stream->match(TokenType::T_QUOTE_MODE_START)) {
             $this->inQuoteMode = true;
 
             return $this->parseAtom();
         }
-        if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+        if ($this->stream->match(TokenType::T_QUOTE_MODE_END)) {
             $this->inQuoteMode = false;
 
             return $this->parseAtom();
@@ -520,15 +509,15 @@ final class Parser
             return $node;
         }
 
-        if ($this->check(TokenType::T_QUANTIFIER)) {
+        if ($this->stream->check(TokenType::T_QUANTIFIER)) {
             throw $this->parserException(
-                \sprintf('Quantifier without target at position %d', $this->current()->position),
-                $this->current()->position,
+                \sprintf('Quantifier without target at position %d', $this->stream->current()->position),
+                $this->stream->current()->position,
             );
         }
 
-        $val = $this->current()->value;
-        $type = $this->current()->type->value;
+        $val = $this->stream->current()->value;
+        $type = $this->stream->current()->type->value;
 
         throw $this->parserException(
             \sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPosition),
@@ -542,16 +531,16 @@ final class Parser
             return $atom;
         }
 
-        if ($this->match(TokenType::T_DOT)) {
-            return new DotNode($startPosition, $this->previous()->end());
+        if ($this->stream->match(TokenType::T_DOT)) {
+            return new DotNode($startPosition, $this->stream->previous()->end());
         }
 
-        if ($this->match(TokenType::T_G_REFERENCE)) {
+        if ($this->stream->match(TokenType::T_G_REFERENCE)) {
             return $this->parseGReference($startPosition);
         }
 
-        if ($this->match(TokenType::T_KEEP)) {
-            return new KeepNode($startPosition, $this->previous()->end());
+        if ($this->stream->match(TokenType::T_KEEP)) {
+            return new KeepNode($startPosition, $this->stream->previous()->end());
         }
 
         return null;
@@ -571,8 +560,8 @@ final class Parser
     private function matchAtom(int $startPosition, array $extraTypes = []): ?NodeInterface
     {
         foreach ([...self::ATOM_TYPES, ...$extraTypes] as $type) {
-            if ($this->match($type)) {
-                return $this->atomFromToken($this->previous(), $type, $startPosition);
+            if ($this->stream->match($type)) {
+                return $this->atomFromToken($this->stream->previous(), $type, $startPosition);
             }
         }
 
@@ -611,10 +600,10 @@ final class Parser
      */
     private function parseGroupOrCharClassAtom(): ?NodeInterface
     {
-        if ($this->match(TokenType::T_GROUP_OPEN)) {
-            $startToken = $this->previous();
+        if ($this->stream->match(TokenType::T_GROUP_OPEN)) {
+            $startToken = $this->stream->previous();
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -624,11 +613,11 @@ final class Parser
             );
         }
 
-        if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
+        if ($this->stream->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
             return $this->parseGroupModifier();
         }
 
-        if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
+        if ($this->stream->match(TokenType::T_CHAR_CLASS_OPEN)) {
             return $this->parseCharClass();
         }
 
@@ -637,11 +626,11 @@ final class Parser
 
     private function parseVerbAtom(int $startPosition): ?NodeInterface
     {
-        if (!$this->match(TokenType::T_PCRE_VERB)) {
+        if (!$this->stream->match(TokenType::T_PCRE_VERB)) {
             return null;
         }
 
-        $token = $this->previous();
+        $token = $this->stream->previous();
         $endPosition = $startPosition + \strlen($token->value) + self::PCRE_VERB_WRAPPER_LENGTH;
 
         return $this->createPcreVerbNode($token->value, $startPosition, $endPosition);
@@ -652,7 +641,7 @@ final class Parser
      */
     private function parseCallout(): CalloutNode
     {
-        $token = $this->previous();
+        $token = $this->stream->previous();
         $startPosition = $token->position;
         $value = $token->value;
         $endPosition = $startPosition + \strlen($token->value) + self::CALLOUT_WRAPPER_LENGTH;
@@ -685,7 +674,7 @@ final class Parser
      */
     private function parseGReference(int $startPosition): NodeInterface
     {
-        $token = $this->previous();
+        $token = $this->stream->previous();
         $value = $token->value;
         $endPosition = $startPosition + \strlen($value);
 
@@ -718,20 +707,20 @@ final class Parser
      */
     private function parseComment(): CommentNode
     {
-        $startToken = $this->previous(); // (?#
+        $startToken = $this->stream->previous(); // (?#
         $startPosition = $startToken->position;
 
         $comment = '';
         while (
-            !$this->isAtEnd()
-            && !$this->check(TokenType::T_GROUP_CLOSE)
+            !$this->stream->isAtEnd()
+            && !$this->stream->check(TokenType::T_GROUP_CLOSE)
         ) {
-            $token = $this->current();
+            $token = $this->stream->current();
             $comment .= $this->sourceTextOf($token);
-            $this->advance();
+            $this->stream->advance();
         }
 
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close comment');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close comment');
         $endPosition = $endToken->position + 1;
 
         return new CommentNode($comment, $startPosition, $endPosition);
@@ -786,30 +775,30 @@ final class Parser
      */
     private function parseGroupModifier(): NodeInterface
     {
-        $startToken = $this->previous();
+        $startToken = $this->stream->previous();
         $startPosition = $startToken->position;
 
         // 1. Check for Python-style 'P' groups
-        $pPos = $this->current()->position;
-        if ($this->matchLiteral('P')) {
+        $pPos = $this->stream->current()->position;
+        if ($this->stream->matchLiteral('P')) {
             return $this->parsePythonGroup($startPosition, $pPos);
         }
 
         // 2. Check for PCRE verbs: (*...)
-        if ($this->matchLiteral('*')) {
+        if ($this->stream->matchLiteral('*')) {
             return $this->parsePcreVerbInGroup($startPosition);
         }
 
         // 2.1 PCRE verbs already tokenized inside modifier groups: (?(*VERB)...)
-        if ($this->match(TokenType::T_PCRE_VERB)) {
-            return $this->parsePcreVerbTokenInGroup($startPosition, $this->previous());
+        if ($this->stream->match(TokenType::T_PCRE_VERB)) {
+            return $this->parsePcreVerbTokenInGroup($startPosition, $this->stream->previous());
         }
 
         // 3. PCRE-style quoted named groups (?'name'...)
-        if ($this->checkLiteral("'")) {
+        if ($this->stream->checkLiteral("'")) {
             $name = $this->parseGroupName($startPosition);
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -821,15 +810,15 @@ final class Parser
         }
 
         // 4. Check for standard lookarounds and named groups
-        if ($this->matchLiteral('<')) {
+        if ($this->stream->matchLiteral('<')) {
             return $this->parseStandardGroup($startPosition);
         }
 
         // 5. Check for conditional (?(...)
         $isConditionalWithModifier = null;
-        if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
+        if ($this->stream->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
             $isConditionalWithModifier = true;
-        } elseif ($this->match(TokenType::T_GROUP_OPEN)) {
+        } elseif ($this->stream->match(TokenType::T_GROUP_OPEN)) {
             $isConditionalWithModifier = false;
         }
 
@@ -864,17 +853,17 @@ final class Parser
     private function parsePcreVerbInGroup(int $startPosition): NodeInterface
     {
         $verb = '';
-        $verbStartPosition = $this->current()->position;
+        $verbStartPosition = $this->stream->current()->position;
 
         // Collect verb name characters until we hit : or )
         while (
-            !$this->isAtEnd()
-            && !$this->check(TokenType::T_GROUP_CLOSE)
-            && !$this->checkLiteral(':')
+            !$this->stream->isAtEnd()
+            && !$this->stream->check(TokenType::T_GROUP_CLOSE)
+            && !$this->stream->checkLiteral(':')
         ) {
-            if ($this->check(TokenType::T_LITERAL)) {
-                $verb .= $this->current()->value;
-                $this->advance();
+            if ($this->stream->check(TokenType::T_LITERAL)) {
+                $verb .= $this->stream->current()->value;
+                $this->stream->advance();
             } else {
                 break;
             }
@@ -882,26 +871,26 @@ final class Parser
 
         // Check for verbs with arguments like MARK:name
         $argument = '';
-        if ($this->matchLiteral(':')) {
+        if ($this->stream->matchLiteral(':')) {
             while (
-                !$this->isAtEnd()
-                && !$this->check(TokenType::T_GROUP_CLOSE)
+                !$this->stream->isAtEnd()
+                && !$this->stream->check(TokenType::T_GROUP_CLOSE)
             ) {
-                if ($this->check(TokenType::T_LITERAL)) {
-                    $argument .= $this->current()->value;
-                    $this->advance();
+                if ($this->stream->check(TokenType::T_LITERAL)) {
+                    $argument .= $this->stream->current()->value;
+                    $this->stream->advance();
                 } else {
                     break;
                 }
             }
         }
 
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb');
         $endPosition = $endToken->position + 1;
 
         // Parse the rest of the pattern after the verb group
         $expr = null;
-        if (!$this->isAtEnd()) {
+        if (!$this->stream->isAtEnd()) {
             $expr = $this->parseScopedAlternation();
         } else {
             $expr = $this->createEmptyLiteralNodeAt($endPosition);
@@ -933,7 +922,7 @@ final class Parser
         $verbNode = $this->createPcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
 
         $expr = $this->parseScopedAlternation();
-        $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
+        $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
 
         return new SequenceNode(
             [$verbNode, $expr],
@@ -1013,45 +1002,45 @@ final class Parser
     private function parsePythonGroup(int $startPos, int $pPos): NodeInterface
     {
         // Check for (?P'name'...) or (?P"name"...)
-        if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
-            $quote = $this->current()->value;
-            $this->advance();
+        if ($this->stream->checkLiteral("'") || $this->stream->checkLiteral('"')) {
+            $quote = $this->stream->current()->value;
+            $this->stream->advance();
 
             // Consume T_LITERAL tokens to build the name character by character
             $name = '';
-            while (!$this->isAtEnd() && !$this->checkLiteral($quote)) {
-                if ($this->check(TokenType::T_LITERAL)) {
-                    $name .= $this->current()->value;
-                    $this->advance();
+            while (!$this->stream->isAtEnd() && !$this->stream->checkLiteral($quote)) {
+                if ($this->stream->check(TokenType::T_LITERAL)) {
+                    $name .= $this->stream->current()->value;
+                    $this->stream->advance();
                 } else {
-                    if ($this->check(TokenType::T_GROUP_CLOSE)) {
+                    if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
                         break;
                     }
 
                     throw $this->parserException(
-                        \sprintf('Unexpected token in group name at position %d', $this->current()->position),
-                        $this->current()->position,
+                        \sprintf('Unexpected token in group name at position %d', $this->stream->current()->position),
+                        $this->stream->current()->position,
                     );
                 }
             }
 
             if ('' === $name) {
                 throw $this->parserException(
-                    \sprintf('Expected group name at position %d', $this->current()->position),
-                    $this->current()->position,
+                    \sprintf('Expected group name at position %d', $this->stream->current()->position),
+                    $this->stream->current()->position,
                 );
             }
 
-            if (!$this->checkLiteral($quote)) {
+            if (!$this->stream->checkLiteral($quote)) {
                 throw $this->parserException(
-                    \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position),
-                    $this->current()->position,
+                    \sprintf('Expected closing quote %s at position %d', $quote, $this->stream->current()->position),
+                    $this->stream->current()->position,
                 );
             }
-            $this->advance();
+            $this->stream->advance();
 
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1064,11 +1053,11 @@ final class Parser
             );
         }
 
-        if ($this->matchLiteral('<')) { // (?P<name>...)
+        if ($this->stream->matchLiteral('<')) { // (?P<name>...)
             $name = $this->parseGroupName($pPos);
-            $this->consumeLiteral('>', 'Expected > after group name');
+            $this->stream->consumeLiteral('>', 'Expected > after group name');
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1081,16 +1070,16 @@ final class Parser
             );
         }
 
-        if ($this->matchLiteral('>')) { // (?P>name) subroutine
+        if ($this->stream->matchLiteral('>')) { // (?P>name) subroutine
             $name = $this->parseSubroutineName();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
             return new SubroutineNode($name, 'P>', $startPos, $endToken->position + 1);
         }
 
-        if ($this->matchLiteral('=')) {
-            $name = $this->parseGroupName($this->current()->position, false);
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        if ($this->stream->matchLiteral('=')) {
+            $name = $this->parseGroupName($this->stream->current()->position, false);
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new BackrefNode('\\k<'.$name.'>', $startPos, $endToken->position + 1);
         }
@@ -1106,9 +1095,9 @@ final class Parser
      */
     private function parseStandardGroup(int $startPos): NodeInterface
     {
-        if ($this->matchLiteral('=')) { // (?<=...)
+        if ($this->stream->matchLiteral('=')) { // (?<=...)
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1118,9 +1107,9 @@ final class Parser
             );
         }
 
-        if ($this->matchLiteral('!')) { // (?<!...)
+        if ($this->stream->matchLiteral('!')) { // (?<!...)
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1132,9 +1121,9 @@ final class Parser
 
         // (?<name>...)
         $name = $this->parseGroupName($startPos);
-        $this->consumeLiteral('>', 'Expected > after group name');
+        $this->stream->consumeLiteral('>', 'Expected > after group name');
         $expr = $this->parseScopedAlternation();
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
         return $this->createGroupNode(
             $expr,
@@ -1153,42 +1142,40 @@ final class Parser
         $tokensConsumed = 0;
         $num = '';
 
-        if ($this->matchLiteral('-')) {
+        if ($this->stream->matchLiteral('-')) {
             $num = '-';
             $tokensConsumed++;
-        } elseif ($this->check(TokenType::T_QUANTIFIER) && '+' === $this->current()->value) {
+        } elseif ($this->stream->check(TokenType::T_QUANTIFIER) && '+' === $this->stream->current()->value) {
             // "+" after "(?" is lexed as a quantifier token; here it is the
             // sign of a relative subroutine call like (?+1).
-            $this->advance();
+            $this->stream->advance();
             $num = '+';
             $tokensConsumed++;
         }
 
         if ($this->isLiteralDigitToken()) {
-            $num .= $this->current()->value;
-            $this->advance();
+            $num .= $this->stream->current()->value;
+            $this->stream->advance();
             $tokensConsumed++;
 
             // Consume additional digits
-            while ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
-                $num .= $this->current()->value;
-                $this->advance();
+            while ($this->stream->check(TokenType::T_LITERAL) && ctype_digit($this->stream->current()->value)) {
+                $num .= $this->stream->current()->value;
+                $this->stream->advance();
                 $tokensConsumed++;
             }
 
-            if ($this->check(TokenType::T_GROUP_CLOSE)) {
-                $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
+                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new SubroutineNode($num, '', $startPos, $endToken->position + 1);
             }
 
             // Not a valid subroutine, rewind all consumed tokens
             $this->stream->rewind($tokensConsumed);
-            $this->currentTokenValid = false;
         } elseif ('-' === $num || '+' === $num) {
             // Only consumed the sign, rewind it
             $this->stream->rewind(1);
-            $this->currentTokenValid = false;
         }
 
         return null;
@@ -1199,12 +1186,12 @@ final class Parser
      */
     private function parseSubroutineModifier(int $startPosition): ?SubroutineNode
     {
-        if (!$this->matchLiteral('&')) {
+        if (!$this->stream->matchLiteral('&')) {
             return null;
         }
 
         $name = $this->parseSubroutineName();
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
         return new SubroutineNode($name, '&', $startPosition, $endToken->position + 1);
     }
@@ -1214,9 +1201,9 @@ final class Parser
      */
     private function parseNumericSubroutineModifier(int $startPosition): ?SubroutineNode
     {
-        if ($this->matchLiteral('R')) {
-            if ($this->check(TokenType::T_GROUP_CLOSE)) {
-                $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        if ($this->stream->matchLiteral('R')) {
+            if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
+                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new SubroutineNode('R', '', $startPosition, $endToken->position + 1);
             }
@@ -1236,23 +1223,23 @@ final class Parser
      */
     private function parseSimpleGroupModifier(int $startPosition): ?GroupNode
     {
-        if ($this->matchLiteral(':')) {
+        if ($this->stream->matchLiteral(':')) {
             return $this->parseSimpleGroup($startPosition, GroupType::T_GROUP_NON_CAPTURING);
         }
 
-        if ($this->matchLiteral('=')) {
+        if ($this->stream->matchLiteral('=')) {
             return $this->parseSimpleGroup($startPosition, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
         }
 
-        if ($this->matchLiteral('!')) {
+        if ($this->stream->matchLiteral('!')) {
             return $this->parseSimpleGroup($startPosition, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
         }
 
-        if ($this->matchLiteral('>')) {
+        if ($this->stream->matchLiteral('>')) {
             return $this->parseSimpleGroup($startPosition, GroupType::T_GROUP_ATOMIC);
         }
 
-        if ($this->match(TokenType::T_ALTERNATION)) {
+        if ($this->stream->match(TokenType::T_ALTERNATION)) {
             return $this->parseSimpleGroup($startPosition, GroupType::T_GROUP_BRANCH_RESET);
         }
 
@@ -1267,9 +1254,9 @@ final class Parser
         // Support PHP/PCRE2 inline flags (imsxUJnud) plus ^ (unset) and - toggles.
         // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
         $flags = '';
-        if ($this->check(TokenType::T_ANCHOR) && '^' === $this->current()->value) {
+        if ($this->stream->check(TokenType::T_ANCHOR) && '^' === $this->stream->current()->value) {
             $flags = '^';
-            $this->advance();
+            $this->stream->advance();
         }
         $inlineFlagChars = self::INLINE_FLAG_CHARS;
         $allFlags = 'imsxUJnud';
@@ -1320,14 +1307,14 @@ final class Parser
             }
 
             $expr = null;
-            if ($this->matchLiteral(':')) {
+            if ($this->stream->matchLiteral(':')) {
                 $expr = $this->parseScopedAlternation();
                 // "(?x:...)" only covers its own group; "(?x)" keeps going.
                 $this->extendedMode = $previousExtendedMode;
             }
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            $expr ??= $this->createEmptyLiteralNodeAt($this->previous()->position);
+            $expr ??= $this->createEmptyLiteralNodeAt($this->stream->previous()->position);
 
             return $this->createGroupNode(
                 $expr,
@@ -1374,18 +1361,18 @@ final class Parser
     {
         if ($isModifier) {
             // Inline Lookaround condition
-            $conditionStartPos = $this->previous()->position;
+            $conditionStartPos = $this->stream->previous()->position;
             $condition = $this->parseLookaroundCondition($conditionStartPos);
         } else {
             $condition = $this->parseConditionalCondition();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition');
+            $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition');
         }
 
         $yes = $this->parseScopedAlternation();
 
         // Special case: (?(DEFINE)...) creates a DefineNode instead of ConditionalNode
         if ($condition instanceof AssertionNode && 'DEFINE' === $condition->value) {
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
             $endPosition = $endToken->position + 1;
 
             return new DefineNode($yes, $startPosition, $endPosition);
@@ -1408,9 +1395,9 @@ final class Parser
             }
         }
 
-        $no ??= $this->createEmptyLiteralNodeAt($this->current()->position);
+        $no ??= $this->createEmptyLiteralNodeAt($this->stream->current()->position);
 
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
         $endPosition = $endToken->position + 1;
 
         return new ConditionalNode($condition, $yesBranch, $no, $startPosition, $endPosition);
@@ -1421,9 +1408,9 @@ final class Parser
      */
     private function parseLookaroundCondition(int $startPosition): NodeInterface
     {
-        if ($this->matchLiteral('=')) {
+        if ($this->stream->matchLiteral('=')) {
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1433,9 +1420,9 @@ final class Parser
             );
         }
 
-        if ($this->matchLiteral('!')) {
+        if ($this->stream->matchLiteral('!')) {
             $expr = $this->parseScopedAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return $this->createGroupNode(
                 $expr,
@@ -1445,11 +1432,11 @@ final class Parser
             );
         }
 
-        if ($this->matchLiteral('<')) {
+        if ($this->stream->matchLiteral('<')) {
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
-            if ($this->matchLiteral('=')) {
+            if ($this->stream->matchLiteral('=')) {
                 $expr = $this->parseScopedAlternation();
-                $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return $this->createGroupNode(
                     $expr,
@@ -1459,9 +1446,9 @@ final class Parser
                 );
             }
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
-            if ($this->matchLiteral('!')) {
+            if ($this->stream->matchLiteral('!')) {
                 $expr = $this->parseScopedAlternation();
-                $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+                $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return $this->createGroupNode(
                     $expr,
@@ -1486,12 +1473,12 @@ final class Parser
         $savedPos = $this->stream->getPosition();
         $word = '';
         while ($this->isLiteralAlphaToken()) {
-            $word .= $this->current()->value;
-            $this->advance();
+            $word .= $this->stream->current()->value;
+            $this->stream->advance();
         }
 
-        if ('DEFINE' === $word && $this->check(TokenType::T_GROUP_CLOSE)) {
-            return new AssertionNode('DEFINE', $startPosition, $this->current()->position);
+        if ('DEFINE' === $word && $this->stream->check(TokenType::T_GROUP_CLOSE)) {
+            return new AssertionNode('DEFINE', $startPosition, $this->stream->current()->position);
         }
 
         // Not DEFINE, restore position
@@ -1508,12 +1495,12 @@ final class Parser
         $savedPos = $this->stream->getPosition();
         $word = '';
         while (
-            !$this->checkLiteral(')')
-            && !$this->isAtEnd()
-            && ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_DOT))
+            !$this->stream->checkLiteral(')')
+            && !$this->stream->isAtEnd()
+            && ($this->stream->check(TokenType::T_LITERAL) || $this->stream->check(TokenType::T_DOT))
         ) {
-            $word .= $this->current()->value;
-            $this->advance();
+            $word .= $this->stream->current()->value;
+            $this->stream->advance();
         }
 
         $trimmed = trim($word);
@@ -1560,7 +1547,7 @@ final class Parser
             $operator,
             $rest,
             $startPosition,
-            $this->previous()->position,
+            $this->stream->previous()->position,
         );
     }
 
@@ -1573,12 +1560,12 @@ final class Parser
             return false;
         }
 
-        $this->advance();
-        $num = (string) ($this->previous()->value.$this->consumeWhile(
+        $this->stream->advance();
+        $num = (string) ($this->stream->previous()->value.$this->consumeWhile(
             static fn (string $c): bool => ctype_digit($c),
         ));
 
-        return new BackrefNode($num, $startPosition, $this->current()->position);
+        return new BackrefNode($num, $startPosition, $this->stream->current()->position);
     }
 
     /**
@@ -1586,16 +1573,16 @@ final class Parser
      */
     private function parseNamedCondition(int $startPosition): BackrefNode|false
     {
-        if (!$this->matchLiteral('<') && !$this->matchLiteral('{')) {
+        if (!$this->stream->matchLiteral('<') && !$this->stream->matchLiteral('{')) {
             return false;
         }
 
-        $open = $this->previous()->value;
+        $open = $this->stream->previous()->value;
         $name = $this->parseGroupName($startPosition, false);
         $close = '<' === $open ? '>' : '}';
-        $this->consumeLiteral($close, "Expected $close after condition name");
+        $this->stream->consumeLiteral($close, "Expected $close after condition name");
 
-        return new BackrefNode($name, $startPosition, $this->current()->position);
+        return new BackrefNode($name, $startPosition, $this->stream->current()->position);
     }
 
     /**
@@ -1603,23 +1590,23 @@ final class Parser
      */
     private function parseSubroutineRCondition(int $startPosition): SubroutineNode|false
     {
-        if (!$this->matchLiteral('R')) {
+        if (!$this->stream->matchLiteral('R')) {
             return false;
         }
 
-        $endPosition = $this->previous()->position;
+        $endPosition = $this->stream->previous()->position;
         $numericPart = '';
         $sawMinus = false;
 
-        if ($this->checkLiteral('-')) {
+        if ($this->stream->checkLiteral('-')) {
             $sawMinus = true;
-            $this->advance();
+            $this->stream->advance();
         }
 
         $digits = $this->consumeWhile(static fn (string $c): bool => ctype_digit($c));
         if ('' !== $digits) {
             $numericPart = ($sawMinus ? '-' : '').$digits;
-            $endPosition = $this->previous()->position;
+            $endPosition = $this->stream->previous()->position;
         } elseif ($sawMinus) {
             $this->stream->rewind(1);
         }
@@ -1634,23 +1621,23 @@ final class Parser
      */
     private function parseBareNameCondition(int $startPosition): BackrefNode|false
     {
-        if (!$this->check(TokenType::T_LITERAL)) {
+        if (!$this->stream->check(TokenType::T_LITERAL)) {
             return false;
         }
 
         $savedPos = $this->stream->getPosition();
         $name = '';
         while (
-            $this->check(TokenType::T_LITERAL)
-            && !$this->checkLiteral(')')
-            && !$this->isAtEnd()
+            $this->stream->check(TokenType::T_LITERAL)
+            && !$this->stream->checkLiteral(')')
+            && !$this->stream->isAtEnd()
         ) {
-            $name .= $this->current()->value;
-            $this->advance();
+            $name .= $this->stream->current()->value;
+            $this->stream->advance();
         }
 
-        if ('' !== $name && $this->check(TokenType::T_GROUP_CLOSE)) {
-            return new BackrefNode($name, $startPosition, $this->current()->position);
+        if ('' !== $name && $this->stream->check(TokenType::T_GROUP_CLOSE)) {
+            return new BackrefNode($name, $startPosition, $this->stream->current()->position);
         }
 
         $this->stream->setPosition($savedPos);
@@ -1663,10 +1650,10 @@ final class Parser
      */
     private function parseConditionalCondition(): NodeInterface
     {
-        $startPosition = $this->current()->position;
+        $startPosition = $this->stream->current()->position;
 
         // Check for DEFINE condition
-        if ($this->check(TokenType::T_LITERAL) && 'D' === $this->current()->value) {
+        if ($this->stream->check(TokenType::T_LITERAL) && 'D' === $this->stream->current()->value) {
             $defineCondition = $this->parseDefineCondition($startPosition);
             if (false !== $defineCondition) {
                 return $defineCondition;
@@ -1674,7 +1661,7 @@ final class Parser
         }
 
         // Check for VERSION condition
-        if ($this->check(TokenType::T_LITERAL) && 'V' === $this->current()->value) {
+        if ($this->stream->check(TokenType::T_LITERAL) && 'V' === $this->stream->current()->value) {
             $versionCondition = $this->parseVersionCondition($startPosition);
             if (false !== $versionCondition) {
                 return $versionCondition;
@@ -1700,7 +1687,7 @@ final class Parser
         }
 
         // Check for lookaround condition
-        if ($this->matchLiteral('?')) {
+        if ($this->stream->matchLiteral('?')) {
             return $this->parseLookaroundCondition($startPosition);
         }
 
@@ -1752,53 +1739,53 @@ final class Parser
     private function parseGroupName(?int $errorPosition = null, bool $register = true): string
     {
         $quote = null;
-        $nameStartPosition = $errorPosition ?? $this->current()->position;
+        $nameStartPosition = $errorPosition ?? $this->stream->current()->position;
 
         // Check for quoted group name (Python-style: 'name' or "name")
-        if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
-            $quote = $this->current()->value;
-            $this->advance();
+        if ($this->stream->checkLiteral("'") || $this->stream->checkLiteral('"')) {
+            $quote = $this->stream->current()->value;
+            $this->stream->advance();
         }
 
         $name = '';
         while (
-            !$this->checkLiteral('>')
-            && !$this->checkLiteral('}')
-            && !$this->isAtEnd()
+            !$this->stream->checkLiteral('>')
+            && !$this->stream->checkLiteral('}')
+            && !$this->stream->isAtEnd()
         ) {
             // If we're in quoted mode and hit the closing quote, stop collecting
-            if (null !== $quote && $this->checkLiteral($quote)) {
+            if (null !== $quote && $this->stream->checkLiteral($quote)) {
                 break;
             }
 
-            if ($this->check(TokenType::T_GROUP_CLOSE)) {
+            if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
                 break;
             }
 
-            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
-                $name .= $this->current()->value;
-                $this->advance();
+            if ($this->stream->check(TokenType::T_LITERAL) || $this->stream->check(TokenType::T_LITERAL_ESCAPED)) {
+                $name .= $this->stream->current()->value;
+                $this->stream->advance();
             } else {
                 throw $this->parserException(
-                    \sprintf('Unexpected token "%s" in group name', $this->current()->value),
-                    $this->current()->position,
+                    \sprintf('Unexpected token "%s" in group name', $this->stream->current()->value),
+                    $this->stream->current()->position,
                 );
             }
         }
 
         // If quoted, expect the closing quote
         if (null !== $quote) {
-            if (!$this->checkLiteral($quote)) {
+            if (!$this->stream->checkLiteral($quote)) {
                 throw $this->parserException(
                     \sprintf(
                         'Expected closing quote "%s" for group name at position %d',
                         $quote,
-                        $this->current()->position,
+                        $this->stream->current()->position,
                     ),
-                    $this->current()->position,
+                    $this->stream->current()->position,
                 );
             }
-            $this->advance();
+            $this->stream->advance();
         }
 
         if ('' === $name) {
@@ -1828,12 +1815,12 @@ final class Parser
      */
     private function parseCharClass(): CharClassNode
     {
-        $startToken = $this->previous();
+        $startToken = $this->stream->previous();
         $startPosition = $startToken->position;
-        $isNegated = $this->match(TokenType::T_NEGATION);
+        $isNegated = $this->stream->match(TokenType::T_NEGATION);
         $parts = $this->parseClassExpression();
 
-        $endToken = $this->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
+        $endToken = $this->stream->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
 
         return new CharClassNode($parts, $isNegated, $startPosition, $endToken->position + 1);
     }
@@ -1845,9 +1832,9 @@ final class Parser
     {
         $left = $this->parseCharClassAlternation();
 
-        while ($this->check(TokenType::T_CLASS_INTERSECTION) || $this->check(TokenType::T_CLASS_SUBTRACTION)) {
-            $type = TokenType::T_CLASS_INTERSECTION === $this->current()->type ? ClassOperationType::INTERSECTION : ClassOperationType::SUBTRACTION;
-            $this->advance();
+        while ($this->stream->check(TokenType::T_CLASS_INTERSECTION) || $this->stream->check(TokenType::T_CLASS_SUBTRACTION)) {
+            $type = TokenType::T_CLASS_INTERSECTION === $this->stream->current()->type ? ClassOperationType::INTERSECTION : ClassOperationType::SUBTRACTION;
+            $this->stream->advance();
             $right = $this->parseCharClassAlternation();
             $left = new ClassOperationNode($type, $left, $right, $left->getStartPosition(), $right->getEndPosition());
         }
@@ -1863,18 +1850,18 @@ final class Parser
         $parts = [];
 
         while (
-            !$this->check(TokenType::T_CHAR_CLASS_CLOSE)
-            && !$this->check(TokenType::T_CLASS_INTERSECTION)
-            && !$this->check(TokenType::T_CLASS_SUBTRACTION)
-            && !$this->isAtEnd()
+            !$this->stream->check(TokenType::T_CHAR_CLASS_CLOSE)
+            && !$this->stream->check(TokenType::T_CLASS_INTERSECTION)
+            && !$this->stream->check(TokenType::T_CLASS_SUBTRACTION)
+            && !$this->stream->isAtEnd()
         ) {
             // Silent tokens inside char class
-            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+            if ($this->stream->match(TokenType::T_QUOTE_MODE_START)) {
                 $this->inQuoteMode = true;
 
                 continue;
             }
-            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+            if ($this->stream->match(TokenType::T_QUOTE_MODE_END)) {
                 $this->inQuoteMode = false;
 
                 continue;
@@ -1883,7 +1870,7 @@ final class Parser
         }
 
         if (empty($parts)) {
-            return $this->createEmptyLiteralNodeAt($this->current()->position);
+            return $this->createEmptyLiteralNodeAt($this->stream->current()->position);
         }
 
         if (1 === \count($parts)) {
@@ -1946,20 +1933,20 @@ final class Parser
             return [$atom, $atom->getEndPosition()];
         }
 
-        if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
+        if ($this->stream->match(TokenType::T_CHAR_CLASS_OPEN)) {
             $node = $this->parseCharClass();
 
             return [$node, $node->getEndPosition()];
         }
 
-        if ($this->match(TokenType::T_RANGE)) {
-            $token = $this->previous();
+        if ($this->stream->match(TokenType::T_RANGE)) {
+            $token = $this->stream->previous();
 
             return [new LiteralNode($token->value, $startPosition, $token->end()), $token->end()];
         }
 
-        if ($this->match(TokenType::T_POSIX_CLASS)) {
-            $token = $this->previous();
+        if ($this->stream->match(TokenType::T_POSIX_CLASS)) {
+            $token = $this->stream->previous();
 
             return [new PosixClassNode($token->value, $startPosition, $token->end()), $token->end()];
         }
@@ -1967,10 +1954,10 @@ final class Parser
         throw $this->parserException(
             \sprintf(
                 'Unexpected token "%s" in character class at position %d.',
-                $this->current()->value,
-                $this->current()->position,
+                $this->stream->current()->value,
+                $this->stream->current()->position,
             ),
-            $this->current()->position,
+            $this->stream->current()->position,
         );
     }
 
@@ -1979,17 +1966,17 @@ final class Parser
      */
     private function parseCharClassPart(): NodeInterface
     {
-        $startToken = $this->current();
+        $startToken = $this->stream->current();
         $startPosition = $startToken->position;
 
         [$startNode] = $this->parseCharClassAtom($startPosition);
 
         // Check for Range
-        if (!$this->match(TokenType::T_RANGE)) {
+        if (!$this->stream->match(TokenType::T_RANGE)) {
             return $startNode;
         }
 
-        if ($this->check(TokenType::T_CHAR_CLASS_CLOSE)) {
+        if ($this->stream->check(TokenType::T_CHAR_CLASS_CLOSE)) {
             $this->stream->rewind(1);
 
             return $startNode;
@@ -2006,13 +1993,13 @@ final class Parser
             );
         }
 
-        if ($this->check(TokenType::T_CHAR_CLASS_OPEN)) {
+        if ($this->stream->check(TokenType::T_CHAR_CLASS_OPEN)) {
             $this->stream->rewind(1);
 
             return $startNode;
         }
 
-        $endToken = $this->current();
+        $endToken = $this->stream->current();
         $endPosition = $endToken->position;
 
         try {
@@ -2021,10 +2008,10 @@ final class Parser
             throw $this->parserException(
                 \sprintf(
                     'Unexpected token "%s" in character class range at position %d.',
-                    $this->current()->value,
-                    $this->current()->position,
+                    $this->stream->current()->value,
+                    $this->stream->current()->position,
                 ),
-                $this->current()->position,
+                $this->stream->current()->position,
             );
         }
 
@@ -2048,30 +2035,30 @@ final class Parser
     {
         $name = '';
         while (
-            !$this->check(TokenType::T_GROUP_CLOSE)
-            && !$this->isAtEnd()
+            !$this->stream->check(TokenType::T_GROUP_CLOSE)
+            && !$this->stream->isAtEnd()
         ) {
-            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
-                $char = $this->current()->value;
+            if ($this->stream->check(TokenType::T_LITERAL) || $this->stream->check(TokenType::T_LITERAL_ESCAPED)) {
+                $char = $this->stream->current()->value;
                 if (!preg_match('/^\w$/', $char)) {
                     throw $this->parserException(
                         'Unexpected token in subroutine name: '.$char,
-                        $this->current()->position,
+                        $this->stream->current()->position,
                     );
                 }
                 $name .= $char;
-                $this->advance();
+                $this->stream->advance();
             } else {
                 throw $this->parserException(
-                    'Unexpected token in subroutine name: '.$this->current()->value,
-                    $this->current()->position,
+                    'Unexpected token in subroutine name: '.$this->stream->current()->value,
+                    $this->stream->current()->position,
                 );
             }
         }
         if ('' === $name) {
             throw $this->parserException(
-                'Expected subroutine name at position '.$this->current()->position,
-                $this->current()->position,
+                'Expected subroutine name at position '.$this->stream->current()->position,
+                $this->stream->current()->position,
             );
         }
 
@@ -2095,71 +2082,6 @@ final class Parser
                 $this->pattern,
             );
         }
-    }
-
-    /**
-     * @return bool true if the current token is a T_LITERAL and its value matches the given value
-     */
-    private function matchLiteral(string $value): bool
-    {
-        if ($this->checkLiteral($value)) {
-            $this->advance();
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @return bool true if the current token is a T_LITERAL and its value matches the given value
-     */
-    private function checkLiteral(string $value): bool
-    {
-        if ($this->isAtEnd()) {
-            return false;
-        }
-        $token = $this->current();
-
-        return TokenType::T_LITERAL === $token->type && $token->value === $value;
-    }
-
-    /**
-     * @return Token the consumed token
-     */
-    private function consume(TokenType $type, string $error): Token
-    {
-        if ($this->check($type)) {
-            $token = $this->current();
-            $this->advance();
-
-            return $token;
-        }
-        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-
-        throw $this->parserException(
-            $error.' at '.$at.' (found '.$this->current()->type->value.')',
-            $this->current()->position,
-        );
-    }
-
-    /**
-     * @return Token the consumed token
-     */
-    private function consumeLiteral(string $value, string $error): Token
-    {
-        if ($this->checkLiteral($value)) {
-            $token = $this->current();
-            $this->advance();
-
-            return $token;
-        }
-        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-
-        throw $this->parserException(
-            $error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')',
-            $this->current()->position,
-        );
     }
 
     /**
@@ -2192,72 +2114,9 @@ final class Parser
     private function parseSimpleGroup(int $startPosition, GroupType $type): GroupNode
     {
         $expr = $this->parseScopedAlternation();
-        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
         return $this->createGroupNode($expr, $type, $startPosition, $endToken);
-    }
-
-    /**
-     * Optimized current token access with caching.
-     */
-    private function current(): Token
-    {
-        $currentPos = $this->stream->getPosition();
-
-        if ($this->currentTokenValid && $this->lastPosition === $currentPos) {
-            return $this->currentToken ?? $this->stream->current();
-        }
-
-        $this->currentToken = $this->stream->current();
-        $this->currentTokenValid = true;
-        $this->lastPosition = $currentPos;
-
-        return $this->currentToken;
-    }
-
-    /**
-     * Optimized end-of-stream check.
-     */
-    private function isAtEnd(): bool
-    {
-        return $this->stream->isAtEnd();
-    }
-
-    /**
-     * Optimized token type checking.
-     */
-    private function check(TokenType $type): bool
-    {
-        if ($this->isAtEnd()) {
-            return TokenType::T_EOF === $type;
-        }
-
-        return $this->current()->type === $type;
-    }
-
-    /**
-     * Optimized token consumption with caching invalidation.
-     */
-    private function match(TokenType $type): bool
-    {
-        if (!$this->check($type)) {
-            return false;
-        }
-
-        $this->advance();
-
-        return true;
-    }
-
-    /**
-     * Advance to next token and invalidate cache.
-     */
-    private function advance(): void
-    {
-        if (!$this->isAtEnd()) {
-            $this->stream->next();
-            $this->currentTokenValid = false;
-        }
     }
 
     /**
@@ -2265,24 +2124,7 @@ final class Parser
      */
     private function isLiteralDigitToken(): bool
     {
-        return $this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value);
-    }
-
-    /**
-     * Get previous token with position management.
-     */
-    private function previous(): Token
-    {
-        if (0 === $this->stream->getPosition()) {
-            return new Token(TokenType::T_EOF, '', 0);
-        }
-
-        $savedPos = $this->stream->getPosition();
-        $this->stream->setPosition($savedPos - 1);
-        $token = $this->stream->current();
-        $this->stream->setPosition($savedPos);
-
-        return $token;
+        return $this->stream->check(TokenType::T_LITERAL) && ctype_digit($this->stream->current()->value);
     }
 
     /**
@@ -2290,7 +2132,7 @@ final class Parser
      */
     private function isLiteralAlphaToken(): bool
     {
-        return $this->check(TokenType::T_LITERAL) && ctype_alpha($this->current()->value);
+        return $this->stream->check(TokenType::T_LITERAL) && ctype_alpha($this->stream->current()->value);
     }
 
     /**
@@ -2301,12 +2143,12 @@ final class Parser
         $value = '';
 
         while (
-            !$this->isAtEnd()
-            && $this->check(TokenType::T_LITERAL)
-            && $predicate($this->current()->value)
+            !$this->stream->isAtEnd()
+            && $this->stream->check(TokenType::T_LITERAL)
+            && $predicate($this->stream->current()->value)
         ) {
-            $value .= $this->current()->value;
-            $this->advance();
+            $value .= $this->stream->current()->value;
+            $this->stream->advance();
         }
 
         return $value;

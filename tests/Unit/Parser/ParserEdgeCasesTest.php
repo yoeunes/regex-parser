@@ -15,34 +15,15 @@ namespace RegexParser\Tests\Unit\Parser;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
 use RegexParser\Regex;
-use RegexParser\Tests\TestUtils\ParserAccessor;
-use RegexParser\TokenType;
 
 final class ParserEdgeCasesTest extends TestCase
 {
     private Regex $regex;
 
-    private Parser $parser;
-
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->parser = new Parser();
-    }
-
-    public function test_consume_throws_specific_error_message(): void
-    {
-        // On utilise l'accesseur pour injecter un état incohérent
-        $accessor = new ParserAccessor($this->parser);
-        // On met un token T_LITERAL 'a'
-        $accessor->setTokens(['a']);
-        $accessor->setPosition(0);
-
-        $this->expectException(ParserException::class);
-        // On essaie de consommer un T_DOT, ça doit planter
-        $accessor->callPrivateMethod('consume', [TokenType::T_DOT, 'Custom Error']);
     }
 
     public function test_quantifier_on_anchor_throws(): void
