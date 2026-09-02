@@ -29,7 +29,10 @@ require_once __DIR__.'/../../vendor/autoload.php';
 use RegexParser\Regex;
 use RegexParser\Tests\Support\AstFingerprint;
 
-$check = \in_array('--check', $argv, true);
+/** @var list<string> $arguments */
+$arguments = $_SERVER['argv'] ?? [];
+
+$check = \in_array('--check', $arguments, true);
 $path = AstFingerprint::root().'/src/Regex.php';
 $fingerprint = AstFingerprint::compute();
 $current = Regex::CACHE_VERSION;
