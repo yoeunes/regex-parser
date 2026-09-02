@@ -145,6 +145,9 @@ final class RoundTripFidelityTest extends TestCase
         yield 'python named group' => ['/(?P<name>x)/'];
         yield 'script run written short' => ['/(*sr:\\d+)/'];
         yield 'script run spelled out' => ['/(*script_run:\\d+)/'];
+        yield 'mark written short' => ['/(*:label)/'];
+        yield 'mark spelled out' => ['/(*MARK:label)/'];
+        yield 'mark in the middle of a pattern' => ['/a(*:label)b/'];
     }
 
     /**
