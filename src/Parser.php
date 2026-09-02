@@ -973,44 +973,10 @@ final class Parser
      */
     private function parsePythonGroup(int $startPos, int $pPos): NodeInterface
     {
-        // Check for (?P'name'...) or (?P"name"...)
+        // "(?P'name'...)" and "(?P\"name\"...)" name a group the way
+        // "(?'name'...)" does, quotes included.
         if ($this->stream->checkLiteral("'") || $this->stream->checkLiteral('"')) {
-            $quote = $this->stream->current()->value;
-            $this->stream->advance();
-
-            // Consume T_LITERAL tokens to build the name character by character
-            $name = '';
-            while (!$this->stream->isAtEnd() && !$this->stream->checkLiteral($quote)) {
-                if ($this->stream->check(TokenType::T_LITERAL)) {
-                    $name .= $this->stream->current()->value;
-                    $this->stream->advance();
-                } else {
-                    if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
-                        break;
-                    }
-
-                    throw $this->parserException(
-                        \sprintf('Unexpected token in group name at position %d', $this->stream->current()->position),
-                        $this->stream->current()->position,
-                    );
-                }
-            }
-
-            if ('' === $name) {
-                throw $this->parserException(
-                    \sprintf('Expected group name at position %d', $this->stream->current()->position),
-                    $this->stream->current()->position,
-                );
-            }
-
-            if (!$this->stream->checkLiteral($quote)) {
-                throw $this->parserException(
-                    \sprintf('Expected closing quote %s at position %d', $quote, $this->stream->current()->position),
-                    $this->stream->current()->position,
-                );
-            }
-            $this->stream->advance();
-
+            $name = $this->groupNames->read($pPos);
             $expr = $this->parseScopedAlternation();
             $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -1021,7 +987,7 @@ final class Parser
                 $endToken,
                 $name,
                 null,
-                true, // Python syntax: (?P'name'...) or (?P"name"...)
+                true,
             );
         }
 

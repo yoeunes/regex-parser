@@ -66,7 +66,8 @@ final class ParserRejectionsTest extends TestCase
     public function test_python_group_name_rejects_non_literal_token(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unexpected token in group name');
+        // Same message as every other way of spelling a group name.
+        $this->expectExceptionMessage('Unexpected token "d" in group name');
 
         $this->regexService->parse("/(?P'foo\\d'test)/");
     }
