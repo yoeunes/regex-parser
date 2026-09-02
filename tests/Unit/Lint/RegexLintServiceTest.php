@@ -132,9 +132,8 @@ final class RegexLintServiceTest extends TestCase
 
         $this->assertCount(1, $result->results);
         $this->assertSame('/(a+)+/', $result->results[0]['pattern']);
-        // Should have warnings from the linter
         $warnings = array_filter($result->results[0]['issues'], static fn ($issue) => 'warning' === $issue['type']);
-        $this->assertGreaterThan(0, \count($warnings));
+        $this->assertNotSame([], $warnings, 'The linter reported no warning for a nested quantifier.');
 
         $nestedWarnings = array_values(array_filter(
             $result->results[0]['issues'],

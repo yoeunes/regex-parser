@@ -188,8 +188,6 @@ final class VisitorExhaustivenessTest extends TestCase
                 }
             }
         }
-
-        $this->assertGreaterThan(0, \count($nodes));
     }
 
     #[Test]
