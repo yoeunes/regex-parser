@@ -17,6 +17,16 @@ use RegexParser\Cli\Output;
 
 class SelfUpdater
 {
+    /**
+     * How long the download may take to connect, and to finish.
+     *
+     * Without them an unreachable mirror leaves the updater hanging with no
+     * way out but a signal.
+     */
+    private const CONNECT_TIMEOUT_SECONDS = 10;
+
+    private const TRANSFER_TIMEOUT_SECONDS = 30;
+
     public function run(Output $output): void
     {
         $pharPath = $this->getPharPath();
@@ -173,7 +183,17 @@ class SelfUpdater
 
         $output = [];
         $exitCode = 1;
-        @exec("curl -fsSL {$escapedUrl} -o {$escapedDestination}", $output, $exitCode);
+        @exec(
+            \sprintf(
+                'curl -fsSL --connect-timeout %d --max-time %d %s -o %s',
+                self::CONNECT_TIMEOUT_SECONDS,
+                self::TRANSFER_TIMEOUT_SECONDS,
+                $escapedUrl,
+                $escapedDestination,
+            ),
+            $output,
+            $exitCode,
+        );
         if (0 !== $exitCode) {
             return false;
         }
@@ -196,7 +216,17 @@ class SelfUpdater
 
         $output = [];
         $exitCode = 1;
-        @exec("wget -q -O {$escapedDestination} {$escapedUrl}", $output, $exitCode);
+        @exec(
+            \sprintf(
+                'wget -q --connect-timeout=%d --timeout=%d -O %s %s',
+                self::CONNECT_TIMEOUT_SECONDS,
+                self::TRANSFER_TIMEOUT_SECONDS,
+                $escapedDestination,
+                $escapedUrl,
+            ),
+            $output,
+            $exitCode,
+        );
         if (0 !== $exitCode) {
             return false;
         }
@@ -216,12 +246,12 @@ class SelfUpdater
         return stream_context_create([
             'http' => [
                 'follow_location' => 1,
-                'timeout' => 30,
+                'timeout' => self::TRANSFER_TIMEOUT_SECONDS,
                 'user_agent' => 'regex-parser-cli',
             ],
             'https' => [
                 'follow_location' => 1,
-                'timeout' => 30,
+                'timeout' => self::TRANSFER_TIMEOUT_SECONDS,
                 'user_agent' => 'regex-parser-cli',
             ],
         ]);
