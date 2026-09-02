@@ -179,6 +179,20 @@ final class LexerTokensTest extends TestCase
             'pattern' => '\\P{Sc}',
             'tokens' => 'T_UNICODE_PROP({^Sc}) T_EOF',
         ];
+        yield 'a verb wrapping a group' => [
+            'pattern' => '(*atomic:(a))',
+            'tokens' => 'T_PCRE_VERB(atomic:(a)) T_EOF',
+        ];
+
+        yield 'a verb wrapping nested groups' => [
+            'pattern' => '(*atomic:((a)))',
+            'tokens' => 'T_PCRE_VERB(atomic:((a))) T_EOF',
+        ];
+
+        yield 'a verb wrapping several groups' => [
+            'pattern' => '(*pla:((a)b(c)))',
+            'tokens' => 'T_PCRE_VERB(pla:((a)b(c))) T_EOF',
+        ];
     }
 
     private function tokenize(string $pattern): string

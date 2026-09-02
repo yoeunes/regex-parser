@@ -1641,6 +1641,15 @@ final class ParserConstructsTest extends TestCase
             'recompiled' => '/\\t\\n\\r/',
         ];
 
+        yield 'an atomic verb wrapping nested groups: /(*atomic:((a)))/' => [
+            'pattern' => '/(*atomic:((a)))/',
+            'recompiled' => '/(?>((a)))/',
+        ];
+
+        yield 'a lookahead verb wrapping several groups: /(*pla:((a)b(c)))/' => [
+            'pattern' => '/(*pla:((a)b(c)))/',
+            'recompiled' => '/(?=((a)b(c)))/',
+        ];
     }
 
     /**
@@ -1949,6 +1958,8 @@ final class ParserConstructsTest extends TestCase
         yield 'accepts negated posix word class: /[[:^word:]]/' => ['pattern' => '/[[:^word:]]/'];
         yield 'parser with quote mode: /\\Qtest.*\\E/' => ['pattern' => '/\\Qtest.*\\E/'];
         yield 'parser with special escapes: /\\t\\n\\r/' => ['pattern' => '/\\t\\n\\r/'];
+        yield 'an atomic verb wrapping nested groups: /(*atomic:((a)))/' => ['pattern' => '/(*atomic:((a)))/'];
+        yield 'a lookahead verb wrapping several groups: /(*pla:((a)b(c)))/' => ['pattern' => '/(*pla:((a)b(c)))/'];
     }
 
     private function compiles(string $pattern): bool

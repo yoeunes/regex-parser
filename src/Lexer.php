@@ -46,7 +46,9 @@ final class Lexer
     private const PATTERNS_OUTSIDE = [
         'T_COMMENT_OPEN' => '\\(\\?\\#',
         'T_CALLOUT' => '\\(\\?C [^)]* \\)',
-        'T_PCRE_VERB' => '\\(\\?\\* (?: [^()]+ | \\( [^()]* \\) )+ \\)|\\(\\* (?: [^()]+ | \\( [^()]* \\) )+ \\)',
+        // "(*atomic:(a(b)c))" nests as deep as it likes, so the body of a
+        // verb is matched by recursion rather than by one level of brackets.
+        'T_PCRE_VERB' => '\\( \\??\\* (?<verbBody> (?: [^()]++ | \\( (?P>verbBody) \\) )+ ) \\)',
         'T_GROUP_MODIFIER_OPEN' => '\\(\\?',
         'T_GROUP_OPEN' => '\\(',
         'T_GROUP_CLOSE' => '\\)',
