@@ -502,7 +502,7 @@ final readonly class Regex
         $versionId = $phpVersionId ?? \PHP_VERSION_ID;
         [$pattern, $flags] = PatternParser::extractPatternAndFlags($regex, $phpVersionId);
 
-        return (new Lexer($versionId))->tokenize($pattern, $flags);
+        return (new Lexer())->tokenize($pattern, $flags);
     }
 
     /**
@@ -1124,7 +1124,7 @@ final readonly class Regex
     private function parseFromScratch(string $regex): RegexNode
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex, $this->getParserPhpVersionId());
-        $tokenStream = (new Lexer($this->phpVersionId))->tokenize($pattern, $flags);
+        $tokenStream = (new Lexer())->tokenize($pattern, $flags);
         $parser = new Parser($this->maxRecursionDepth, $this->getParserPhpVersionId());
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - `RegexParser\Node\UnicodeNode` and `NodeVisitorInterface::visitUnicode()`: no parser path ever produced the node — `\x{...}` and `\u{...}` escapes become a `CharLiteralNode` — so every visitor carried a method that could not be called. See [UPGRADING.md](UPGRADING.md).
 - `RegexParser\ReDoS\ReDoSAnalyzerInterface`: implemented by nothing, `ReDoSAnalyzer` included.
+- The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Added
 - Alphabetic assertion verbs (PCRE2 10.32+): `(*pla:...)`, `(*positive_lookahead:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*negative_lookbehind:...)`, `(*atomic:...)` parse as their classic lookaround / atomic group equivalents.

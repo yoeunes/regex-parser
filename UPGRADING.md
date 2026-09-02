@@ -21,6 +21,16 @@ your class is simply never called, and you can delete it. Code that names
 
 Nothing implemented it, `ReDoSAnalyzer` included. Type against `ReDoSAnalyzer`.
 
+#### `Lexer::__construct()` takes no argument
+
+Tokenizing never depended on the PHP version: what a version decides is which
+modifiers a pattern may carry, and the parser settles that. The constructor
+took a version id, stored it, and used it only to key the cache of compiled
+token patterns, which compiled the same two regexes once per version.
+
+`new Lexer($versionId)` becomes `new Lexer()`. `Regex` still honours an
+explicit PHP version everywhere it matters.
+
 #### Cached ASTs are rebuilt
 
 `Regex::CACHE_VERSION` moved to `1.4.0`, so entries written by 1.3.0 are

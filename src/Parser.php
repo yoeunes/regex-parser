@@ -1077,7 +1077,7 @@ final class Parser
             return $this->createEmptyLiteralNodeAt($absoluteOffset);
         }
 
-        $stream = (new Lexer($this->phpVersionId))->tokenize($payload, $this->flags);
+        $stream = (new Lexer())->tokenize($payload, $this->flags);
         $parser = new Parser($this->maxRecursionDepth, $this->phpVersionId);
 
         return $parser->parse($stream, $this->flags, '/', \strlen($payload))->pattern;

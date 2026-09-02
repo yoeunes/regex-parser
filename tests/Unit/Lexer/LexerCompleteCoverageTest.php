@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lexer;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
@@ -757,12 +756,5 @@ final class LexerCompleteCoverageTest extends TestCase
         $this->expectExceptionMessage('Unclosed character class');
 
         (new Lexer())->tokenize('[abc');
-    }
-
-    #[DoesNotPerformAssertions]
-    public function test_lexer_custom_php_version(): void
-    {
-        $lexer = new Lexer(80000); // Custom version to trigger regex compilation
-        $lexer->tokenize('test');
     }
 }

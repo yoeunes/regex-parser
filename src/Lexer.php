@@ -124,8 +124,9 @@ final class Lexer
      */
     private const INLINE_FLAG_LETTERS = 'imsxUJnudr';
 
-    // Precompiled regex patterns for maximum performance (version-aware)
     /**
+     * Token patterns compiled once per byte mode.
+     *
      * @var array<int, string>
      */
     private static array $regexOutside = [];
@@ -134,8 +135,6 @@ final class Lexer
      * @var array<int, string>
      */
     private static array $regexInside = [];
-
-    private readonly int $phpVersionId;
 
     private string $pattern;
 
@@ -164,11 +163,6 @@ final class Lexer
      * @var array<int>
      */
     private array $charClassStartPositions = [];
-
-    public function __construct(?int $phpVersionId = null)
-    {
-        $this->phpVersionId = $phpVersionId ?? \PHP_VERSION_ID;
-    }
 
     public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
@@ -206,14 +200,17 @@ final class Lexer
 
     private function getRegexOutside(): string
     {
-        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+        // The token patterns are constants and the compiled regex only varies
+        // with the byte mode, so that is the whole key: keying it on the PHP
+        // version as well compiled the same two regexes once per version.
+        $key = $this->byteMode ? 1 : 0;
 
         return self::$regexOutside[$key] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
     }
 
     private function getRegexInside(): string
     {
-        $key = $this->phpVersionId * 2 + ($this->byteMode ? 1 : 0);
+        $key = $this->byteMode ? 1 : 0;
 
         return self::$regexInside[$key] ??= $this->compilePattern(self::PATTERNS_INSIDE);
     }
