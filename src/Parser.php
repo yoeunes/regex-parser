@@ -170,11 +170,13 @@ final class Parser
     private function parseScopedAlternation(): NodeInterface
     {
         $extendedMode = $this->extendedMode;
+        $duplicateNames = $this->groupNames->duplicatesAllowed();
 
         try {
             return $this->parseAlternation();
         } finally {
             $this->extendedMode = $extendedMode;
+            $this->groupNames->allowDuplicates($duplicateNames);
         }
     }
 
@@ -1145,6 +1147,9 @@ final class Parser
             );
         }
 
+        $wasExtended = $this->extendedMode;
+        $wasAllowingDuplicates = $this->groupNames->duplicatesAllowed();
+
         if ($modifiers->turnsOn('J')) {
             $this->groupNames->allowDuplicates(true);
         }
@@ -1152,7 +1157,6 @@ final class Parser
             $this->groupNames->allowDuplicates(false);
         }
 
-        $wasExtended = $this->extendedMode;
         $this->extendedMode = $modifiers->inForce('x', $this->extendedMode);
 
         $expr = null;
@@ -1160,6 +1164,7 @@ final class Parser
             $expr = $this->parseScopedAlternation();
             // "(?x:...)" only covers its own group; "(?x)" keeps going.
             $this->extendedMode = $wasExtended;
+            $this->groupNames->allowDuplicates($wasAllowingDuplicates);
         }
 
         $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
