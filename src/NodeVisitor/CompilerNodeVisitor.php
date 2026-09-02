@@ -273,6 +273,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':',
         };
 
+        $opening = $this->openingAsWritten($node, $opening);
+
         // Whitespace hugging the parentheses belongs to no node, so it is read
         // back from the source like any other /x filler.
         $start = $node->getStartPosition() + \strlen($opening);
@@ -449,6 +451,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node): string
     {
+        // "(*sr:...)" is the same verb written short.
+        $written = $this->writtenText($node);
+        if (null !== $written && \in_array($written, ['(*sr:'.$node->script.')', '(*script_run:'.$node->script.')'], true)) {
+            return $written;
+        }
+
         return '(*script_run:'.$node->script.')';
     }
 
@@ -652,6 +660,35 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * The text that opened a group, as the pattern spelled it.
+     *
+     * PCRE names a group four ways — "(?<n>", "(?'n'", "(?P<n>", "(?P\"n\"" —
+     * and they mean the same thing, so the tree keeps only the name. The
+     * source still knows which one was written.
+     */
+    private function openingAsWritten(GroupNode $node, string $opening): string
+    {
+        if (null === $this->source || GroupType::T_GROUP_NAMED !== $node->type || null === $node->name) {
+            return $opening;
+        }
+
+        $start = $node->getStartPosition();
+        $length = $node->child->getStartPosition() - $start;
+        if ($length <= 0 || $start < 0 || $start + $length > \strlen($this->source)) {
+            return $opening;
+        }
+
+        $written = substr($this->source, $start, $length);
+        $quoted = preg_quote($node->name, '/');
+
+        // Only a spelling of this very name is taken back; anything else means
+        // the offsets no longer line up with the source.
+        return 1 === preg_match('/^\(\?P?(?:<'.$quoted.'>|\''.$quoted.'\'|"'.$quoted.'")$/', $written)
+            ? $written
+            : $opening;
     }
 
     /**

@@ -68,12 +68,12 @@ final class ParserConstructsTest extends TestCase
     {
         yield 'python named group single quotes: /(?P\'name\'test)/' => [
             'pattern' => '/(?P\'name\'test)/',
-            'recompiled' => '/(?P<name>test)/',
+            'recompiled' => '/(?P\'name\'test)/',
         ];
 
         yield 'python named group double quotes: /(?P"name"test)/' => [
             'pattern' => '/(?P"name"test)/',
-            'recompiled' => '/(?P<name>test)/',
+            'recompiled' => '/(?P"name"test)/',
         ];
 
         yield 'python named group angle brackets: /(?P<name>test)/' => [
@@ -643,12 +643,12 @@ final class ParserConstructsTest extends TestCase
 
         yield 'python style named groups with quotes: /(?P\'name\'a)/' => [
             'pattern' => '/(?P\'name\'a)/',
-            'recompiled' => '/(?P<name>a)/',
+            'recompiled' => '/(?P\'name\'a)/',
         ];
 
         yield 'python style named groups with quotes: /(?P"name"a)/' => [
             'pattern' => '/(?P"name"a)/',
-            'recompiled' => '/(?P<name>a)/',
+            'recompiled' => '/(?P"name"a)/',
         ];
 
         yield 'char class negation: /[^abc]/' => [
@@ -1661,8 +1661,6 @@ final class ParserConstructsTest extends TestCase
      */
     public static function provideConstructsPcreAccepts(): iterable
     {
-        yield 'python named group single quotes: /(?P\'name\'test)/' => ['pattern' => '/(?P\'name\'test)/'];
-        yield 'python named group double quotes: /(?P"name"test)/' => ['pattern' => '/(?P"name"test)/'];
         yield 'python named group angle brackets: /(?P<name>test)/' => ['pattern' => '/(?P<name>test)/'];
         yield 'python subroutine call: /(?P<name>test)(?P>name)/' => ['pattern' => '/(?P<name>test)(?P>name)/'];
         yield 'positive lookbehind: /(?<=test)abc/' => ['pattern' => '/(?<=test)abc/'];
@@ -1772,8 +1770,6 @@ final class ParserConstructsTest extends TestCase
         yield 'g reference variations: /(a)\\g{1}/' => ['pattern' => '/(a)\\g{1}/'];
         yield 'g reference variations: /(a)\\g{-1}/' => ['pattern' => '/(a)\\g{-1}/'];
         yield 'subroutine call p syntax: /(?<foo>a)(?P>foo)/' => ['pattern' => '/(?<foo>a)(?P>foo)/'];
-        yield 'python style named groups with quotes: /(?P\'name\'a)/' => ['pattern' => '/(?P\'name\'a)/'];
-        yield 'python style named groups with quotes: /(?P"name"a)/' => ['pattern' => '/(?P"name"a)/'];
         yield 'char class negation: /[^abc]/' => ['pattern' => '/[^abc]/'];
         yield 'char class with dash positions: /[-abc]/' => ['pattern' => '/[-abc]/'];
         yield 'char class with dash positions: /[abc-]/' => ['pattern' => '/[abc-]/'];
