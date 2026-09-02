@@ -842,38 +842,14 @@ final class Parser
      */
     private function parsePcreVerbInGroup(int $startPosition): NodeInterface
     {
-        $verb = '';
         $verbStartPosition = $this->stream->current()->position;
 
-        // Collect verb name characters until we hit : or )
-        while (
-            !$this->stream->isAtEnd()
-            && !$this->stream->check(TokenType::T_GROUP_CLOSE)
-            && !$this->stream->checkLiteral(':')
-        ) {
-            if ($this->stream->check(TokenType::T_LITERAL)) {
-                $verb .= $this->stream->current()->value;
-                $this->stream->advance();
-            } else {
-                break;
-            }
-        }
+        $verb = $this->consumeWhile(static fn (string $c): bool => ':' !== $c);
 
-        // Check for verbs with arguments like MARK:name
-        $argument = '';
-        if ($this->stream->matchLiteral(':')) {
-            while (
-                !$this->stream->isAtEnd()
-                && !$this->stream->check(TokenType::T_GROUP_CLOSE)
-            ) {
-                if ($this->stream->check(TokenType::T_LITERAL)) {
-                    $argument .= $this->stream->current()->value;
-                    $this->stream->advance();
-                } else {
-                    break;
-                }
-            }
-        }
+        // A verb may carry an argument, as "(*MARK:name)" does.
+        $argument = $this->stream->matchLiteral(':')
+            ? $this->consumeWhile(static fn (): bool => true)
+            : '';
 
         $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb');
         $endPosition = $endToken->position + 1;
@@ -1294,7 +1270,7 @@ final class Parser
     /**
      * Parses a DEFINE condition in a conditional construct.
      */
-    private function parseDefineCondition(int $startPosition): AssertionNode|false
+    private function parseDefineCondition(int $startPosition): ?AssertionNode
     {
         $savedPos = $this->stream->getPosition();
         $word = '';
@@ -1310,13 +1286,13 @@ final class Parser
         // Not DEFINE, restore position
         $this->stream->setPosition($savedPos);
 
-        return false;
+        return null;
     }
 
     /**
      * Parses a VERSION condition in a conditional construct.
      */
-    private function parseVersionCondition(int $startPosition): VersionConditionNode|false
+    private function parseVersionCondition(int $startPosition): ?VersionConditionNode
     {
         $savedPos = $this->stream->getPosition();
         $word = '';
@@ -1333,7 +1309,7 @@ final class Parser
         if (null === $condition) {
             $this->stream->setPosition($savedPos);
 
-            return false;
+            return null;
         }
 
         return new VersionConditionNode(
@@ -1347,10 +1323,10 @@ final class Parser
     /**
      * Parses a numeric condition in a conditional construct.
      */
-    private function parseNumericCondition(int $startPosition): BackrefNode|false
+    private function parseNumericCondition(int $startPosition): ?BackrefNode
     {
         if (!$this->isLiteralDigitToken()) {
-            return false;
+            return null;
         }
 
         $this->stream->advance();
@@ -1364,10 +1340,10 @@ final class Parser
     /**
      * Parses a named condition in a conditional construct.
      */
-    private function parseNamedCondition(int $startPosition): BackrefNode|false
+    private function parseNamedCondition(int $startPosition): ?BackrefNode
     {
         if (!$this->stream->matchLiteral('<') && !$this->stream->matchLiteral('{')) {
-            return false;
+            return null;
         }
 
         $open = $this->stream->previous()->value;
@@ -1381,10 +1357,10 @@ final class Parser
     /**
      * Parses a subroutine R condition in a conditional construct.
      */
-    private function parseSubroutineRCondition(int $startPosition): SubroutineNode|false
+    private function parseSubroutineRCondition(int $startPosition): ?SubroutineNode
     {
         if (!$this->stream->matchLiteral('R')) {
-            return false;
+            return null;
         }
 
         $endPosition = $this->stream->previous()->position;
@@ -1412,10 +1388,10 @@ final class Parser
     /**
      * Parses a bare name condition in a conditional construct.
      */
-    private function parseBareNameCondition(int $startPosition): BackrefNode|false
+    private function parseBareNameCondition(int $startPosition): ?BackrefNode
     {
         if (!$this->stream->check(TokenType::T_LITERAL)) {
-            return false;
+            return null;
         }
 
         $savedPos = $this->stream->getPosition();
@@ -1435,7 +1411,7 @@ final class Parser
 
         $this->stream->setPosition($savedPos);
 
-        return false;
+        return null;
     }
 
     /**
@@ -1445,51 +1421,26 @@ final class Parser
     {
         $startPosition = $this->stream->current()->position;
 
-        // Check for DEFINE condition
-        if ($this->stream->check(TokenType::T_LITERAL) && 'D' === $this->stream->current()->value) {
-            $defineCondition = $this->parseDefineCondition($startPosition);
-            if (false !== $defineCondition) {
-                return $defineCondition;
-            }
+        $condition = $this->parseDefineCondition($startPosition)
+            ?? $this->parseVersionCondition($startPosition)
+            ?? $this->parseNumericCondition($startPosition)
+            ?? $this->parseNamedCondition($startPosition)
+            ?? $this->parseSubroutineRCondition($startPosition);
+
+        if (null !== $condition) {
+            return $condition;
         }
 
-        // Check for VERSION condition
-        if ($this->stream->check(TokenType::T_LITERAL) && 'V' === $this->stream->current()->value) {
-            $versionCondition = $this->parseVersionCondition($startPosition);
-            if (false !== $versionCondition) {
-                return $versionCondition;
-            }
-        }
-
-        // Check for numeric condition
-        $numericCondition = $this->parseNumericCondition($startPosition);
-        if (false !== $numericCondition) {
-            return $numericCondition;
-        }
-
-        // Check for named condition
-        $namedCondition = $this->parseNamedCondition($startPosition);
-        if (false !== $namedCondition) {
-            return $namedCondition;
-        }
-
-        // Check for subroutine R condition
-        $subroutineRCondition = $this->parseSubroutineRCondition($startPosition);
-        if (false !== $subroutineRCondition) {
-            return $subroutineRCondition;
-        }
-
-        // Check for lookaround condition
         if ($this->stream->matchLiteral('?')) {
             return $this->parseLookaroundCondition($startPosition);
         }
 
-        // Check for bare name condition
-        $bareNameCondition = $this->parseBareNameCondition($startPosition);
-        if (false !== $bareNameCondition) {
-            return $bareNameCondition;
+        $bareName = $this->parseBareNameCondition($startPosition);
+        if (null !== $bareName) {
+            return $bareName;
         }
 
+        // Anything else has to be an atom that refers to a group.
         $condition = $this->parseAtom();
 
         if (
