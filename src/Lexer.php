@@ -406,7 +406,10 @@ final class Lexer
 
             $value = $this->extractTokenValue($type, $matchedValue, $matches);
 
-            return new Token($type, $value, $startPos);
+            // The value may be a rewrite of what was matched — a stripped
+            // backslash, a normalized property name — so the token carries the
+            // length of the text it was cut from, not the length of its value.
+            return new Token($type, $value, $startPos, \strlen($matchedValue));
         }
 
         throw LexerException::withContext(
