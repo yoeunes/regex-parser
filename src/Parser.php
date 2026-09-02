@@ -19,6 +19,7 @@ use RegexParser\Exception\SyntaxErrorException;
 use RegexParser\Internal\CodePointReader;
 use RegexParser\Internal\GroupNameReader;
 use RegexParser\Internal\InlineFlags;
+use RegexParser\Internal\VersionCondition;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -1479,49 +1480,16 @@ final class Parser
             $this->stream->advance();
         }
 
-        $trimmed = trim($word);
-        if (!str_starts_with($trimmed, 'VERSION')) {
-            $this->stream->setPosition($savedPos);
-
-            return false;
-        }
-
-        $rest = ltrim(substr($trimmed, \strlen('VERSION')));
-        $operator = null;
-        foreach (['>=', '<=', '==', '!=', '>', '<'] as $candidate) {
-            if (str_starts_with($rest, $candidate)) {
-                $operator = $candidate;
-                $rest = ltrim(substr($rest, \strlen($candidate)));
-
-                break;
-            }
-        }
-
-        if (null === $operator || '' === $rest) {
-            $this->stream->setPosition($savedPos);
-
-            return false;
-        }
-
-        $parts = explode('.', $rest);
-        $valid = true;
-        foreach ($parts as $part) {
-            if ('' === $part || !ctype_digit($part)) {
-                $valid = false;
-
-                break;
-            }
-        }
-
-        if (!$valid) {
+        $condition = VersionCondition::read($word);
+        if (null === $condition) {
             $this->stream->setPosition($savedPos);
 
             return false;
         }
 
         return new VersionConditionNode(
-            $operator,
-            $rest,
+            $condition->operator,
+            $condition->version,
             $startPosition,
             $this->stream->previous()->position,
         );
