@@ -12,78 +12,46 @@ declare(strict_types=1);
  */
 
 namespace {
-    use RegexParser\Automata\Alphabet\CharSet;
-    use RegexParser\Automata\Builder\DfaBuilder;
-    use RegexParser\Automata\Builder\NfaBuilder;
-    use RegexParser\Automata\Minimization\DfaMinimizer;
-    use RegexParser\Automata\Minimization\HopcroftWorklist;
-    use RegexParser\Automata\Minimization\MinimizationAlgorithm;
-    use RegexParser\Automata\Minimization\MinimizationAlgorithmFactory;
-    use RegexParser\Automata\Minimization\MinimizationAlgorithmInterface;
-    use RegexParser\Automata\Minimization\MoorePartitionRefinement;
-    use RegexParser\Automata\Model\Dfa;
-    use RegexParser\Automata\Model\DfaState;
-    use RegexParser\Automata\Model\Nfa;
-    use RegexParser\Automata\Model\NfaFragment;
-    use RegexParser\Automata\Model\NfaState;
-    use RegexParser\Automata\Model\NfaTransition;
-    use RegexParser\Automata\Options\MatchMode;
-    use RegexParser\Automata\Options\SolverOptions;
-    use RegexParser\Automata\Solver\EquivalenceResult;
-    use RegexParser\Automata\Solver\IntersectionResult;
-    use RegexParser\Automata\Solver\RegexSolver;
-    use RegexParser\Automata\Solver\RegexSolverInterface;
-    use RegexParser\Automata\Solver\SubsetResult;
-    use RegexParser\Automata\Transform\AstToNfaTransformer;
-    use RegexParser\Automata\Transform\AstToNfaTransformerInterface;
-    use RegexParser\Automata\Transform\RegularSubsetValidator;
-
+    /*
+     * The automata classes used to live directly under RegexParser\Automata
+     * before they were grouped by role. The old names still resolve, but only
+     * for whoever asks for one: aliasing them up front loaded twenty-five
+     * classes into every process that autoloads this package, including the
+     * ones that only ever parse a pattern.
+     */
     $aliases = [
-        CharSet::class => \RegexParser\Automata\CharSet::class,
-        DfaBuilder::class => \RegexParser\Automata\DfaBuilder::class,
-        NfaBuilder::class => \RegexParser\Automata\NfaBuilder::class,
-        DfaMinimizer::class => \RegexParser\Automata\DfaMinimizer::class,
-        HopcroftWorklist::class => \RegexParser\Automata\HopcroftWorklist::class,
-        MinimizationAlgorithm::class => \RegexParser\Automata\MinimizationAlgorithm::class,
-        MinimizationAlgorithmFactory::class => \RegexParser\Automata\MinimizationAlgorithmFactory::class,
-        MinimizationAlgorithmInterface::class => \RegexParser\Automata\MinimizationAlgorithmInterface::class,
-        MoorePartitionRefinement::class => \RegexParser\Automata\MoorePartitionRefinement::class,
-        Dfa::class => \RegexParser\Automata\Dfa::class,
-        DfaState::class => \RegexParser\Automata\DfaState::class,
-        Nfa::class => \RegexParser\Automata\Nfa::class,
-        NfaFragment::class => \RegexParser\Automata\NfaFragment::class,
-        NfaState::class => \RegexParser\Automata\NfaState::class,
-        NfaTransition::class => \RegexParser\Automata\NfaTransition::class,
-        MatchMode::class => \RegexParser\Automata\MatchMode::class,
-        SolverOptions::class => \RegexParser\Automata\SolverOptions::class,
-        EquivalenceResult::class => \RegexParser\Automata\EquivalenceResult::class,
-        IntersectionResult::class => \RegexParser\Automata\IntersectionResult::class,
-        RegexSolver::class => \RegexParser\Automata\RegexSolver::class,
-        RegexSolverInterface::class => \RegexParser\Automata\RegexSolverInterface::class,
-        SubsetResult::class => \RegexParser\Automata\SubsetResult::class,
-        AstToNfaTransformer::class => \RegexParser\Automata\AstToNfaTransformer::class,
-        AstToNfaTransformerInterface::class => \RegexParser\Automata\AstToNfaTransformerInterface::class,
-        RegularSubsetValidator::class => \RegexParser\Automata\RegularSubsetValidator::class,
+        'RegexParser\\Automata\\CharSet' => 'RegexParser\\Automata\\Alphabet\\CharSet',
+        'RegexParser\\Automata\\DfaBuilder' => 'RegexParser\\Automata\\Builder\\DfaBuilder',
+        'RegexParser\\Automata\\NfaBuilder' => 'RegexParser\\Automata\\Builder\\NfaBuilder',
+        'RegexParser\\Automata\\DfaMinimizer' => 'RegexParser\\Automata\\Minimization\\DfaMinimizer',
+        'RegexParser\\Automata\\HopcroftWorklist' => 'RegexParser\\Automata\\Minimization\\HopcroftWorklist',
+        'RegexParser\\Automata\\MinimizationAlgorithm' => 'RegexParser\\Automata\\Minimization\\MinimizationAlgorithm',
+        'RegexParser\\Automata\\MinimizationAlgorithmFactory' => 'RegexParser\\Automata\\Minimization\\MinimizationAlgorithmFactory',
+        'RegexParser\\Automata\\MinimizationAlgorithmInterface' => 'RegexParser\\Automata\\Minimization\\MinimizationAlgorithmInterface',
+        'RegexParser\\Automata\\MoorePartitionRefinement' => 'RegexParser\\Automata\\Minimization\\MoorePartitionRefinement',
+        'RegexParser\\Automata\\Dfa' => 'RegexParser\\Automata\\Model\\Dfa',
+        'RegexParser\\Automata\\DfaState' => 'RegexParser\\Automata\\Model\\DfaState',
+        'RegexParser\\Automata\\Nfa' => 'RegexParser\\Automata\\Model\\Nfa',
+        'RegexParser\\Automata\\NfaFragment' => 'RegexParser\\Automata\\Model\\NfaFragment',
+        'RegexParser\\Automata\\NfaState' => 'RegexParser\\Automata\\Model\\NfaState',
+        'RegexParser\\Automata\\NfaTransition' => 'RegexParser\\Automata\\Model\\NfaTransition',
+        'RegexParser\\Automata\\MatchMode' => 'RegexParser\\Automata\\Options\\MatchMode',
+        'RegexParser\\Automata\\SolverOptions' => 'RegexParser\\Automata\\Options\\SolverOptions',
+        'RegexParser\\Automata\\EquivalenceResult' => 'RegexParser\\Automata\\Solver\\EquivalenceResult',
+        'RegexParser\\Automata\\IntersectionResult' => 'RegexParser\\Automata\\Solver\\IntersectionResult',
+        'RegexParser\\Automata\\RegexSolver' => 'RegexParser\\Automata\\Solver\\RegexSolver',
+        'RegexParser\\Automata\\RegexSolverInterface' => 'RegexParser\\Automata\\Solver\\RegexSolverInterface',
+        'RegexParser\\Automata\\SubsetResult' => 'RegexParser\\Automata\\Solver\\SubsetResult',
+        'RegexParser\\Automata\\AstToNfaTransformer' => 'RegexParser\\Automata\\Transform\\AstToNfaTransformer',
+        'RegexParser\\Automata\\AstToNfaTransformerInterface' => 'RegexParser\\Automata\\Transform\\AstToNfaTransformerInterface',
+        'RegexParser\\Automata\\RegularSubsetValidator' => 'RegexParser\\Automata\\Transform\\RegularSubsetValidator',
     ];
 
-    foreach ($aliases as $new => $old) {
-        $legacyExists = \class_exists($old, false)
-            || \interface_exists($old, false)
-            || (\function_exists('enum_exists') && \enum_exists($old, false));
-
-        if ($legacyExists) {
-            $legacyReflection = new \ReflectionClass($old);
-            $currentReflection = new \ReflectionClass($new);
-            if ($legacyReflection->getName() !== $currentReflection->getName()) {
-                \trigger_error(
-                    \sprintf('Legacy alias "%s" is already defined and does not match "%s".', $old, $new),
-                    \E_USER_WARNING,
-                );
-            }
-
-            continue;
+    \spl_autoload_register(static function (string $class) use ($aliases): void {
+        if (!isset($aliases[$class])) {
+            return;
         }
 
-        \class_alias($new, $old);
-    }
+        \class_alias($aliases[$class], $class);
+    });
 }
