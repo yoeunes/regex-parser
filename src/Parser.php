@@ -17,6 +17,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\SyntaxErrorException;
 use RegexParser\Internal\CodePointReader;
+use RegexParser\Internal\GroupNameReader;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -110,20 +111,15 @@ final class Parser
 
     private TokenStream $stream;
 
+    private GroupNameReader $groupNames;
+
     private string $pattern = '';
 
     private string $flags = '';
 
-    private bool $JModifier = false;
-
     private bool $extendedMode = false;
 
     private bool $inQuoteMode = false;
-
-    /**
-     * @var array<string, bool>
-     */
-    private array $groupNames = [];
 
     private int $recursionDepth = 0;
 
@@ -150,10 +146,10 @@ final class Parser
         $this->stream = $stream;
         $this->pattern = $stream->getPattern();
         $this->flags = $flags;
-        $this->JModifier = str_contains($flags, 'J');
+        $this->groupNames = new GroupNameReader($stream);
+        $this->groupNames->allowDuplicates(str_contains($flags, 'J'));
         $this->extendedMode = str_contains($flags, 'x');
         $this->inQuoteMode = false;
-        $this->groupNames = [];
         $this->recursionDepth = 0;
 
         $patternNode = $this->parseAlternation();
@@ -796,7 +792,7 @@ final class Parser
 
         // 3. PCRE-style quoted named groups (?'name'...)
         if ($this->stream->checkLiteral("'")) {
-            $name = $this->parseGroupName($startPosition);
+            $name = $this->groupNames->read($startPosition);
             $expr = $this->parseScopedAlternation();
             $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -1054,7 +1050,7 @@ final class Parser
         }
 
         if ($this->stream->matchLiteral('<')) { // (?P<name>...)
-            $name = $this->parseGroupName($pPos);
+            $name = $this->groupNames->read($pPos);
             $this->stream->consumeLiteral('>', 'Expected > after group name');
             $expr = $this->parseScopedAlternation();
             $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -1078,7 +1074,7 @@ final class Parser
         }
 
         if ($this->stream->matchLiteral('=')) {
-            $name = $this->parseGroupName($this->stream->current()->position, false);
+            $name = $this->groupNames->read($this->stream->current()->position, false);
             $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new BackrefNode('\\k<'.$name.'>', $startPos, $endToken->position + 1);
@@ -1120,7 +1116,7 @@ final class Parser
         }
 
         // (?<name>...)
-        $name = $this->parseGroupName($startPos);
+        $name = $this->groupNames->read($startPos);
         $this->stream->consumeLiteral('>', 'Expected > after group name');
         $expr = $this->parseScopedAlternation();
         $endToken = $this->stream->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -1293,10 +1289,10 @@ final class Parser
             }
 
             if (str_contains($setFlags, 'J')) {
-                $this->JModifier = true;
+                $this->groupNames->allowDuplicates(true);
             }
             if (str_contains($unsetFlags, 'J')) {
-                $this->JModifier = false;
+                $this->groupNames->allowDuplicates(false);
             }
 
             $previousExtendedMode = $this->extendedMode;
@@ -1578,7 +1574,7 @@ final class Parser
         }
 
         $open = $this->stream->previous()->value;
-        $name = $this->parseGroupName($startPosition, false);
+        $name = $this->groupNames->read($startPosition, false);
         $close = '<' === $open ? '>' : '}';
         $this->stream->consumeLiteral($close, "Expected $close after condition name");
 
@@ -1717,97 +1713,6 @@ final class Parser
         }
 
         return $condition;
-    }
-
-    /**
-     * checks for duplicate group names and registers the name
-     */
-    private function checkAndRegisterGroupName(string $name, int $position): void
-    {
-        if (isset($this->groupNames[$name]) && !$this->JModifier) {
-            throw $this->parserException(
-                \sprintf('Duplicate group name "%s" at position %d.', $name, $position),
-                $position,
-            );
-        }
-        $this->groupNames[$name] = true;
-    }
-
-    /**
-     * parses a group name, handling quoted names and validating characters
-     */
-    private function parseGroupName(?int $errorPosition = null, bool $register = true): string
-    {
-        $quote = null;
-        $nameStartPosition = $errorPosition ?? $this->stream->current()->position;
-
-        // Check for quoted group name (Python-style: 'name' or "name")
-        if ($this->stream->checkLiteral("'") || $this->stream->checkLiteral('"')) {
-            $quote = $this->stream->current()->value;
-            $this->stream->advance();
-        }
-
-        $name = '';
-        while (
-            !$this->stream->checkLiteral('>')
-            && !$this->stream->checkLiteral('}')
-            && !$this->stream->isAtEnd()
-        ) {
-            // If we're in quoted mode and hit the closing quote, stop collecting
-            if (null !== $quote && $this->stream->checkLiteral($quote)) {
-                break;
-            }
-
-            if ($this->stream->check(TokenType::T_GROUP_CLOSE)) {
-                break;
-            }
-
-            if ($this->stream->check(TokenType::T_LITERAL) || $this->stream->check(TokenType::T_LITERAL_ESCAPED)) {
-                $name .= $this->stream->current()->value;
-                $this->stream->advance();
-            } else {
-                throw $this->parserException(
-                    \sprintf('Unexpected token "%s" in group name', $this->stream->current()->value),
-                    $this->stream->current()->position,
-                );
-            }
-        }
-
-        // If quoted, expect the closing quote
-        if (null !== $quote) {
-            if (!$this->stream->checkLiteral($quote)) {
-                throw $this->parserException(
-                    \sprintf(
-                        'Expected closing quote "%s" for group name at position %d',
-                        $quote,
-                        $this->stream->current()->position,
-                    ),
-                    $this->stream->current()->position,
-                );
-            }
-            $this->stream->advance();
-        }
-
-        if ('' === $name) {
-            throw $this->parserException(
-                \sprintf('Expected group name at position %d', $nameStartPosition),
-                $nameStartPosition,
-            );
-        }
-
-        // PCRE group names are word characters only and must not start with a digit.
-        if (1 !== preg_match('/^[A-Za-z_]\w*+$/', $name)) {
-            throw $this->parserException(
-                \sprintf('Invalid group name "%s": names must contain only word characters and must not start with a digit.', $name),
-                $nameStartPosition,
-            );
-        }
-
-        if ($register) {
-            $this->checkAndRegisterGroupName($name, $nameStartPosition);
-        }
-
-        return $name;
     }
 
     /**
