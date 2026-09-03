@@ -28,6 +28,15 @@ final class FilesystemCache implements RemovableCacheInterface
         $this->directory = rtrim($directory, '\\/');
     }
 
+    /**
+     * Where caches go when no directory is given, namespaced by the AST
+     * version so a new release never reads a tree an older one wrote.
+     */
+    public static function defaultDirectory(): string
+    {
+        return \sys_get_temp_dir().\DIRECTORY_SEPARATOR.'regex-parser'.\DIRECTORY_SEPARATOR.'cache-'.Regex::CACHE_VERSION;
+    }
+
     #[\Override]
     public function generateKey(string $regex): string
     {

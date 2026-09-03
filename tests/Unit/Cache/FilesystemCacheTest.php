@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Cache {
     use PHPUnit\Framework\TestCase;
     use RegexParser\Cache\FilesystemCache;
+    use RegexParser\Regex;
 
     final class FilesystemCacheTest extends TestCase
     {
@@ -39,6 +40,14 @@ namespace RegexParser\Tests\Unit\Cache {
             $this->assertFileExists($key);
             $this->assertSame('cached-value', $cache->load($key));
             $this->assertGreaterThan(0, $cache->getTimestamp($key));
+        }
+
+        public function test_default_directory_is_namespaced_by_ast_version(): void
+        {
+            $this->assertStringContainsString(
+                'cache-'.Regex::CACHE_VERSION,
+                FilesystemCache::defaultDirectory(),
+            );
         }
 
         public function test_clear_removes_cached_entries(): void
@@ -174,12 +183,26 @@ namespace RegexParser\Tests\Unit\Cache {
                 return;
             }
 
-            $iterator = new \RecursiveIteratorIterator(
+            // A test may leave a directory read-only (see the unwritable
+            // directory test), which blocks deleting its children. Ownership
+            // still allows restoring access, so do that before anything else.
+            $directories = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST,
+            );
+
+            foreach ($directories as $fileInfo) {
+                if ($fileInfo instanceof \SplFileInfo && $fileInfo->isDir()) {
+                    @chmod($fileInfo->getPathname(), 0o755);
+                }
+            }
+
+            $files = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
                 \RecursiveIteratorIterator::CHILD_FIRST,
             );
 
-            foreach ($iterator as $fileInfo) {
+            foreach ($files as $fileInfo) {
                 if (!$fileInfo instanceof \SplFileInfo) {
                     continue;
                 }

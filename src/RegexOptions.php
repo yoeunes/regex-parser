@@ -96,12 +96,10 @@ final readonly class RegexOptions
      */
     private static function createDefault(): self
     {
-        $defaultPath = sys_get_temp_dir().\DIRECTORY_SEPARATOR.'regex-parser'.\DIRECTORY_SEPARATOR.'cache';
-
         return new self(
             Regex::DEFAULT_MAX_PATTERN_LENGTH,
             Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
-            new FilesystemCache($defaultPath),
+            new FilesystemCache(FilesystemCache::defaultDirectory()),
             [],
             false,
         );
