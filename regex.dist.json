@@ -11,7 +11,10 @@
     ],
     "extraction": {
         "interop": [
-            "composer-pcre"
+            "composer-pcre",
+            "nette-utils",
+            "spatie-regex",
+            "laravel-str"
         ],
         "functions": []
     },
