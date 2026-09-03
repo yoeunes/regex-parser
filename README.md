@@ -87,7 +87,8 @@ rules produce sensible output on real code.
 
 The corpus checkouts themselves are not committed. `corpus/corpus.json` lists
 every repository with its URL and branch, and `php corpus/update` clones the
-missing ones before pulling the rest:
+missing ones before pulling the rest (switching each checkout to the branch
+recorded in the manifest):
 
 ```bash
 php corpus/update                      # clone what is missing, then pull everything

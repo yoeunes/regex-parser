@@ -237,7 +237,8 @@ Usage: corpus/update [--jobs[=<n>|auto]] [--timeout=<sec>] [--force] [--debug] [
        corpus/update --write-manifest
 
 Clones every repository listed in corpus/corpus.json that is missing on disk,
-then pulls the repositories that are already there.
+then updates the repositories that are already there, switching each one to
+the branch recorded in the manifest before pulling.
 
 Options:
   --jobs, -j        Number of parallel workers (default: auto, 2x CPUs)
@@ -939,6 +940,32 @@ function getRemoteDefaultBranch(string $repoPath, string $remote, int $timeout):
 }
 
 /**
+ * Keep the remote's fetch refspec in sync after a branch switch: a
+ * single-branch clone (the manifest default) keeps fetching only the branch
+ * it was cloned from, so point the refspec at the branch now tracked. Clones
+ * with a wildcard refspec are left untouched.
+ */
+function ensureFetchRefspec(string $repoPath, string $remote, string $branch, int $timeout): void
+{
+    $current = runGit($repoPath, ['config', '--get-all', 'remote.'.$remote.'.fetch'], $timeout);
+    if (0 !== $current['code']) {
+        return;
+    }
+
+    foreach (preg_split('/\R/', trim($current['output'])) ?: [] as $refspec) {
+        if (str_contains($refspec, '*')) {
+            return;
+        }
+    }
+
+    runGit($repoPath, [
+        'config',
+        'remote.'.$remote.'.fetch',
+        sprintf('+refs/heads/%s:refs/remotes/%s/%s', $branch, $remote, $branch),
+    ], $timeout);
+}
+
+/**
  * @return array{ok: bool, args?: array<int, string>, command?: string, note?: string, message?: string}
  */
 function resolvePullCommand(string $repoPath, int $timeout): array
@@ -984,9 +1011,11 @@ function resolvePullCommand(string $repoPath, int $timeout): array
 // ---------------------------------------------------------------------------
 
 /**
+ * @param array<string, ?string> $branches Map of manifest repository labels to their configured branch
+ *
  * @return array{path: string, status: string, output: string, command: string, code: int, log: array<string>}
  */
-function processRepo(string $repoPath, bool $force, string $corpusDir, bool $debug, int $timeout): array
+function processRepo(string $repoPath, bool $force, string $corpusDir, bool $debug, int $timeout, array $branches = []): array
 {
     $log = [];
     $fail = static fn (string $msg, string $cmd = 'N/A', int $code = 1): array => [
@@ -1050,6 +1079,40 @@ function processRepo(string $repoPath, bool $force, string $corpusDir, bool $deb
         }
     }
 
+    // --- Branch phase ---
+    // The manifest branch is authoritative: switch before pulling so that a
+    // branch bump in corpus.json propagates to the checkout.
+    $branchNote = '';
+    $branch = $branches[formatRepoLabel($repoPath, $corpusDir)] ?? null;
+    $currentBranch = null !== $branch ? getCurrentBranch($repoPath, $timeout) : null;
+
+    if (null !== $branch && null !== $currentBranch && $currentBranch !== $branch) {
+        $remote = getBranchRemote($repoPath, $currentBranch, $timeout);
+        $remote ??= remoteExists($repoPath, 'origin', $timeout) ? 'origin' : null;
+
+        if (null === $remote) {
+            return $fail('No git remote found for branch '.$currentBranch.'.');
+        }
+
+        $fetch = $git(['fetch', $remote, '+refs/heads/'.$branch.':refs/remotes/'.$remote.'/'.$branch]);
+        if (0 !== $fetch['code']) {
+            return $fail('Configured branch '.$branch.' not found on '.$remote.': '.$fetch['output']);
+        }
+
+        // Point the fetch refspec at the new branch before the checkout: on a
+        // single-branch clone, git refuses to set up tracking for a start
+        // point that the remote's configured refspec does not cover.
+        ensureFetchRefspec($repoPath, $remote, $branch, $timeout);
+
+        $checkout = $git(['checkout', '-B', $branch, $remote.'/'.$branch]);
+        if (0 !== $checkout['code']) {
+            return $fail('Branch switch failed: '.$checkout['output']);
+        }
+
+        $git(['branch', '--set-upstream-to='.$remote.'/'.$branch, $branch]);
+        $branchNote = 'Switched '.$currentBranch.' to '.$branch.' (configured branch).';
+    }
+
     // --- Update phase ---
     $resolved = resolvePullCommand($repoPath, $timeout);
     if (!($resolved['ok'] ?? false)) {
@@ -1064,6 +1127,9 @@ function processRepo(string $repoPath, bool $force, string $corpusDir, bool $deb
     $output = $pull['output'];
     if (isset($resolved['note']) && '' !== $resolved['note']) {
         $output = $resolved['note'].('' === $output ? '' : PHP_EOL.$output);
+    }
+    if ('' !== $branchNote) {
+        $output = $branchNote.('' === $output ? '' : PHP_EOL.$output);
     }
 
     // --- Self-heal phase ---
@@ -1081,6 +1147,9 @@ function processRepo(string $repoPath, bool $force, string $corpusDir, bool $deb
         if (null !== $remote && null !== $default) {
             $fetch = $git(['fetch', $remote, '+refs/heads/'.$default.':refs/remotes/'.$remote.'/'.$default]);
             if (0 === $fetch['code']) {
+                // Same refspec dance as the branch phase: the checkout cannot
+                // set up tracking for a ref the remote's refspec ignores.
+                ensureFetchRefspec($repoPath, $remote, $default, $timeout);
                 $checkout = $git(['checkout', '-B', $default, $remote.'/'.$default]);
                 if (0 === $checkout['code']) {
                     $git(['branch', '--set-upstream-to='.$remote.'/'.$default, $default]);
@@ -1117,6 +1186,9 @@ function processRepo(string $repoPath, bool $force, string $corpusDir, bool $deb
  *
  * @return array<int, array{path: string, status: string, output: string, command: string, code: int, log: array<string>}>
  */
+/**
+ * @param array<string, ?string> $branches Map of manifest repository labels to their configured branch
+ */
 function processReposParallel(
     array $repos,
     int $jobs,
@@ -1125,6 +1197,7 @@ function processReposParallel(
     bool $debug,
     int $timeout,
     callable $onComplete,
+    array $branches = [],
 ): array {
     $results = [];
     $queue = $repos;
@@ -1139,7 +1212,7 @@ function processReposParallel(
             $repo = array_shift($queue);
             $tmp = tempnam(sys_get_temp_dir(), 'corpus_');
             if (false === $tmp) {
-                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout, $branches);
                 $completed++;
                 $onComplete($completed, $total);
                 continue;
@@ -1148,7 +1221,7 @@ function processReposParallel(
             $pid = pcntl_fork();
             if (-1 === $pid) {
                 @unlink($tmp);
-                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                $results[] = processRepo($repo, $force, $corpusDir, $debug, $timeout, $branches);
                 $completed++;
                 $onComplete($completed, $total);
                 continue;
@@ -1156,7 +1229,7 @@ function processReposParallel(
 
             if (0 === $pid) {
                 // Child: process single repo, write result, exit
-                $result = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+                $result = processRepo($repo, $force, $corpusDir, $debug, $timeout, $branches);
                 file_put_contents($tmp, serialize($result));
                 exit(0);
             }
@@ -1600,6 +1673,10 @@ function main(array $argv): int
 
     $missing = missingRepositories($manifest['repositories'], $corpusDir);
     $repos = findGitRepos($corpusDir);
+    $branches = array_map(
+        static fn (array $entry): ?string => $entry['branch'],
+        $manifest['repositories'],
+    );
 
     $io->header('Corpus Updater');
     $io->info('Runtime : PHP '.PHP_VERSION);
@@ -1651,7 +1728,7 @@ function main(array $argv): int
         renderProgress(0, $total, $dynamicProgress);
 
         foreach ($repos as $i => $repo) {
-            $result = processRepo($repo, $force, $corpusDir, $debug, $timeout);
+            $result = processRepo($repo, $force, $corpusDir, $debug, $timeout, $branches);
             $results[] = $result;
 
             if ($debug) {
@@ -1667,7 +1744,7 @@ function main(array $argv): int
         };
 
         renderProgress(0, \count($repos), $dynamicProgress);
-        $results = processReposParallel($repos, $jobs, $force, $corpusDir, $debug, $timeout, $onComplete);
+        $results = processReposParallel($repos, $jobs, $force, $corpusDir, $debug, $timeout, $onComplete, $branches);
     }
 
     $elapsed = microtime(true) - $startTime;
