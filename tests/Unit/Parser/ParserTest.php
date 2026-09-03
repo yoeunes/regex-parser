@@ -22,6 +22,7 @@ use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
@@ -35,7 +36,9 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
@@ -896,6 +899,62 @@ final class ParserTest extends TestCase
         $ast2 = $this->parse('/\Q.+*?{}[]()\E/');
         $this->assertInstanceOf(LiteralNode::class, $ast2->pattern);
         $this->assertSame('.+*?{}[]()', $ast2->pattern->value);
+    }
+
+    #[Test]
+    public function test_extended_mode_parses_every_comment_in_a_row(): void
+    {
+        $ast = $this->parse("/a # one\n # two\n b/x");
+
+        $nodes = $ast->pattern instanceof SequenceNode ? $ast->pattern->children : [$ast->pattern];
+
+        $comments = array_values(array_filter($nodes, static fn ($node) => $node instanceof CommentNode));
+        $this->assertCount(2, $comments);
+        $this->assertSame("# one\n", $comments[0]->comment);
+        $this->assertSame("# two\n", $comments[1]->comment);
+        // Both were written as "# ..." lines, not (?#...) groups.
+        $this->assertTrue($comments[0]->extended);
+        $this->assertTrue($comments[1]->extended);
+
+        // The literal after the comments still belongs to the pattern.
+        $literals = array_values(array_filter($nodes, static fn ($node) => $node instanceof LiteralNode));
+        $this->assertSame(['a', 'b'], array_map(static fn (LiteralNode $literal) => $literal->value, $literals));
+    }
+
+    #[Test]
+    public function test_extended_mode_collapses_quantifier_modifier_split_by_whitespace(): void
+    {
+        // PCRE reads "a* +" under /x as "a*+", and "a* ?" as "a*?".
+        $possessive = $this->parse('/a* +/x')->pattern;
+        $this->assertInstanceOf(QuantifierNode::class, $possessive);
+        $this->assertSame(QuantifierType::T_POSSESSIVE, $possessive->type);
+
+        $lazy = $this->parse('/a* ?/x')->pattern;
+        $this->assertInstanceOf(QuantifierNode::class, $lazy);
+        $this->assertSame(QuantifierType::T_LAZY, $lazy->type);
+    }
+
+    #[Test]
+    public function test_empty_callout_has_no_string_identifier(): void
+    {
+        $ast = $this->parse('/(?C)x/');
+
+        $nodes = $ast->pattern instanceof SequenceNode ? $ast->pattern->children : [$ast->pattern];
+        $callouts = array_values(array_filter($nodes, static fn ($node) => $node instanceof CalloutNode));
+        $this->assertCount(1, $callouts);
+        $this->assertNull($callouts[0]->identifier);
+        $this->assertFalse($callouts[0]->isStringIdentifier);
+    }
+
+    #[Test]
+    public function test_pcre_verb_argument_is_kept_with_the_verb(): void
+    {
+        $ast = $this->parse('/(*MARK:foo)bar/');
+
+        $nodes = $ast->pattern instanceof SequenceNode ? $ast->pattern->children : [$ast->pattern];
+        $verbs = array_values(array_filter($nodes, static fn ($node) => $node instanceof PcreVerbNode));
+        $this->assertCount(1, $verbs);
+        $this->assertSame('MARK:foo', $verbs[0]->verb);
     }
 
     /**
