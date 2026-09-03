@@ -20,6 +20,7 @@ use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
@@ -220,6 +221,22 @@ final class RegexTest extends TestCase
         $this->assertFalse($report->isValid);
         $this->assertNotEmpty($report->errors());
         $this->assertStringContainsString('Recursion limit', $report->errors()[0]);
+    }
+
+    public function test_parse_throws_recursion_limit_even_when_pattern_is_cached(): void
+    {
+        $nestedRegex = str_repeat('(', 5).'a'.str_repeat(')', 5);
+
+        // Warm the cache under the default limit, the way any earlier parse
+        // of the same pattern would.
+        Regex::create()->parse($nestedRegex);
+
+        // A lower limit must still refuse the pattern: the cache entry was
+        // built under conditions this instance does not share.
+        $this->expectException(RecursionLimitException::class);
+        $this->expectExceptionMessage('Recursion limit of 3 exceeded');
+
+        Regex::create(['max_recursion_depth' => 3])->parse($nestedRegex);
     }
 
     public function test_check_runtime_compilation_default_error_message(): void

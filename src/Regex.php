@@ -557,6 +557,28 @@ final readonly class Regex
     }
 
     /**
+     * The seed a pattern's cache key is hashed from, spelled out so callers
+     * that need to predict where an entry lands share one implementation
+     * with the cache itself.
+     *
+     * @param string $regex             The regex as written, delimiters included
+     * @param int    $phpVersionId      The effective PHP_VERSION_ID
+     * @param int    $maxRecursionDepth The parse recursion limit in force
+     */
+    public static function cacheSeed(string $regex, int $phpVersionId, int $maxRecursionDepth): string
+    {
+        // The effective PHP version always influences parsing, so it must
+        // always be part of the key — a shared cache directory must not serve
+        // ASTs parsed under a different PHP version. The recursion limit does
+        // too: a pattern cached under a high limit may be one a lower limit
+        // refuses to parse at all, and the exception must still be thrown.
+        return $regex
+            ."\n".self::CACHE_VERSION_PREFIX.self::CACHE_VERSION
+            ."\n".self::PHP_VERSION_PREFIX.$phpVersionId
+            ."\n#depth=".$maxRecursionDepth;
+    }
+
+    /**
      * Perform the actual parsing with caching and resource limits.
      *
      * @param string $regex The regex to parse
@@ -763,12 +785,7 @@ final readonly class Regex
 
     private function getCacheSeed(string $regex): string
     {
-        // The effective PHP version always influences parsing, so it must
-        // always be part of the key — a shared cache directory must not serve
-        // ASTs parsed under a different PHP version.
-        return $regex
-            ."\n".self::CACHE_VERSION_PREFIX.self::CACHE_VERSION
-            ."\n".self::PHP_VERSION_PREFIX.$this->phpVersionId;
+        return self::cacheSeed($regex, $this->phpVersionId, $this->maxRecursionDepth);
     }
 
     private function getParserPhpVersionId(): ?int
