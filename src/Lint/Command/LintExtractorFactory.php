@@ -14,20 +14,25 @@ declare(strict_types=1);
 namespace RegexParser\Lint\Command;
 
 use PhpParser\ParserFactory;
+use RegexParser\Lint\Extraction\PatternFunctionRegistry;
 use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
 use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternExtractor;
 
 final class LintExtractorFactory
 {
-    public function create(): RegexPatternExtractor
+    public function create(?LintArguments $arguments = null): RegexPatternExtractor
     {
+        $registry = null === $arguments
+            ? PatternFunctionRegistry::defaults()
+            : PatternFunctionRegistry::create($arguments->interop, $arguments->patternFunctions);
+
         $parserFactoryClass = ParserFactory::class;
 
         if (class_exists($parserFactoryClass)) {
-            return new RegexPatternExtractor(new PhpParserExtractionStrategy());
+            return new RegexPatternExtractor(new PhpParserExtractionStrategy([], $registry));
         }
 
-        return new RegexPatternExtractor(new TokenBasedExtractionStrategy());
+        return new RegexPatternExtractor(new TokenBasedExtractionStrategy([], $registry));
     }
 }

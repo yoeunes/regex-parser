@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
+use RegexParser\Lint\Extraction\InteropPresets;
 use RegexParser\Lint\Formatter\OutputConfiguration;
 
 final readonly class LintArguments
@@ -23,6 +24,8 @@ final readonly class LintArguments
      * @param "debug"|"normal"|"quiet"|"verbose" $verbosity
      * @param array<string, bool|int>            $optimizations
      * @param array<string, bool>                $lintRules
+     * @param array<int, string>                 $interop          enabled wrapper presets
+     * @param array<int, string>                 $patternFunctions extra calls carrying a pattern
      */
     public function __construct(
         public array $paths,
@@ -45,6 +48,8 @@ final readonly class LintArguments
         public ?string $redosThreshold = null,
         public bool $redosNoJit = false,
         public array $lintRules = [],
+        public array $interop = InteropPresets::DEFAULT_PRESETS,
+        public array $patternFunctions = [],
     ) {}
 
     /**
@@ -116,6 +121,13 @@ final readonly class LintArguments
             }
             $lintRules = $validatedLintRules;
         }
+
+        $interop = \array_key_exists('interop', $defaults)
+            ? self::normalizeStringList($defaults['interop'])
+            : InteropPresets::DEFAULT_PRESETS;
+        $interop = array_values(array_filter($interop, InteropPresets::exists(...)));
+
+        $patternFunctions = self::normalizeStringList($defaults['patternFunctions'] ?? []);
 
         $jobs = $defaults['jobs'] ?? -1; // -1 means auto-detect
         if (!\is_int($jobs)) {
@@ -216,6 +228,8 @@ final readonly class LintArguments
             $redosThreshold,
             $redosNoJit,
             $lintRules,
+            $interop,
+            $patternFunctions,
         );
     }
 

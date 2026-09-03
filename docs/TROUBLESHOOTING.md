@@ -316,6 +316,31 @@ bin/regex help | grep -i deprecated
 # Use alternative command
 ```
 
+### A Very Large File Reports No Patterns
+
+**Problem:** `regex lint` finds nothing in a multi-megabyte generated file —
+a call map, a fixture dump, a compiled container.
+
+**Cause:** reading such a file into tokens costs around 55 times its size in
+memory, and building an AST about twice that. A 2 MB file therefore needs more
+than the default `memory_limit` of 128M. Rather than let the process die and
+lose the results of every other file, the extractor skips the file.
+
+**Solution:** give the process more memory:
+
+```bash
+php -d memory_limit=1G vendor/bin/regex lint src/
+```
+
+Or exclude the file, since generated code rarely carries patterns worth
+linting:
+
+```json
+{
+  "exclude": ["src/Generated"]
+}
+```
+
 ---
 
 ## Integration Issues

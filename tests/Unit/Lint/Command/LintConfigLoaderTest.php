@@ -145,6 +145,61 @@ final class LintConfigLoaderTest extends TestCase
         }
     }
 
+    public function test_load_normalizes_extraction_config(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        copy(__DIR__.'/../../../Fixtures/Config/extraction_config.json', $configPath);
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNull($result->error);
+            $this->assertSame([
+                'interop' => ['composer-pcre', 'nette-utils'],
+                'patternFunctions' => ['App\\Support\\Str::matches#1', 'regex_check'],
+            ], $result->config);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
+
+    public function test_load_rejects_an_unknown_interop_preset(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        copy(__DIR__.'/../../../Fixtures/Config/invalid_extraction_config.json', $configPath);
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNotNull($result->error);
+            $this->assertStringContainsString('unknown preset "not-a-preset"', (string) $result->error);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
+
     public function test_load_normalizes_checks_config(): void
     {
         $cwd = getcwd();

@@ -283,6 +283,53 @@ vendor/bin/regex lint src/ --format=github
 vendor/bin/regex lint src/ --exclude=vendor --exclude=tests
 ```
 
+#### Patterns Behind a Wrapper
+
+Not every pattern reaches PCRE through `preg_match()`. Codebases that route
+them through composer/pcre, nette/utils or a helper of their own would
+otherwise be reported as having no patterns at all.
+
+`composer/pcre` is recognised out of the box; the other libraries are opt-in:
+
+```bash
+# Add nette/utils on top of the default composer/pcre support
+vendor/bin/regex lint src/ --interop=composer-pcre,nette-utils
+
+# Native preg_* calls only
+vendor/bin/regex lint src/ --no-interop
+```
+
+| Preset          | Recognised calls                                                       |
+|-----------------|------------------------------------------------------------------------|
+| `composer-pcre` | `Composer\Pcre\Preg` and `Composer\Pcre\Regex` (enabled by default) |
+| `nette-utils`   | `Nette\Utils\Strings::match`, `matchAll`, `split`, `replace`          |
+| `spatie-regex`  | `Spatie\Regex\Regex::match`, `matchAll`, `replace`                    |
+| `laravel-str`   | `Illuminate\Support\Str::match`, `matchAll`, `isMatch`, `replaceMatches` |
+
+Wrappers are matched on their fully qualified name, using the file's `use`
+statements: a class of your own named `Preg` is left alone.
+
+A project's own helpers are declared as `function` or `Some\Class::method`.
+Append `#<index>` when the pattern is not the first argument, and
+`#<index>:keys` when that argument is an array whose keys hold the patterns:
+
+```bash
+vendor/bin/regex lint src/ --pattern-function='App\Support\Str::matches#1'
+```
+
+```json
+{
+  "extraction": {
+    "interop": ["composer-pcre", "nette-utils"],
+    "functions": ["App\\Support\\Str::matches#1"]
+  }
+}
+```
+
+Functions republished under another namespace with the same signature — as
+`thecodingmachine/safe` does with `Safe\preg_match()` — are recognised
+without any configuration.
+
 **Console Output:**
 ```
 RegexParser 1.0.0 by Younes ENNAJI
@@ -358,6 +405,8 @@ Create `regex.json` or `regex.dist.json` in your project root:
 | `format`                        | string         | Output format (console, json, github, checkstyle, junit) |
 | `jobs`                          | int            | Number of parallel workers                               |
 | `exclude`                       | array          | Paths to exclude                                         |
+| `extraction.interop`            | array          | Wrapper libraries whose calls carry patterns (default `["composer-pcre"]`) |
+| `extraction.functions`          | array          | Project helpers carrying patterns                        |
 | `ide`                           | string         | IDE for clickable links                                  |
 | `checks`                        | object         | Enable or configure lint checks (validation, redos, optimizations) |
 | `checks.redos`                  | boolean or object | ReDoS analysis toggle or settings (mode, threshold, noJit) |
@@ -480,6 +529,9 @@ vendor/bin/regex lint src/ --format=junit --output=junit.xml
 | `--no-redos`        | Explicitly disable ReDoS analysis                  |
 | `--no-validate`     | Skip validation                                    |
 | `--no-optimize`     | Disable optimization suggestions                   |
+| `--interop <presets>` | Wrapper libraries to read patterns from (comma separated, `none` to disable) |
+| `--no-interop`      | Read patterns from native `preg_*` calls only      |
+| `--pattern-function <spec>` | Extra call carrying a pattern (repeatable) |
 | `-v, --verbose`     | Detailed output                                    |
 | `--debug`           | Debug information                                  |
 

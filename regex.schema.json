@@ -372,6 +372,51 @@
       "description": "Paths to exclude from scanning. Omit to use the CLI default (vendor).",
       "examples": ["vendor", ["vendor", "tests", "Fixtures"]]
     },
+    "extraction": {
+      "type": "object",
+      "description": "Which calls the linter reads patterns from, beyond the native preg_* functions.",
+      "additionalProperties": false,
+      "properties": {
+        "interop": {
+          "type": "array",
+          "description": "Wrapper libraries whose static methods carry a regex pattern. Set to [] to look at native preg_* calls only.",
+          "default": ["composer-pcre"],
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "const": "composer-pcre",
+                "description": "composer/pcre: Composer\\Pcre\\Preg and Composer\\Pcre\\Regex."
+              },
+              {
+                "const": "nette-utils",
+                "description": "nette/utils: Nette\\Utils\\Strings, whose pattern is the second argument."
+              },
+              {
+                "const": "spatie-regex",
+                "description": "spatie/regex: Spatie\\Regex\\Regex."
+              },
+              {
+                "const": "laravel-str",
+                "description": "Illuminate\\Support\\Str::match, matchAll, isMatch and replaceMatches."
+              }
+            ]
+          },
+          "examples": [["composer-pcre"], ["composer-pcre", "nette-utils"], []]
+        },
+        "functions": {
+          "type": "array",
+          "description": "Project helpers carrying a pattern, as \"function\" or \"Some\\Class::method\". Append \"#<index>\" when the pattern is not the first argument, and \"#<index>:keys\" when that argument is an array whose keys hold the patterns.",
+          "default": [],
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "examples": [["App\\Support\\Str::matches"], ["App\\Support\\Str::matches#1", "regex_check"]]
+        }
+      }
+    },
     "jobs": {
       "type": "integer",
       "description": "Number of parallel workers. Omit to auto-detect based on CPU cores.",

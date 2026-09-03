@@ -14,49 +14,66 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Extraction\NameResolutionContext;
+use RegexParser\Lint\Extraction\PatternFunction;
 use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Lint\RegexPatternOccurrence;
 
 final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 {
-    public function test_match_function_call_ignores_namespaced_function(): void
+    public function test_match_function_call_matches_namespaced_drop_in(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
         $tokens = [
-            [\T_STRING, 'Foo', 1],
-            [\T_NS_SEPARATOR, '\\', 1],
+            [\T_NAME_QUALIFIED, 'Safe\\preg_match', 1],
+            '(',
+        ];
+
+        $result = $this->invoke($strategy, 'matchFunctionCall', $tokens, 0, \count($tokens), new NameResolutionContext());
+
+        $this->assertIsArray($result);
+        $this->assertInstanceOf(PatternFunction::class, $result[0]);
+        $this->assertSame('preg_match', $result[0]->label);
+    }
+
+    public function test_match_function_call_rejects_unknown_namespaced_function(): void
+    {
+        $strategy = new TokenBasedExtractionStrategy();
+        $tokens = [
+            [\T_NAME_QUALIFIED, 'Foo\\somethingElse', 1],
+            '(',
+        ];
+
+        $result = $this->invoke($strategy, 'matchFunctionCall', $tokens, 0, \count($tokens), new NameResolutionContext());
+
+        $this->assertNull($result);
+    }
+
+    public function test_match_function_call_rejects_method_call(): void
+    {
+        $strategy = new TokenBasedExtractionStrategy();
+        $tokens = [
+            [\T_VARIABLE, '$this', 1],
+            [\T_OBJECT_OPERATOR, '->', 1],
             [\T_STRING, 'preg_match', 1],
             '(',
         ];
-        $index = 2;
 
-        $result = $this->invoke($strategy, 'matchFunctionCall', $tokens, $index, \count($tokens));
-
-        $this->assertNull($result);
-    }
-
-    public function test_match_function_call_rejects_backslashed_name(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy();
-        $tokens = [
-            [\T_STRING, 'Foo\\preg_match', 1],
-            '(',
-        ];
-
-        $result = $this->invoke($strategy, 'matchFunctionCall', $tokens, 0, \count($tokens));
+        $result = $this->invoke($strategy, 'matchFunctionCall', $tokens, 2, \count($tokens), new NameResolutionContext());
 
         $this->assertNull($result);
     }
 
-    public function test_match_custom_static_method_edge_cases(): void
+    public function test_match_static_method_call_edge_cases(): void
     {
         $strategy = new TokenBasedExtractionStrategy(['Foo::bar']);
+        $context = new NameResolutionContext();
 
         $missingMethod = [
             [\T_STRING, 'Foo', 1],
             [\T_DOUBLE_COLON, '::', 1],
         ];
-        $this->assertNull($this->invoke($strategy, 'matchCustomStaticMethod', $missingMethod, 0, 1, \count($missingMethod)));
+        $this->assertNull($this->invoke($strategy, 'matchStaticMethodCall', $missingMethod, 0, 1, \count($missingMethod), $context));
 
         $nonStringMethod = [
             [\T_STRING, 'Foo', 1],
@@ -64,7 +81,7 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_VARIABLE, '$bar', 1],
             '(',
         ];
-        $this->assertNull($this->invoke($strategy, 'matchCustomStaticMethod', $nonStringMethod, 0, 1, \count($nonStringMethod)));
+        $this->assertNull($this->invoke($strategy, 'matchStaticMethodCall', $nonStringMethod, 0, 1, \count($nonStringMethod), $context));
 
         $missingParen = [
             [\T_STRING, 'Foo', 1],
@@ -72,7 +89,7 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_STRING, 'bar', 1],
             ';',
         ];
-        $this->assertNull($this->invoke($strategy, 'matchCustomStaticMethod', $missingParen, 0, 1, \count($missingParen)));
+        $this->assertNull($this->invoke($strategy, 'matchStaticMethodCall', $missingParen, 0, 1, \count($missingParen), $context));
 
         $badClassToken = [
             'Foo',
@@ -80,7 +97,7 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_STRING, 'bar', 1],
             '(',
         ];
-        $this->assertNull($this->invoke($strategy, 'matchCustomStaticMethod', $badClassToken, 0, 1, \count($badClassToken)));
+        $this->assertNull($this->invoke($strategy, 'matchStaticMethodCall', $badClassToken, 0, 1, \count($badClassToken), $context));
 
         $valid = [
             [\T_STRING, 'Foo', 1],
@@ -88,11 +105,10 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_STRING, 'bar', 1],
             '(',
         ];
-        $result = $this->invoke($strategy, 'matchCustomStaticMethod', $valid, 0, 1, \count($valid));
+        $result = $this->invoke($strategy, 'matchStaticMethodCall', $valid, 0, 1, \count($valid), $context);
         $this->assertIsArray($result);
-        $this->assertArrayHasKey(0, $result);
-        $this->assertIsString($result[0]);
-        $this->assertSame('Foo::bar', $result[0]);
+        $this->assertInstanceOf(PatternFunction::class, $result[0]);
+        $this->assertSame('Foo::bar', $result[0]->label);
     }
 
     public function test_extract_from_call_collects_target_argument(): void
@@ -110,10 +126,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokens,
             $openParenIndex + 1,
             \count($tokens),
-            1,
-            'preg_replace',
+            new PatternFunction('preg_replace', 1),
             'test.php',
-            false,
             $tokenOffsets,
             $content,
         );
@@ -142,10 +156,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokens,
             0,
             \count($tokens),
-            0,
-            'preg_match',
+            new PatternFunction('preg_match'),
             'test.php',
-            false,
             $tokenOffsets,
             $content,
         );
@@ -168,10 +180,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokens,
             0,
             \count($tokens),
-            0,
-            'preg_match',
+            new PatternFunction('preg_match'),
             'test.php',
-            false,
             $tokenOffsets,
             $content,
         );
@@ -197,10 +207,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokens,
             0,
             \count($tokens),
-            1,
-            'preg_match',
+            new PatternFunction('preg_match', 1),
             'test.php',
-            false,
             $tokenOffsets,
             $content,
         );
@@ -223,10 +231,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokens,
             $openParenIndex + 1,
             \count($tokens),
-            3,
-            'preg_match',
+            new PatternFunction('preg_match', 3),
             'test.php',
-            false,
             $tokenOffsets,
             $content,
         );
@@ -253,8 +259,7 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_match',
-            false,
+            new PatternFunction('preg_match'),
         );
 
         $this->assertSame([], $occurrences);
@@ -279,14 +284,13 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_match',
-            false,
+            new PatternFunction('preg_match'),
         );
 
         $this->assertSame([], $occurrences);
     }
 
-    public function test_extract_from_callback_array_collects_patterns(): void
+    public function test_extract_from_array_literal_collects_patterns(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
         $tokens = [
@@ -308,13 +312,13 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 
         $occurrences = $this->invoke(
             $strategy,
-            'extractFromCallbackArray',
+            'extractFromArrayLiteral',
             $tokens,
             $tokenIndexes,
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_replace_callback_array',
+            new PatternFunction('preg_replace_callback_array', 0, keysArePatterns: true),
         );
 
         $this->assertIsArray($occurrences);
@@ -325,7 +329,7 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         $this->assertSame('/bar/', $occurrences[1]->pattern);
     }
 
-    public function test_extract_from_callback_array_returns_empty_when_no_array_start(): void
+    public function test_extract_from_array_literal_returns_empty_when_no_array_start(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
         $tokens = [
@@ -338,19 +342,19 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 
         $occurrences = $this->invoke(
             $strategy,
-            'extractFromCallbackArray',
+            'extractFromArrayLiteral',
             $tokens,
             $tokenIndexes,
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_replace_callback_array',
+            new PatternFunction('preg_replace_callback_array', 0, keysArePatterns: true),
         );
 
         $this->assertSame([], $occurrences);
     }
 
-    public function test_extract_from_callback_array_handles_nested_arrays(): void
+    public function test_extract_from_array_literal_handles_nested_arrays(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
         $tokens = [
@@ -371,19 +375,19 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 
         $occurrences = $this->invoke(
             $strategy,
-            'extractFromCallbackArray',
+            'extractFromArrayLiteral',
             $tokens,
             $tokenIndexes,
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_replace_callback_array',
+            new PatternFunction('preg_replace_callback_array', 0, keysArePatterns: true),
         );
 
         $this->assertSame([], $occurrences);
     }
 
-    public function test_extract_from_callback_array_handles_parenthesized_keys(): void
+    public function test_extract_from_array_literal_handles_parenthesized_keys(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
         $tokens = [
@@ -402,13 +406,13 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
 
         $occurrences = $this->invoke(
             $strategy,
-            'extractFromCallbackArray',
+            'extractFromArrayLiteral',
             $tokens,
             $tokenIndexes,
             $tokenOffsets,
             $content,
             'test.php',
-            'preg_replace_callback_array',
+            new PatternFunction('preg_replace_callback_array', 0, keysArePatterns: true),
         );
 
         $this->assertIsArray($occurrences);

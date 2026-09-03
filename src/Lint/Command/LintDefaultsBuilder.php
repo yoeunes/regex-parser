@@ -127,6 +127,14 @@ final class LintDefaultsBuilder
             }
         }
 
+        if (isset($config['interop'])) {
+            $defaults['interop'] = $config['interop'];
+        }
+
+        if (isset($config['patternFunctions'])) {
+            $defaults['patternFunctions'] = $config['patternFunctions'];
+        }
+
         if (isset($config['ide'])) {
             $defaults['ide'] = $config['ide'];
         }

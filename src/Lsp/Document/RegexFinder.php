@@ -35,6 +35,35 @@ final class RegexFinder
     ];
 
     /**
+     * Wrapper methods whose first argument is a regex pattern.
+     *
+     * Codebases that route patterns through composer/pcre never call preg_*
+     * directly. Matching on the method name alone is enough here: a string
+     * that does not look like a pattern is dropped by the delimiter check.
+     */
+    private const WRAPPER_METHODS = [
+        'match',
+        'matchall',
+        'matchstrictgroups',
+        'matchallstrictgroups',
+        'matchwithoffsets',
+        'matchallwithoffsets',
+        'ismatch',
+        'ismatchall',
+        'ismatchstrictgroups',
+        'ismatchallstrictgroups',
+        'ismatchwithoffsets',
+        'ismatchallwithoffsets',
+        'replace',
+        'replacecallback',
+        'replacecallbackstrictgroups',
+        'replacecallbackarray',
+        'split',
+        'splitwithoffsets',
+        'grep',
+    ];
+
+    /**
      * Find all regex patterns in PHP content.
      *
      * @return array<RegexOccurrence>
@@ -50,6 +79,7 @@ final class RegexFinder
         $positionConverter = new PositionConverter($content);
         $lastFunctionName = null;
         $expectingPattern = false;
+        $afterDoubleColon = false;
 
         foreach ($tokens as $index => $token) {
             if (!\is_array($token)) {
@@ -66,8 +96,28 @@ final class RegexFinder
 
             [$tokenType, $tokenValue, $line] = $token;
 
+            if (\T_DOUBLE_COLON === $tokenType) {
+                $afterDoubleColon = true;
+
+                continue;
+            }
+
+            $isStaticMember = $afterDoubleColon;
+            if (\T_WHITESPACE !== $tokenType && \T_COMMENT !== $tokenType && \T_DOC_COMMENT !== $tokenType) {
+                $afterDoubleColon = false;
+            }
+
             // Track function calls
             if (\T_STRING === $tokenType && \in_array($tokenValue, self::PREG_FUNCTIONS, true)) {
+                $lastFunctionName = $tokenValue;
+                $expectingPattern = true;
+
+                continue;
+            }
+
+            // Track wrapper calls such as Preg::match(). Reserved words are
+            // valid method names, so any identifier token is considered.
+            if ($isStaticMember && \in_array(strtolower($tokenValue), self::WRAPPER_METHODS, true)) {
                 $lastFunctionName = $tokenValue;
                 $expectingPattern = true;
 

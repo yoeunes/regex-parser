@@ -21,6 +21,8 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Parser;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Extraction\PatternFunction;
+use RegexParser\Lint\Extraction\PatternFunctionRegistry;
 use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
 
 final class PhpParserExtractionStrategyEdgeCasesTest extends TestCase
@@ -73,9 +75,9 @@ final class PhpParserExtractionStrategyEdgeCasesTest extends TestCase
     {
         $strategy = new PhpParserExtractionStrategy();
 
-        $extractFromConcat = $this->getPrivateMethod($strategy, 'extractFromConcat');
+        $extractPatternFromExpr = $this->getPrivateMethod($strategy, 'extractPatternFromExpr');
         $emptyConcat = new Concat(new String_(''), new String_(''));
-        $this->assertNull($extractFromConcat->invoke($strategy, $emptyConcat, __FILE__, '', 'preg_match'));
+        $this->assertNull($extractPatternFromExpr->invoke($strategy, $emptyConcat, new PatternFunction('preg_match'), __FILE__, ''));
 
         $extractStringValue = $this->getPrivateMethod($strategy, 'extractStringValue');
         $nested = new Concat(new String_('a'), new String_('b'));
@@ -86,8 +88,8 @@ final class PhpParserExtractionStrategyEdgeCasesTest extends TestCase
     {
         $ref = new \ReflectionClass(PhpParserExtractionStrategy::class);
         $strategy = $ref->newInstanceWithoutConstructor();
-        $prop = $ref->getProperty('parser');
-        $prop->setValue($strategy, $parser);
+        $ref->getProperty('parser')->setValue($strategy, $parser);
+        $ref->getProperty('registry')->setValue($strategy, PatternFunctionRegistry::defaults());
 
         return $strategy;
     }

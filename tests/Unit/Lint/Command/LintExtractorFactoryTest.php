@@ -14,7 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Lint\Command;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Command\LintArguments;
 use RegexParser\Lint\Command\LintExtractorFactory;
+use RegexParser\Lint\Extraction\PatternFunction;
+use RegexParser\Lint\Extraction\PatternFunctionRegistry;
 use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
 use RegexParser\Tests\Support\LintFunctionOverrides;
 
@@ -38,5 +41,42 @@ final class LintExtractorFactoryTest extends TestCase
         $inner = $property->getValue($extractor);
 
         $this->assertInstanceOf(TokenBasedExtractionStrategy::class, $inner);
+    }
+
+    public function test_create_builds_the_registry_from_the_arguments(): void
+    {
+        $factory = new LintExtractorFactory();
+
+        $arguments = LintArguments::fromDefaults([
+            'interop' => ['nette-utils'],
+            'patternFunctions' => ['App\\Support\\Str::matches#1'],
+        ]);
+
+        $registry = $this->registryOf($factory->create($arguments));
+
+        $this->assertInstanceOf(PatternFunction::class, $registry->lookupMethod('Nette\\Utils\\Strings', 'match'));
+        $this->assertInstanceOf(PatternFunction::class, $registry->lookupMethod('App\\Support\\Str', 'matches'));
+        // Not requested, so composer/pcre is off for this run.
+        $this->assertNull($registry->lookupMethod('Composer\\Pcre\\Preg', 'match'));
+    }
+
+    public function test_create_without_arguments_keeps_the_default_presets(): void
+    {
+        $factory = new LintExtractorFactory();
+
+        $registry = $this->registryOf($factory->create());
+
+        $this->assertInstanceOf(PatternFunction::class, $registry->lookupMethod('Composer\\Pcre\\Preg', 'match'));
+    }
+
+    private function registryOf(object $extractor): PatternFunctionRegistry
+    {
+        $strategy = (new \ReflectionClass($extractor))->getProperty('extractor')->getValue($extractor);
+        $this->assertIsObject($strategy);
+
+        $registry = (new \ReflectionClass($strategy))->getProperty('registry')->getValue($strategy);
+        $this->assertInstanceOf(PatternFunctionRegistry::class, $registry);
+
+        return $registry;
     }
 }

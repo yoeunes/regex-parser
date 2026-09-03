@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
+use RegexParser\Lint\Extraction\InteropPresets;
 use RegexParser\Lint\Formatter\OutputConfiguration;
 use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
@@ -79,6 +80,56 @@ final class LintArgumentParser
                 continue;
             }
 
+            if ('--no-interop' === $arg) {
+                $arguments = $this->withInterop($arguments, []);
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--interop=')) {
+                $interop = $this->parseInteropValue(substr($arg, \strlen('--interop=')));
+                if (null === $interop) {
+                    return new LintParseResult(null, 'Invalid value for --interop. Available presets: '.implode(', ', InteropPresets::names()).'.');
+                }
+
+                $arguments = $this->withInterop($arguments, $interop);
+
+                continue;
+            }
+
+            if ('--interop' === $arg) {
+                $i++;
+                if (!isset($args[$i])) {
+                    return new LintParseResult(null, 'Missing value for --interop.');
+                }
+
+                $interop = $this->parseInteropValue($args[$i]);
+                if (null === $interop) {
+                    return new LintParseResult(null, 'Invalid value for --interop. Available presets: '.implode(', ', InteropPresets::names()).'.');
+                }
+
+                $arguments = $this->withInterop($arguments, $interop);
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--pattern-function=')) {
+                $arguments = $this->withPatternFunction($arguments, substr($arg, \strlen('--pattern-function=')));
+
+                continue;
+            }
+
+            if ('--pattern-function' === $arg) {
+                $i++;
+                if (!isset($args[$i])) {
+                    return new LintParseResult(null, 'Missing value for --pattern-function.');
+                }
+
+                $arguments = $this->withPatternFunction($arguments, $args[$i]);
+
+                continue;
+            }
+
             if ('--redos' === $arg) {
                 $arguments = new LintArguments(
                     $arguments->paths,
@@ -101,6 +152,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -128,6 +181,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -161,6 +216,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -197,6 +254,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -229,6 +288,8 @@ final class LintArgumentParser
                     $value,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -264,6 +325,8 @@ final class LintArgumentParser
                     $value,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -292,6 +355,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     true,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -319,6 +384,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -346,6 +413,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -374,6 +443,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -402,6 +473,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -429,6 +502,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -460,6 +535,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -490,6 +567,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -523,6 +602,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -551,6 +632,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -582,6 +665,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -614,6 +699,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -650,6 +737,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -678,6 +767,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
 
                 continue;
@@ -709,6 +800,8 @@ final class LintArgumentParser
                     $arguments->redosThreshold,
                     $arguments->redosNoJit,
                     $arguments->lintRules,
+                    $arguments->interop,
+                    $arguments->patternFunctions,
                 );
                 $i++;
 
@@ -746,6 +839,8 @@ final class LintArgumentParser
                 $arguments->redosThreshold,
                 $arguments->redosNoJit,
                 $arguments->lintRules,
+                $arguments->interop,
+                $arguments->patternFunctions,
             );
         }
 
@@ -778,6 +873,94 @@ final class LintArgumentParser
             $arguments->redosThreshold,
             $arguments->redosNoJit,
             $arguments->lintRules,
+            $arguments->interop,
+            $arguments->patternFunctions,
+        );
+    }
+
+    /**
+     * Read a comma separated preset list, with "none" disabling every preset.
+     *
+     * @return array<int, string>|null null when a name is not a known preset
+     */
+    private function parseInteropValue(string $value): ?array
+    {
+        $names = array_values(array_filter(array_map(trim(...), explode(',', strtolower($value))), static fn (string $name): bool => '' !== $name));
+
+        if (['none'] === $names || [] === $names) {
+            return [];
+        }
+
+        foreach ($names as $name) {
+            if (!InteropPresets::exists($name)) {
+                return null;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * @param array<int, string> $interop
+     */
+    private function withInterop(LintArguments $arguments, array $interop): LintArguments
+    {
+        return new LintArguments(
+            $arguments->paths,
+            $arguments->exclude,
+            $arguments->minSavings,
+            $arguments->verbosity,
+            $arguments->format,
+            $arguments->quiet,
+            $arguments->checkRedos,
+            $arguments->checkValidation,
+            $arguments->checkOptimizations,
+            $arguments->checkLint,
+            $arguments->jobs,
+            $arguments->output,
+            $arguments->baseline,
+            $arguments->generateBaseline,
+            $arguments->ide,
+            $arguments->optimizations,
+            $arguments->redosMode,
+            $arguments->redosThreshold,
+            $arguments->redosNoJit,
+            $arguments->lintRules,
+            $interop,
+            $arguments->patternFunctions,
+        );
+    }
+
+    private function withPatternFunction(LintArguments $arguments, string $spec): LintArguments
+    {
+        $patternFunctions = $arguments->patternFunctions;
+        if ('' !== trim($spec)) {
+            $patternFunctions[] = $spec;
+        }
+
+        return new LintArguments(
+            $arguments->paths,
+            $arguments->exclude,
+            $arguments->minSavings,
+            $arguments->verbosity,
+            $arguments->format,
+            $arguments->quiet,
+            $arguments->checkRedos,
+            $arguments->checkValidation,
+            $arguments->checkOptimizations,
+            $arguments->checkLint,
+            $arguments->jobs,
+            $arguments->output,
+            $arguments->baseline,
+            $arguments->generateBaseline,
+            $arguments->ide,
+            $arguments->optimizations,
+            $arguments->redosMode,
+            $arguments->redosThreshold,
+            $arguments->redosNoJit,
+            $arguments->lintRules,
+            $arguments->interop,
+            $patternFunctions,
         );
     }
 
@@ -804,6 +987,8 @@ final class LintArgumentParser
             $arguments->redosThreshold,
             $arguments->redosNoJit,
             $arguments->lintRules,
+            $arguments->interop,
+            $arguments->patternFunctions,
         );
     }
 
@@ -833,6 +1018,8 @@ final class LintArgumentParser
             $arguments->redosThreshold,
             $arguments->redosNoJit,
             $lintRules,
+            $arguments->interop,
+            $arguments->patternFunctions,
         );
     }
 }

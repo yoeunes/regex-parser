@@ -77,7 +77,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
         if (null !== $parsed->error) {
             $output->write($output->error('Error: '.$parsed->error."\n"));
-            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--redos] [--no-redos] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--redos] [--no-redos] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit] [--no-validate] [--no-optimize] [--interop <presets>] [--no-interop] [--pattern-function <spec>] [--verbose|--debug|--quiet]\n");
 
             return 1;
         }
@@ -156,7 +156,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide, $linkFormatter);
         }
 
-        $extractor = $this->extractorFactory->create();
+        $extractor = $this->extractorFactory->create($arguments);
         $sources = new RegexPatternSourceCollection([
             new PhpRegexPatternSource($extractor),
         ]);

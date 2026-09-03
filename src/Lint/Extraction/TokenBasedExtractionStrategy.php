@@ -31,52 +31,21 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         \T_DOC_COMMENT => true,
     ];
 
-    private const PREG_ARGUMENT_MAP = [
-        'preg_match' => 0,
-        'preg_match_all' => 0,
-        'preg_replace' => 0,
-        'preg_replace_callback' => 0,
-        'preg_split' => 0,
-        'preg_grep' => 0,
-        'preg_filter' => 0,
-        'preg_replace_callback_array' => 0,
-    ];
+    /**
+     * Matches an identifier, so a reserved word used as a method name — the
+     * "match" of Preg::match() is tokenized as T_MATCH, not T_STRING — is
+     * still read as one.
+     */
+    private const IDENTIFIER_PATTERN = '/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/';
+
+    private PatternFunctionRegistry $registry;
 
     /**
-     * @var array<string, int>
+     * @param array<int, string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
      */
-    private array $customFunctionMap;
-
-    /**
-     * @var array<string, int>
-     */
-    private array $customStaticFunctionMap;
-
-    /**
-     * @param array<string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
-     */
-    public function __construct(array $customFunctions = [])
+    public function __construct(array $customFunctions = [], ?PatternFunctionRegistry $registry = null)
     {
-        $customFunctionMap = [];
-        $customStaticFunctionMap = [];
-
-        foreach ($customFunctions as $customFunction) {
-            if (!\is_string($customFunction) || '' === $customFunction) {
-                continue;
-            }
-
-            $normalized = strtolower(ltrim($customFunction, '\\'));
-            if (str_contains($normalized, '::')) {
-                $customStaticFunctionMap[$normalized] = 0;
-
-                continue;
-            }
-
-            $customFunctionMap[$normalized] = 0;
-        }
-
-        $this->customFunctionMap = $customFunctionMap;
-        $this->customStaticFunctionMap = $customStaticFunctionMap;
+        $this->registry = ($registry ?? PatternFunctionRegistry::defaults())->withCustomFunctions($customFunctions);
     }
 
     public function extract(array $files): array
@@ -95,12 +64,20 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function extractFromFile(string $file): array
     {
+        if (!is_file($file) || !is_readable($file)) {
+            return [];
+        }
+
         $content = file_get_contents($file);
         if (false === $content || '' === $content) {
             return [];
         }
 
         if ($this->shouldSkipContent($content)) {
+            return [];
+        }
+
+        if (!MemoryBudget::allows($content, MemoryBudget::TOKENIZE_FACTOR)) {
             return [];
         }
 
@@ -113,6 +90,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $tokenOffsets = $this->buildTokenOffsets($tokens);
         $occurrences = [];
         $totalTokens = \count($tokens);
+        $context = new NameResolutionContext();
 
         for ($i = 0; $i < $totalTokens; $i++) {
             $token = $tokens[$i];
@@ -120,12 +98,24 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            $match = $this->matchFunctionCall($tokens, $i, $totalTokens);
+            if (\T_NAMESPACE === $token[0]) {
+                $i = $this->readNamespaceDeclaration($tokens, $i, $totalTokens, $context);
+
+                continue;
+            }
+
+            if (\T_USE === $token[0]) {
+                $i = $this->readUseStatement($tokens, $i, $totalTokens, $context);
+
+                continue;
+            }
+
+            $match = $this->matchFunctionCall($tokens, $i, $totalTokens, $context);
             if (null === $match) {
                 continue;
             }
 
-            [$sourceName, $openParenIndex, $targetArgIndex, $isCallbackArray] = $match;
+            [$patternFunction, $openParenIndex] = $match;
 
             $occurrences = [
                 ...$occurrences,
@@ -133,10 +123,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                     $tokens,
                     $openParenIndex + 1,
                     $totalTokens,
-                    $targetArgIndex,
-                    $sourceName,
+                    $patternFunction,
                     $file,
-                    $isCallbackArray,
                     $tokenOffsets,
                     $content,
                 ),
@@ -147,11 +135,202 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
+     * Record the namespace a "namespace X;" or "namespace X { ... }" opens.
+     *
      * @param array<int, array{int, string, int}|string> $tokens
      *
-     * @return array{string, int, int, bool}|null
+     * @return int index to resume scanning from
      */
-    private function matchFunctionCall(array $tokens, int $index, int $totalTokens): ?array
+    private function readNamespaceDeclaration(array $tokens, int $index, int $totalTokens, NameResolutionContext $context): int
+    {
+        $nameIndex = $this->nextSignificantTokenIndex($tokens, $index + 1, $totalTokens);
+        if (null === $nameIndex) {
+            return $index;
+        }
+
+        $name = $this->readNameToken($tokens[$nameIndex]);
+        if (null === $name) {
+            // "namespace { ... }" declares the global namespace.
+            if ('{' === $tokens[$nameIndex]) {
+                $context->enterNamespace('');
+
+                return $nameIndex;
+            }
+
+            return $index;
+        }
+
+        $context->enterNamespace($name);
+
+        return $nameIndex;
+    }
+
+    /**
+     * Record the aliases an import statement brings into scope.
+     *
+     * Closure "use ($var)" and trait imports are skipped; the latter cannot be
+     * told apart from a class import by tokens alone, and treating one as an
+     * alias is harmless.
+     *
+     * @param array<int, array{int, string, int}|string> $tokens
+     *
+     * @return int index to resume scanning from
+     */
+    private function readUseStatement(array $tokens, int $index, int $totalTokens, NameResolutionContext $context): int
+    {
+        $cursor = $this->nextSignificantTokenIndex($tokens, $index + 1, $totalTokens);
+        if (null === $cursor) {
+            return $index;
+        }
+
+        // Closure capture: use ($foo, $bar)
+        if ('(' === $tokens[$cursor]) {
+            return $index;
+        }
+
+        $isFunction = false;
+        $token = $tokens[$cursor];
+        if (\is_array($token)) {
+            if (\T_CONST === $token[0]) {
+                return $this->skipToStatementEnd($tokens, $cursor, $totalTokens);
+            }
+
+            if (\T_FUNCTION === $token[0]) {
+                $isFunction = true;
+                $next = $this->nextSignificantTokenIndex($tokens, $cursor + 1, $totalTokens);
+                if (null === $next) {
+                    return $index;
+                }
+
+                $cursor = $next;
+            }
+        }
+
+        $prefix = '';
+        $name = '';
+        $alias = null;
+        $expectAlias = false;
+
+        for (; $cursor < $totalTokens; $cursor++) {
+            $token = $tokens[$cursor];
+
+            if ($this->isIgnorableToken($token)) {
+                continue;
+            }
+
+            if (';' === $token) {
+                $this->commitImport($context, $prefix, $name, $alias, $isFunction);
+
+                return $cursor;
+            }
+
+            if ('{' === $token) {
+                // Group import: the name read so far is the shared prefix.
+                $prefix = '' === $name ? $prefix : rtrim($name, '\\').'\\';
+                $name = '';
+                $alias = null;
+                $expectAlias = false;
+
+                continue;
+            }
+
+            if ('}' === $token) {
+                $this->commitImport($context, $prefix, $name, $alias, $isFunction);
+                $prefix = '';
+                $name = '';
+                $alias = null;
+                $expectAlias = false;
+
+                continue;
+            }
+
+            if (',' === $token) {
+                $this->commitImport($context, $prefix, $name, $alias, $isFunction);
+                $name = '';
+                $alias = null;
+                $expectAlias = false;
+
+                continue;
+            }
+
+            if (\is_array($token) && \T_DOUBLE_COLON === $token[0]) {
+                // A trait conflict block ("use A, B { B::x insteadof A; }")
+                // imports nothing.
+                return $this->skipToStatementEnd($tokens, $cursor, $totalTokens);
+            }
+
+            if (\is_array($token) && \T_AS === $token[0]) {
+                $expectAlias = true;
+
+                continue;
+            }
+
+            if (\is_array($token) && \T_NS_SEPARATOR === $token[0]) {
+                continue;
+            }
+
+            $read = $this->readNameToken($token);
+            if (null === $read) {
+                continue;
+            }
+
+            if ($expectAlias) {
+                $alias = $read;
+
+                continue;
+            }
+
+            $name = $read;
+        }
+
+        return $cursor - 1;
+    }
+
+    private function commitImport(NameResolutionContext $context, string $prefix, string $name, ?string $alias, bool $isFunction): void
+    {
+        if ('' === $name) {
+            return;
+        }
+
+        $target = $prefix.$name;
+        if (null === $alias) {
+            $separator = strrpos($name, '\\');
+            $alias = false === $separator ? $name : substr($name, $separator + 1);
+        }
+
+        if ('' === $alias) {
+            return;
+        }
+
+        if ($isFunction) {
+            $context->importFunction($alias, $target);
+
+            return;
+        }
+
+        $context->importClass($alias, $target);
+    }
+
+    /**
+     * @param array<int, array{int, string, int}|string> $tokens
+     */
+    private function skipToStatementEnd(array $tokens, int $index, int $totalTokens): int
+    {
+        for ($i = $index; $i < $totalTokens; $i++) {
+            if (';' === $tokens[$i]) {
+                return $i;
+            }
+        }
+
+        return $totalTokens - 1;
+    }
+
+    /**
+     * @param array<int, array{int, string, int}|string> $tokens
+     *
+     * @return array{PatternFunction, int}|null
+     */
+    private function matchFunctionCall(array $tokens, int $index, int $totalTokens, NameResolutionContext $context): ?array
     {
         $name = $this->readNameToken($tokens[$index]);
         if (null === $name) {
@@ -160,11 +339,11 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
         $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1, $totalTokens);
         if (null !== $nextIndex && $this->isDoubleColonToken($tokens[$nextIndex])) {
-            return $this->matchCustomStaticMethod($tokens, $index, $nextIndex, $totalTokens);
+            return $this->matchStaticMethodCall($tokens, $index, $nextIndex, $totalTokens, $context);
         }
 
         // From here on we treat this as a plain function call and decide
-        // whether it is a preg_* call or a configured custom function.
+        // whether it is a registered function.
         $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
         if (null !== $prevIndex) {
             $prevToken = $tokens[$prevIndex];
@@ -173,56 +352,32 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             }
         }
 
-        if ($this->isNamespacedFunctionName($tokens, $index)) {
-            return null;
-        }
-
         if (null === $nextIndex || '(' !== $tokens[$nextIndex]) {
             return null;
         }
 
-        $trimmedName = ltrim($name, '\\');
-        if (str_contains($trimmedName, '\\')) {
+        $patternFunction = $this->registry->lookupFunction($context->resolveFunction($name));
+        if (null === $patternFunction) {
             return null;
         }
 
-        $lookupName = strtolower($trimmedName);
-
-        if (isset(self::PREG_ARGUMENT_MAP[$lookupName])) {
-            return [
-                $trimmedName,
-                $nextIndex,
-                self::PREG_ARGUMENT_MAP[$lookupName],
-                'preg_replace_callback_array' === $lookupName,
-            ];
-        }
-
-        if (isset($this->customFunctionMap[$lookupName])) {
-            return [
-                $trimmedName,
-                $nextIndex,
-                $this->customFunctionMap[$lookupName],
-                false,
-            ];
-        }
-
-        return null;
+        return [$patternFunction, $nextIndex];
     }
 
     /**
      * @param array<int, array{int, string, int}|string> $tokens
      *
-     * @return array{string, int, int, bool}|null
+     * @return array{PatternFunction, int}|null
      */
-    private function matchCustomStaticMethod(array $tokens, int $classIndex, int $doubleColonIndex, int $totalTokens): ?array
+    private function matchStaticMethodCall(array $tokens, int $classIndex, int $doubleColonIndex, int $totalTokens, NameResolutionContext $context): ?array
     {
         $methodIndex = $this->nextSignificantTokenIndex($tokens, $doubleColonIndex + 1, $totalTokens);
         if (null === $methodIndex) {
             return null;
         }
 
-        $methodToken = $tokens[$methodIndex];
-        if (!\is_array($methodToken) || \T_STRING !== $methodToken[0]) {
+        $methodName = $this->readIdentifierToken($tokens[$methodIndex]);
+        if (null === $methodName) {
             return null;
         }
 
@@ -236,21 +391,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return null;
         }
 
-        $className = ltrim($className, '\\');
-        $methodName = $methodToken[1];
-        $fullName = $className.'::'.$methodName;
-        $lookupName = strtolower($fullName);
-
-        if (!isset($this->customStaticFunctionMap[$lookupName])) {
+        $patternFunction = $this->registry->lookupMethod($context->resolveClass($className), $methodName);
+        if (null === $patternFunction) {
             return null;
         }
 
-        return [
-            $fullName,
-            $openParenIndex,
-            $this->customStaticFunctionMap[$lookupName],
-            false,
-        ];
+        return [$patternFunction, $openParenIndex];
     }
 
     /**
@@ -263,13 +409,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         array $tokens,
         int $startIndex,
         int $totalTokens,
-        int $targetArgIndex,
-        string $sourceName,
+        PatternFunction $patternFunction,
         string $file,
-        bool $isCallbackArray,
         array $tokenOffsets,
         string $content,
     ): array {
+        $targetArgIndex = $patternFunction->argumentIndex;
         $argIndex = 0;
         $parenDepth = 0;
         $bracketDepth = 0;
@@ -294,7 +439,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             if (')' === $token) {
                 if (0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
                     if ($collecting) {
-                        return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
+                        return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
                     }
 
                     return [];
@@ -358,7 +503,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             if (',' === $token && 0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
                 if ($collecting) {
-                    return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
+                    return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
                 }
 
                 $argIndex++;
@@ -376,7 +521,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         if ($collecting) {
-            return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
+            return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
         }
 
         return [];
@@ -395,86 +540,71 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         array $tokenOffsets,
         string $content,
         string $file,
-        string $sourceName,
-        bool $isCallbackArray
+        PatternFunction $patternFunction
     ): array {
-        if ($isCallbackArray) {
-            return $this->extractFromCallbackArray($tokens, $tokenIndexes, $tokenOffsets, $content, $file, $sourceName);
+        [$stripped, $strippedIndexes] = $this->stripOuterParentheses($tokens, $tokenIndexes);
+
+        // preg_replace(['/a/', '/b/'], ...) and preg_replace_callback_array(['/a/' => $fn])
+        // hold several patterns in one argument.
+        if (null !== $this->findArrayStartIndex($stripped)) {
+            return $this->extractFromArrayLiteral($stripped, $strippedIndexes, $tokenOffsets, $content, $file, $patternFunction);
         }
 
-        $patternInfo = $this->parseRegexExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
-        if (null === $patternInfo) {
-            // Fallback to regular string parsing
-            $patternInfo = $this->parseConstantStringExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
-            if (null === $patternInfo) {
-                return [];
-            }
-
-            if ('' === $patternInfo['pattern']) {
-                return [];
-            }
-
-            return [new RegexPatternOccurrence(
-                $patternInfo['pattern'],
-                $file,
-                $patternInfo['line'],
-                $sourceName.'()',
-                column: $patternInfo['column'] ?? null,
-                fileOffset: $patternInfo['offset'] ?? null,
-            )];
-        }
-
-        if ('' === $patternInfo['pattern']) {
+        // Outside an array literal there are no keys to read from.
+        if ($patternFunction->keysArePatterns) {
             return [];
         }
 
-        return [new RegexPatternOccurrence(
-            $patternInfo['pattern'],
-            $file,
-            $patternInfo['line'],
-            $sourceName.'()',
-            column: $patternInfo['column'] ?? null,
-            fileOffset: $patternInfo['offset'] ?? null,
-        )];
+        $patternInfo = $this->parseRegexExpression($tokens, $tokenIndexes, $tokenOffsets, $content)
+            ?? $this->parseConstantStringExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
+
+        if (null === $patternInfo || '' === $patternInfo['pattern']) {
+            return [];
+        }
+
+        return [$this->createOccurrence($patternInfo, $file, $patternFunction)];
     }
 
     /**
+     * Read every pattern out of an array literal, taking either its keys or
+     * its values depending on the call being analysed.
+     *
      * @param array<int, array{int, string, int}|string> $tokens
      * @param array<int, int>                            $tokenIndexes
      * @param array<int, int>                            $tokenOffsets
      *
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromCallbackArray(
+    private function extractFromArrayLiteral(
         array $tokens,
         array $tokenIndexes,
         array $tokenOffsets,
         string $content,
         string $file,
-        string $sourceName
+        PatternFunction $patternFunction
     ): array {
-        [$tokens, $tokenIndexes] = $this->stripOuterParentheses($tokens, $tokenIndexes);
         $startIndex = $this->findArrayStartIndex($tokens);
         if (null === $startIndex) {
             return [];
         }
 
+        $useKeys = $patternFunction->keysArePatterns;
         $occurrences = [];
         $totalTokens = \count($tokens);
         $stack = [$this->closingTokenFor($tokens[$startIndex])];
-        $collectingKey = true;
-        $keyTokens = [];
-        /** @var array<int, int> $keyTokenIndexes */
-        $keyTokenIndexes = [];
+        $collecting = true;
+        $segmentTokens = [];
+        /** @var array<int, int> $segmentTokenIndexes */
+        $segmentTokenIndexes = [];
 
         for ($i = $startIndex + 1; $i < $totalTokens; $i++) {
             $token = $tokens[$i];
             $tokenIndex = $tokenIndexes[$i] ?? -1;
 
             if ($this->isIgnorableToken($token)) {
-                if ($collectingKey) {
-                    $keyTokens[] = $token;
-                    $keyTokenIndexes[] = $tokenIndex;
+                if ($collecting) {
+                    $segmentTokens[] = $token;
+                    $segmentTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -484,9 +614,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $nextIndex = $this->nextSignificantTokenIndex($tokens, $i + 1, $totalTokens);
                 if (null !== $nextIndex && '(' === $tokens[$nextIndex]) {
                     $stack[] = ')';
-                    if ($collectingKey) {
-                        $keyTokens[] = '(';
-                        $keyTokenIndexes[] = $tokenIndex;
+                    if ($collecting) {
+                        $segmentTokens[] = '(';
+                        $segmentTokenIndexes[] = $tokenIndex;
                     }
                     $i = $nextIndex;
 
@@ -496,9 +626,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             if ('(' === $token || '[' === $token || '{' === $token) {
                 $stack[] = $this->closingTokenFor($token);
-                if ($collectingKey) {
-                    $keyTokens[] = $token;
-                    $keyTokenIndexes[] = $tokenIndex;
+                if ($collecting) {
+                    $segmentTokens[] = $token;
+                    $segmentTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -507,12 +637,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             if ($this->isClosingToken($token, end($stack))) {
                 array_pop($stack);
                 if (empty($stack)) {
+                    if (!$useKeys) {
+                        $this->appendOccurrenceFromSegment($occurrences, $segmentTokens, $segmentTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
+                    }
+
                     break;
                 }
 
-                if ($collectingKey) {
-                    $keyTokens[] = $token;
-                    $keyTokenIndexes[] = $tokenIndex;
+                if ($collecting) {
+                    $segmentTokens[] = $token;
+                    $segmentTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -521,40 +655,75 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $atTopLevel = 1 === \count($stack);
 
             if ($atTopLevel && ',' === $token) {
-                $collectingKey = true;
-                $keyTokens = [];
-                $keyTokenIndexes = [];
+                if (!$useKeys) {
+                    $this->appendOccurrenceFromSegment($occurrences, $segmentTokens, $segmentTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
+                }
+
+                $collecting = true;
+                $segmentTokens = [];
+                $segmentTokenIndexes = [];
 
                 continue;
             }
 
             if ($atTopLevel && $this->isDoubleArrowToken($token)) {
-                $patternInfo = $this->parseConstantStringExpression($keyTokens, $keyTokenIndexes, $tokenOffsets, $content);
-                if (null !== $patternInfo && '' !== $patternInfo['pattern']) {
-                    $occurrences[] = new RegexPatternOccurrence(
-                        $patternInfo['pattern'],
-                        $file,
-                        $patternInfo['line'],
-                        $sourceName.'()',
-                        column: $patternInfo['column'] ?? null,
-                        fileOffset: $patternInfo['offset'] ?? null,
-                    );
+                if ($useKeys) {
+                    $this->appendOccurrenceFromSegment($occurrences, $segmentTokens, $segmentTokenIndexes, $tokenOffsets, $content, $file, $patternFunction);
+                    $collecting = false;
                 }
 
-                $collectingKey = false;
-                $keyTokens = [];
-                $keyTokenIndexes = [];
+                // Whatever was collected was the key; the value follows.
+                $segmentTokens = [];
+                $segmentTokenIndexes = [];
 
                 continue;
             }
 
-            if ($collectingKey) {
-                $keyTokens[] = $token;
-                $keyTokenIndexes[] = $tokenIndex;
+            if ($collecting) {
+                $segmentTokens[] = $token;
+                $segmentTokenIndexes[] = $tokenIndex;
             }
         }
 
         return $occurrences;
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence>              $occurrences
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
+     * @param array<int, int>                            $tokenOffsets
+     */
+    private function appendOccurrenceFromSegment(
+        array &$occurrences,
+        array $tokens,
+        array $tokenIndexes,
+        array $tokenOffsets,
+        string $content,
+        string $file,
+        PatternFunction $patternFunction
+    ): void {
+        $patternInfo = $this->parseConstantStringExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
+        if (null === $patternInfo || '' === $patternInfo['pattern']) {
+            return;
+        }
+
+        $occurrences[] = $this->createOccurrence($patternInfo, $file, $patternFunction);
+    }
+
+    /**
+     * @param array{pattern: string, line: int, offset?: int|null, column?: int|null} $patternInfo
+     */
+    private function createOccurrence(array $patternInfo, string $file, PatternFunction $patternFunction): RegexPatternOccurrence
+    {
+        return new RegexPatternOccurrence(
+            $patternInfo['pattern'],
+            $file,
+            $patternInfo['line'],
+            $patternFunction->label.'()',
+            column: $patternInfo['column'] ?? null,
+            fileOffset: $patternInfo['offset'] ?? null,
+        );
     }
 
     /**
@@ -957,59 +1126,24 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<int, array{int, string, int}|string> $tokens
+     * Read a token used as a member name.
+     *
+     * Any reserved word is a valid method name, so this accepts every token
+     * whose text is an identifier rather than T_STRING alone.
+     *
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
-    private function isNamespacedFunctionName(array $tokens, int $index): bool
+    private function readIdentifierToken(array|string $token): ?string
     {
-        $token = $tokens[$index];
-        if (!\is_array($token) || \T_STRING !== $token[0]) {
-            return false;
+        if (!\is_array($token)) {
+            return null;
         }
 
-        $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
-        if (null === $prevIndex) {
-            return false;
+        if (1 !== preg_match(self::IDENTIFIER_PATTERN, $token[1])) {
+            return null;
         }
 
-        $prevToken = $tokens[$prevIndex];
-        if (!\is_array($prevToken) || \T_NS_SEPARATOR !== $prevToken[0]) {
-            return false;
-        }
-
-        $prevPrevIndex = $this->previousSignificantTokenIndex($tokens, $prevIndex - 1);
-        if (null === $prevPrevIndex) {
-            return false;
-        }
-
-        $prevPrevToken = $tokens[$prevPrevIndex];
-
-        return \is_array($prevPrevToken) && $this->isNameToken($prevPrevToken);
-    }
-
-    /**
-     * @param array{0:int, 1:string, 2?:int} $token
-     */
-    private function isNameToken(array $token): bool
-    {
-        $id = $token[0];
-
-        if (\T_STRING === $id) {
-            return true;
-        }
-
-        if (\defined('T_NAME_QUALIFIED') && \T_NAME_QUALIFIED === $id) {
-            return true;
-        }
-
-        if (\defined('T_NAME_FULLY_QUALIFIED') && \T_NAME_FULLY_QUALIFIED === $id) {
-            return true;
-        }
-
-        if (\defined('T_NAME_RELATIVE') && \T_NAME_RELATIVE === $id) {
-            return true;
-        }
-
-        return false;
+        return $token[1];
     }
 
     /**
@@ -1043,11 +1177,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
     private function shouldSkipContent(string $content): bool
     {
-        if ([] !== $this->customFunctionMap || [] !== $this->customStaticFunctionMap) {
-            return false;
-        }
-
-        return false === stripos($content, 'preg_');
+        return !$this->registry->matchesContent($content);
     }
 
     /**

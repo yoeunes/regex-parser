@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Lint;
 
 use RegexParser\Lint\Extraction\ExtractorInterface;
+use RegexParser\Lint\Extraction\MemoryBudget;
 
 /**
  * Extracts regex patterns from PHP source files using configured extractor.
@@ -405,6 +406,13 @@ final readonly class RegexPatternExtractor
     {
         $content = @file_get_contents($file);
         if (false === $content || '' === $content) {
+            return [];
+        }
+
+        // Reading a huge generated file into tokens can exhaust the memory
+        // limit, and a fatal error here would lose every result collected so
+        // far. Such a file simply keeps no suppression markers.
+        if (!MemoryBudget::allows($content, MemoryBudget::TOKENIZE_FACTOR)) {
             return [];
         }
 

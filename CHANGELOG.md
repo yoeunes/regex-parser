@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `$phpVersionId` argument of `Lexer::__construct()`: tokenizing does not depend on the PHP version, and keying the compiled token patterns on it compiled the same two regexes once per version. See [UPGRADING.md](UPGRADING.md).
 
 ### Fixed
+- Installing `nikic/php-parser` changed what `regex lint` reported: the AST extractor missed the patterns held in an array — `preg_replace(['/a/', '/b/'], ...)` and every `preg_replace_callback_array()` key — that the tokenizer already read. Both extractors now recognise the same calls, and the AST one also reads a pattern passed as a named argument.
+- A single generated file of a couple of megabytes aborted a whole lint run: reading it into tokens exhausted the memory limit, and that fatal error cannot be caught, so every result collected so far was lost. Such a file is now skipped; raise `memory_limit` to have it analyzed.
 - Validation refused every version condition, `(?(VERSION>=10.4)...)` included, though PCRE compiles it. It now accepts the two comparisons PCRE makes — `=` and `>=` — and reports the others as `regex.condition.version_operator` rather than as an unrecognised condition.
 - `(*:label)` came back as `(*MARK:label)`.
 - Recompiling rewrote two spellings the author had picked: `(?'name'x)` came back as `(?<name>x)`, and `(*sr:...)` as `(*script_run:...)`.
@@ -33,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A cache that throws while reading is treated as a cache miss, the way a cache that throws while writing already was.
 
 ### Added
+- `regex lint` reads patterns from regex wrappers, not only from the native `preg_*` functions. `composer/pcre` (`Preg::`, `Regex::`) is recognised out of the box; `nette-utils`, `spatie-regex` and `laravel-str` are enabled with `--interop` or `extraction.interop`. A codebase that had migrated away from `preg_*` reported no patterns at all before.
+- Project helpers carrying a pattern are declared with `--pattern-function` or `extraction.functions`, as `function` or `Some\Class::method`, with `#<index>` when the pattern is not the first argument and `#<index>:keys` when that argument is an array whose keys hold the patterns.
 - Alphabetic assertion verbs (PCRE2 10.32+): `(*pla:...)`, `(*positive_lookahead:...)`, `(*nla:...)`, `(*plb:...)`, `(*nlb:...)`, `(*negative_lookbehind:...)`, `(*atomic:...)` parse as their classic lookaround / atomic group equivalents.
 - Script run content is now parsed into the AST: `(*sr:(a+)+b)` is analyzed like any sub-pattern (its catastrophic backtracking is detected by the ReDoS engine, its length/complexity contribute to metrics).
 - `Regex::parseTolerant()` — explicit tolerant parsing without the `parse($regex, true)` bool-flag union return.

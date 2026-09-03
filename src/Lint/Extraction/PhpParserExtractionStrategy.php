@@ -16,11 +16,16 @@ namespace RegexParser\Lint\Extraction;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\BinaryOp\Concat;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\NodeTraverser;
+use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use RegexParser\Lint\RegexPatternOccurrence;
@@ -34,13 +39,31 @@ use RegexParser\Lint\RegexPatternOccurrence;
  * phpstan/phpstan usually brings it along — so the extractor factory falls
  * back to the tokenizer when it is absent.
  *
+ * Names are resolved before extraction, so imported wrappers such as
+ * composer/pcre's Preg::match() are matched on their fully qualified class
+ * and a same-named class of the project's own is not mistaken for one.
+ *
  * @internal
  */
 final readonly class PhpParserExtractionStrategy implements ExtractorInterface
 {
+    /**
+     * Parameter names accepted when a call passes the pattern by name.
+     */
+    private const PATTERN_PARAMETER_NAMES = [
+        'pattern',
+        'patterns',
+        'regex',
+    ];
+
     private ?Parser $parser;
 
-    public function __construct()
+    private PatternFunctionRegistry $registry;
+
+    /**
+     * @param array<int, string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
+     */
+    public function __construct(array $customFunctions = [], ?PatternFunctionRegistry $registry = null)
     {
         $parser = null;
         if (class_exists(ParserFactory::class)) {
@@ -49,6 +72,7 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
         }
 
         $this->parser = $parser;
+        $this->registry = ($registry ?? PatternFunctionRegistry::defaults())->withCustomFunctions($customFunctions);
     }
 
     public function extract(array $files): array
@@ -96,7 +120,11 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
-            if (false === stripos($content, 'preg_')) {
+            if (!$this->registry->matchesContent($content)) {
+                return [];
+            }
+
+            if (!MemoryBudget::allows($content, MemoryBudget::PARSE_FACTOR)) {
                 return [];
             }
 
@@ -104,6 +132,10 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
             if (!\is_array($ast)) {
                 return [];
             }
+
+            $traverser = new NodeTraverser();
+            $traverser->addVisitor(new NameResolver());
+            $ast = $traverser->traverse($ast);
 
             return $this->extractFromTokens($ast, $file, $content);
         } catch (\Throwable) {
@@ -138,6 +170,8 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
 
         if ($node instanceof FuncCall) {
             $this->appendOccurrences($occurrences, $this->extractFromFuncCall($node, $file, $content));
+        } elseif ($node instanceof StaticCall) {
+            $this->appendOccurrences($occurrences, $this->extractFromStaticCall($node, $file, $content));
         }
 
         // Recursively check child nodes
@@ -166,39 +200,89 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        $functionName = strtolower($funcCall->name->toString());
-        if (!$this->isPregFunction($functionName)) {
+        $patternFunction = $this->registry->lookupFunction($funcCall->name->toString());
+        if (null === $patternFunction) {
             return [];
         }
 
-        $args = $funcCall->getArgs();
-        if (empty($args)) {
-            return [];
-        }
-
-        $firstArg = $args[0];
-
-        return $this->extractPatternFromArg($firstArg, $file, $content, $functionName);
-    }
-
-    private function isPregFunction(string $functionName): bool
-    {
-        return \in_array($functionName, [
-            'preg_match',
-            'preg_match_all',
-            'preg_replace',
-            'preg_replace_callback',
-            'preg_split',
-            'preg_grep',
-            'preg_filter',
-            'preg_replace_callback_array',
-        ], true);
+        return $this->extractFromArgs($funcCall->getArgs(), $patternFunction, $file, $content);
     }
 
     /**
      * @return array<RegexPatternOccurrence>
      */
-    private function extractPatternFromArg(Arg $arg, string $file, string $content, string $functionName): array
+    private function extractFromStaticCall(StaticCall $staticCall, string $file, string $content): array
+    {
+        if (!$staticCall->class instanceof Name || !$staticCall->name instanceof Identifier) {
+            return [];
+        }
+
+        $patternFunction = $this->registry->lookupMethod($staticCall->class->toString(), $staticCall->name->toString());
+        if (null === $patternFunction) {
+            return [];
+        }
+
+        return $this->extractFromArgs($staticCall->getArgs(), $patternFunction, $file, $content);
+    }
+
+    /**
+     * @param array<Arg> $args
+     *
+     * @return array<RegexPatternOccurrence>
+     */
+    private function extractFromArgs(array $args, PatternFunction $patternFunction, string $file, string $content): array
+    {
+        $arg = $this->findPatternArg($args, $patternFunction->argumentIndex);
+        if (null === $arg) {
+            return [];
+        }
+
+        return $this->extractPatternFromArg($arg, $patternFunction, $file, $content);
+    }
+
+    /**
+     * Locate the pattern argument, whether it was passed positionally or by name.
+     *
+     * @param array<Arg> $args
+     */
+    private function findPatternArg(array $args, int $argumentIndex): ?Arg
+    {
+        $position = 0;
+
+        foreach ($args as $arg) {
+            if (null !== $arg->name) {
+                continue;
+            }
+
+            // A spread makes every later position unknowable.
+            if ($arg->unpack) {
+                return null;
+            }
+
+            if ($position === $argumentIndex) {
+                return $arg;
+            }
+
+            $position++;
+        }
+
+        foreach ($args as $arg) {
+            if (null === $arg->name) {
+                continue;
+            }
+
+            if (\in_array(strtolower($arg->name->toString()), self::PATTERN_PARAMETER_NAMES, true)) {
+                return $arg;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<RegexPatternOccurrence>
+     */
+    private function extractPatternFromArg(Arg $arg, PatternFunction $patternFunction, string $file, string $content): array
     {
         $value = $arg->value;
 
@@ -206,56 +290,59 @@ final readonly class PhpParserExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        if ($value instanceof String_) {
-            $pattern = $value->value;
-            if ('' === $pattern) {
-                return [];
-            }
-
-            $offset = $this->normalizeOffset($value->getStartFilePos());
-            $column = null !== $offset ? $this->columnFromOffset($content, $offset) : null;
-
-            return [new RegexPatternOccurrence(
-                $pattern,
-                $file,
-                $value->getStartLine(),
-                'php:'.$functionName.'()',
-                column: $column,
-                fileOffset: $offset,
-            )];
+        // preg_replace(['/a/', '/b/'], ...) and preg_replace_callback_array(['/a/' => $fn])
+        // hold several patterns in one argument.
+        if ($value instanceof Array_) {
+            return $this->extractPatternsFromArray($value, $patternFunction, $file, $content);
         }
 
-        // Handle concatenation of strings
-        if ($value instanceof Concat) {
-            $result = $this->extractFromConcat($value, $file, $content, $functionName);
+        $occurrence = $this->extractPatternFromExpr($value, $patternFunction, $file, $content);
 
-            return $result ? [$result] : [];
-        }
-
-        return [];
+        return null !== $occurrence ? [$occurrence] : [];
     }
 
-    private function extractFromConcat(Concat $concat, string $file, string $content, string $functionName): ?RegexPatternOccurrence
+    /**
+     * @return array<RegexPatternOccurrence>
+     */
+    private function extractPatternsFromArray(Array_ $array, PatternFunction $patternFunction, string $file, string $content): array
     {
-        $left = $this->extractStringValue($concat->left);
-        $right = $this->extractStringValue($concat->right);
+        $occurrences = [];
 
-        if (null === $left || null === $right) {
+        foreach ($array->items as $item) {
+            if (null === $item) {
+                continue;
+            }
+
+            $expr = $patternFunction->keysArePatterns ? $item->key : $item->value;
+            if (null === $expr) {
+                continue;
+            }
+
+            $occurrence = $this->extractPatternFromExpr($expr, $patternFunction, $file, $content);
+            if (null !== $occurrence) {
+                $occurrences[] = $occurrence;
+            }
+        }
+
+        return $occurrences;
+    }
+
+    private function extractPatternFromExpr(Expr $expr, PatternFunction $patternFunction, string $file, string $content): ?RegexPatternOccurrence
+    {
+        $pattern = $this->extractStringValue($expr);
+        if (null === $pattern || '' === $pattern) {
             return null;
         }
 
-        $pattern = $left.$right;
-        if ('' === $pattern) {
-            return null;
-        }
+        $offset = $this->normalizeOffset($expr->getStartFilePos());
 
         return new RegexPatternOccurrence(
             $pattern,
             $file,
-            $concat->getStartLine(),
-            'php:'.$functionName.'()',
-            column: $this->columnFromOffset($content, $this->normalizeOffset($concat->getStartFilePos())),
-            fileOffset: $this->normalizeOffset($concat->getStartFilePos()),
+            $expr->getStartLine(),
+            $patternFunction->label.'()',
+            column: null !== $offset ? $this->columnFromOffset($content, $offset) : null,
+            fileOffset: $offset,
         );
     }
 

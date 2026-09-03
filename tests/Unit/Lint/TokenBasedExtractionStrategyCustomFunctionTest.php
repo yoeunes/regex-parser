@@ -41,7 +41,8 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('/test/', $result[0]->pattern);
-        $this->assertSame('mycustomregex()', $result[0]->source);
+        // The call site spells it differently; reports use the declared name.
+        $this->assertSame('MyCustomRegex()', $result[0]->source);
     }
 
     public function test_extracts_pattern_from_static_method(): void
@@ -67,7 +68,7 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('/test/', $result[0]->pattern);
-        $this->assertSame('Myclass::validate()', $result[0]->source);
+        $this->assertSame('MyClass::Validate()', $result[0]->source);
     }
 
     public function test_handles_multiple_custom_functions(): void

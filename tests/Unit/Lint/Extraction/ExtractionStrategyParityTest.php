@@ -1,0 +1,140 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit\Lint\Extraction;
+
+use PhpParser\ParserFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\Extraction\ExtractorInterface;
+use RegexParser\Lint\Extraction\PatternFunctionRegistry;
+use RegexParser\Lint\Extraction\PhpParserExtractionStrategy;
+use RegexParser\Lint\Extraction\TokenBasedExtractionStrategy;
+use RegexParser\Lint\RegexPatternOccurrence;
+
+/**
+ * Both strategies must see the same patterns.
+ *
+ * Which one runs depends on whether nikic/php-parser is installed, so a gap
+ * between them means installing an optional dependency changes what the lint
+ * reports.
+ */
+final class ExtractionStrategyParityTest extends TestCase
+{
+    /**
+     * @return iterable<string, array{string, array<int, string>, array<int, string>}>
+     */
+    public static function provideFixtures(): iterable
+    {
+        yield 'composer/pcre wrappers' => [
+            'interop_composer_pcre.php',
+            [],
+            ['/imported/', '/is-match/', '/aliased/', '/fully-qualified/', '/callback-a/', '/callback-b/'],
+        ];
+
+        yield 'a project class named like a wrapper' => [
+            'interop_shadowed_class.php',
+            [],
+            [],
+        ];
+
+        yield 'nette/utils, pattern in second argument' => [
+            'interop_nette_utils.php',
+            ['nette-utils'],
+            ['/second-argument/', '/replace-key/'],
+        ];
+
+        yield 'arrays of patterns' => [
+            'array_of_patterns.php',
+            [],
+            ['/array-a/', '/array-b/', '/keys-a/', '/keys-b/'],
+        ];
+
+        yield 'namespaced drop-in functions' => [
+            'namespaced_drop_in.php',
+            [],
+            ['/aliased-drop-in/', '/qualified-drop-in/'],
+        ];
+
+        yield 'native preg_* calls' => [
+            'multiple_preg_functions.php',
+            [],
+            ['/test/', '/old/', '/\\s+/'],
+        ];
+    }
+
+    /**
+     * @param array<int, string> $presets
+     * @param array<int, string> $expected
+     */
+    #[DataProvider('provideFixtures')]
+    public function test_both_strategies_extract_the_same_patterns(string $fixture, array $presets, array $expected): void
+    {
+        if (!class_exists(ParserFactory::class)) {
+            $this->markTestSkipped('nikic/php-parser is required to compare both strategies.');
+        }
+
+        $file = __DIR__.'/../../../Fixtures/Extractor/'.$fixture;
+        $registry = PatternFunctionRegistry::create(['composer-pcre', ...$presets]);
+
+        $fromTokens = $this->patterns(new TokenBasedExtractionStrategy([], $registry), $file);
+        $fromAst = $this->patterns(new PhpParserExtractionStrategy([], $registry), $file);
+
+        $this->assertSame($expected, $fromAst);
+        $this->assertSame($fromAst, $fromTokens);
+    }
+
+    public function test_both_strategies_label_occurrences_the_same_way(): void
+    {
+        if (!class_exists(ParserFactory::class)) {
+            $this->markTestSkipped('nikic/php-parser is required to compare both strategies.');
+        }
+
+        $file = __DIR__.'/../../../Fixtures/Extractor/interop_composer_pcre.php';
+
+        $fromTokens = $this->sources(new TokenBasedExtractionStrategy(), $file);
+        $fromAst = $this->sources(new PhpParserExtractionStrategy(), $file);
+
+        $this->assertSame([
+            'Preg::match()',
+            'Preg::isMatch()',
+            'Regex::matchAll()',
+            'Preg::split()',
+            'Preg::replaceCallbackArray()',
+            'Preg::replaceCallbackArray()',
+        ], $fromAst);
+        $this->assertSame($fromAst, $fromTokens);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function patterns(ExtractorInterface $strategy, string $file): array
+    {
+        return array_values(array_map(
+            static fn (RegexPatternOccurrence $occurrence): string => $occurrence->pattern,
+            $strategy->extract([$file]),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function sources(ExtractorInterface $strategy, string $file): array
+    {
+        return array_values(array_map(
+            static fn (RegexPatternOccurrence $occurrence): string => $occurrence->source,
+            $strategy->extract([$file]),
+        ));
+    }
+}

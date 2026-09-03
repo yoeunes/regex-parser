@@ -24,69 +24,23 @@ final class TokenBasedExtractionStrategyTokenHelperTest extends TestCase
         LintFunctionOverrides::reset();
     }
 
-    public function test_is_namespaced_function_name_detects_qualified_call(): void
+    public function test_read_identifier_token_reads_reserved_words_used_as_method_names(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
-        $tokens = [
-            [\T_STRING, 'Foo', 1],
-            [\T_NS_SEPARATOR, '\\', 1],
-            [\T_STRING, 'preg_match', 1],
-        ];
 
-        $this->assertTrue($this->invoke($strategy, 'isNamespacedFunctionName', $tokens, 2));
+        // Preg::match() tokenizes "match" as T_MATCH, not T_STRING.
+        $this->assertSame('match', $this->invoke($strategy, 'readIdentifierToken', [\T_MATCH, 'match', 1]));
+        $this->assertSame('matchAll', $this->invoke($strategy, 'readIdentifierToken', [\T_STRING, 'matchAll', 1]));
+        $this->assertSame('list', $this->invoke($strategy, 'readIdentifierToken', [\T_LIST, 'list', 1]));
     }
 
-    public function test_is_namespaced_function_name_returns_false_without_namespace(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy();
-        $tokens = [
-            [\T_STRING, 'preg_match', 1],
-        ];
-
-        $this->assertFalse($this->invoke($strategy, 'isNamespacedFunctionName', $tokens, 0));
-    }
-
-    public function test_is_namespaced_function_name_returns_false_with_non_separator(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy();
-        $tokens = [
-            [\T_STRING, 'Foo', 1],
-            [\T_STRING, 'preg_match', 1],
-        ];
-
-        $this->assertFalse($this->invoke($strategy, 'isNamespacedFunctionName', $tokens, 1));
-    }
-
-    public function test_is_namespaced_function_name_returns_false_without_prefix_token(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy();
-        $tokens = [
-            [\T_NS_SEPARATOR, '\\', 1],
-            [\T_STRING, 'preg_match', 1],
-        ];
-
-        $this->assertFalse($this->invoke($strategy, 'isNamespacedFunctionName', $tokens, 1));
-    }
-
-    public function test_is_name_token_handles_known_types(): void
+    public function test_read_identifier_token_rejects_non_identifiers(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
 
-        $this->assertTrue($this->invoke($strategy, 'isNameToken', [\T_STRING, 'Foo', 1]));
-
-        if (\defined('T_NAME_QUALIFIED')) {
-            $this->assertTrue($this->invoke($strategy, 'isNameToken', [\T_NAME_QUALIFIED, 'Foo\\Bar', 1]));
-        }
-
-        if (\defined('T_NAME_FULLY_QUALIFIED')) {
-            $this->assertTrue($this->invoke($strategy, 'isNameToken', [\T_NAME_FULLY_QUALIFIED, '\\Foo\\Bar', 1]));
-        }
-
-        if (\defined('T_NAME_RELATIVE')) {
-            $this->assertTrue($this->invoke($strategy, 'isNameToken', [\T_NAME_RELATIVE, 'namespace\\Foo', 1]));
-        }
-
-        $this->assertFalse($this->invoke($strategy, 'isNameToken', [\T_VARIABLE, '$foo', 1]));
+        $this->assertNull($this->invoke($strategy, 'readIdentifierToken', '('));
+        $this->assertNull($this->invoke($strategy, 'readIdentifierToken', [\T_VARIABLE, '$method', 1]));
+        $this->assertNull($this->invoke($strategy, 'readIdentifierToken', [\T_LNUMBER, '1', 1]));
     }
 
     public function test_read_name_token_returns_null_for_string_token(): void

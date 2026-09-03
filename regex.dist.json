@@ -9,6 +9,12 @@
         "Tests",
         "Fixtures"
     ],
+    "extraction": {
+        "interop": [
+            "composer-pcre"
+        ],
+        "functions": []
+    },
     "checks": {
         "validation": true,
         "redos": {

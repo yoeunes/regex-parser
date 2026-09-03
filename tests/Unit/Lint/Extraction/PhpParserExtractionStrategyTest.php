@@ -64,7 +64,7 @@ final class PhpParserExtractionStrategyTest extends TestCase
             $this->assertSame('/test/', $result[0]->pattern);
             $this->assertSame($file, $result[0]->file);
             $this->assertSame(1, $result[0]->line);
-            $this->assertSame('php:preg_match()', $result[0]->source);
+            $this->assertSame('preg_match()', $result[0]->source);
 
             $content = file_get_contents($file);
             $this->assertIsString($content);
@@ -178,7 +178,7 @@ final class PhpParserExtractionStrategyTest extends TestCase
         if ($this->isPhpParserAvailable()) {
             $this->assertCount(1, $result);
             $this->assertSame('/test/', $result[0]->pattern);
-            $this->assertSame('php:preg_replace_callback()', $result[0]->source);
+            $this->assertSame('preg_replace_callback()', $result[0]->source);
         } else {
             $this->assertSame([], $result);
         }
@@ -189,8 +189,15 @@ final class PhpParserExtractionStrategyTest extends TestCase
         $file = __DIR__.'/../../../Fixtures/Extractor/phpstan_preg_replace_callback_array.php';
 
         $result = $this->strategy->extract([$file]);
-        // preg_replace_callback_array takes an array as first arg, so no pattern is extracted
-        $this->assertSame([], $result);
+
+        if ($this->isPhpParserAvailable()) {
+            // The patterns are the keys of the array passed as first argument.
+            $this->assertCount(1, $result);
+            $this->assertSame('/test/', $result[0]->pattern);
+            $this->assertSame('preg_replace_callback_array()', $result[0]->source);
+        } else {
+            $this->assertSame([], $result);
+        }
     }
 
     private function isPhpParserAvailable(): bool

@@ -1,0 +1,6 @@
+{
+    "extraction": {
+        "interop": ["composer-pcre", "nette-utils"],
+        "functions": ["App\\Support\\Str::matches#1", "regex_check"]
+    }
+}

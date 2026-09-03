@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
+use RegexParser\Lint\Extraction\InteropPresets;
 use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 
@@ -206,6 +207,16 @@ final class LintConfigLoader
             }
         }
 
+        if (\array_key_exists('extraction', $config)) {
+            $extraction = $this->normalizeExtractionConfig($config['extraction'], $path);
+            if (null !== $extraction->error) {
+                return $extraction;
+            }
+            if ([] !== $extraction->config) {
+                $normalized = $this->mergeConfig($normalized, $extraction->config);
+            }
+        }
+
         if (\array_key_exists('checks', $config)) {
             if (!\is_array($config['checks'])) {
                 return new LintConfigResult([], [], 'Invalid "checks" in '.$path.': expected an object.');
@@ -226,6 +237,47 @@ final class LintConfigLoader
             if ([] !== $checks->config) {
                 $normalized = $this->mergeConfig($normalized, $checks->config);
             }
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    /**
+     * Normalize which wrapper libraries and project helpers carry patterns.
+     */
+    private function normalizeExtractionConfig(mixed $value, string $path): LintConfigResult
+    {
+        if (!\is_array($value)) {
+            return new LintConfigResult([], [], 'Invalid "extraction" in '.$path.': expected an object.');
+        }
+
+        /** @var array<string, mixed> $normalized */
+        $normalized = [];
+
+        if (\array_key_exists('interop', $value)) {
+            $interop = $this->normalizeStringList($value['interop'], $path, 'extraction.interop');
+            if (null !== $interop->error) {
+                return $interop;
+            }
+
+            /** @var array<int, string> $presets */
+            $presets = $interop->config['extraction.interop'] ?? [];
+            foreach ($presets as $preset) {
+                if (!InteropPresets::exists($preset)) {
+                    return new LintConfigResult([], [], 'Invalid "extraction.interop" in '.$path.': unknown preset "'.$preset.'". Available presets: '.implode(', ', InteropPresets::names()).'.');
+                }
+            }
+
+            $normalized['interop'] = $presets;
+        }
+
+        if (\array_key_exists('functions', $value)) {
+            $functions = $this->normalizeStringList($value['functions'], $path, 'extraction.functions');
+            if (null !== $functions->error) {
+                return $functions;
+            }
+
+            $normalized['patternFunctions'] = $functions->config['extraction.functions'] ?? [];
         }
 
         return new LintConfigResult($normalized, []);

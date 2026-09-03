@@ -110,6 +110,9 @@ final readonly class HelpCommand implements CommandInterface
             ['--redos-no-jit', 'Disable JIT during confirmation runs'],
             ['--no-validate', 'Skip validation errors (structural lint only)'],
             ['--no-optimize', 'Disable optimization suggestions'],
+            ['--interop <presets>', 'Wrapper libraries to read patterns from (composer-pcre, nette-utils, spatie-regex, laravel-str, none)'],
+            ['--no-interop', 'Read patterns from native preg_* calls only'],
+            ['--pattern-function <spec>', 'Extra call carrying a pattern, e.g. App\\Str::matches#1 (repeatable)'],
             ['-v, --verbose', 'Show detailed output'],
             ['--debug', 'Show debug information'],
         ];
