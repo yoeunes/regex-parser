@@ -86,7 +86,7 @@ tasks:
       - cmd: php -d phar.readonly=0 tools/phpunit/vendor/bin/phpunit {{.CLI_ARGS}}
       - cmd: touch .task/phpunit.success
     sources:
-      - phpunit.dist.xml
+      - phpunit.xml.dist
       - src/**/*.php
       - tests/**/*.php
     generates:
@@ -108,12 +108,19 @@ tasks:
     method: checksum
 
   infection:
+    env:
+      # Mutants parse with altered code; keeping their file cache away from
+      # the system temp means they can neither read nor poison real entries.
+      TMPDIR: '{{.ROOT_DIR}}/.cache/infection-tmp'
     cmds:
-      - cmd: tools/infection/vendor/bin/infection {{.CLI_ARGS}}
+      - cmd: mkdir -p .cache/infection-tmp
+      # Reports live outside the ".cache" tmpDir: infection wipes that at the
+      # end of a run and would take them with it.
+      - cmd: tools/infection/vendor/bin/infection --logger-text=infection-mutations.log --logger-html=infection-mutations.html {{.CLI_ARGS}}
       - cmd: touch .task/infection.success
     sources:
       - infection.json.dist
-      - phpunit.dist.xml
+      - phpunit.xml.dist
       - src/**/*.php
       - tests/**/*.php
     generates:
@@ -131,7 +138,7 @@ tasks:
       - cmd: tools/phpunit/vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
       - cmd: touch .task/coverage.success
     sources:
-      - phpunit.dist.xml
+      - phpunit.xml.dist
       - src/**/*.php
       - tests/**/*.php
     generates:

@@ -2,6 +2,11 @@
     "source": {
         "directories": [
             "src"
+        ],
+        "excludes": [
+            "Exception",
+            "Bundle",
+            "Bridge"
         ]
     },
     "timeout": 10,
@@ -17,6 +22,9 @@
         "@default": true
     },
     "testFramework": "phpunit",
+    "phpUnit": {
+        "configDir": "."
+    },
     "minMsi": 50,
     "minCoveredMsi": 90
 }

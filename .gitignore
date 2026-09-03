@@ -38,3 +38,7 @@
 !/corpus/corpus-redos.log
 !/corpus/corpus.json
 !/corpus/update
+
+# Mutation testing reports
+/infection-mutations.log
+/infection-mutations.html
